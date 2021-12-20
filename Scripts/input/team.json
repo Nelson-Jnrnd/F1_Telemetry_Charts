@@ -1,0 +1,35 @@
+{
+    "teams" : [
+        { 
+            "name" : "alpine",
+            "alternate color" : "yellow",
+            "drivers" : [
+                {
+                    "abbreviation" : "ALO",
+                    "name" : "Alonso"
+                }, 
+                {
+                    "abbreviation" : "OCO",
+                    "name" : "Ocon"
+                }
+            ]
+        },
+        { 
+            "name" : "mercedes",
+            "alternate color" : "blue",
+            "drivers" : [
+                {
+                    "abbreviation" : "HAM",
+                    "name" : "Hamilton"
+                }, 
+                {
+                    "abbreviation" : "BOT",
+                    "name" : "Bottas"
+                }
+            ]
+        }
+    ],
+    "year" : 2021,
+    "round" : 16,
+    "title" : "Turkish GP Q2"
+}
