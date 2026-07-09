@@ -2,7 +2,7 @@
 doc_type: spec
 spec_id: SPEC-001
 title: F1 Data Analysis Charting Framework
-status: Draft
+status: Approved
 owner: Nelson Jeanrenaud
 related_issue:
 related_prs: []
@@ -23,7 +23,7 @@ supersedes: []
 superseded_by:
 depends_on: []
 conflicts_with: []
-last_verified_at:
+last_verified_at: 2026-07-09
 ---
 
 # SPEC-001: F1 Data Analysis Charting Framework
@@ -71,6 +71,8 @@ rendering, analysis extraction, artifact export, and report authoring.
 - The system does not need to include a hosted web application in the MVP.
 - The system does not need to generate fully autonomous publish-ready articles
   without human review in the MVP or V1.
+- The system does not need to target a platform-specific blog format in V1;
+  portable Markdown is the V1 report draft target.
 - The system does not need to support non-F1 motorsport data in SPEC-001.
 
 ## Users or actors
@@ -287,6 +289,574 @@ are stored as spec assets:
 - [Chart configuration workbench](../assets/SPEC-001-chart-config-workbench.svg)
 - [Analysis review workspace](../assets/SPEC-001-analysis-review-workspace.svg)
 - [Report package output](../assets/SPEC-001-report-package-output.svg)
+- [UC-010 CLI configuration validation](../assets/SPEC-001-UC-010-cli-config-validation.svg)
+- [UC-020 Python notebook run](../assets/SPEC-001-UC-020-python-notebook-run.svg)
+- [UC-030 Batch chart package generation](../assets/SPEC-001-UC-030-batch-chart-package.svg)
+- [UC-040 Recipe development and debugging](../assets/SPEC-001-UC-040-recipe-debugging.svg)
+- [UC-050 Observation extraction](../assets/SPEC-001-UC-050-observation-extraction.svg)
+- [UC-060 Markdown report drafting](../assets/SPEC-001-UC-060-markdown-draft.svg)
+- [UC-070 Human observation review](../assets/SPEC-001-UC-070-human-review.svg)
+- [UC-080 LLM tool invocation](../assets/SPEC-001-UC-080-llm-tool-invocation.svg)
+- [UC-090 Plugin registration](../assets/SPEC-001-UC-090-plugin-registration.svg)
+- [UC-100 Local package preview](../assets/SPEC-001-UC-100-local-preview.svg)
+
+## Use case model
+
+```mermaid
+flowchart LR
+    Analyst["Human analyst"]
+    Writer["Human writer"]
+    Agent["LLM agent"]
+    Maintainer["Project maintainer"]
+
+    UC010["UC-010 Validate configuration"]
+    UC020["UC-020 Run analysis from Python"]
+    UC030["UC-030 Generate batch chart package"]
+    UC040["UC-040 Develop or debug chart recipe"]
+    UC050["UC-050 Extract observations"]
+    UC060["UC-060 Generate Markdown draft"]
+    UC070["UC-070 Review observations"]
+    UC080["UC-080 Invoke LLM tool contract"]
+    UC090["UC-090 Register plugin recipe"]
+    UC100["UC-100 Preview package locally"]
+
+    Analyst --> UC010
+    Analyst --> UC020
+    Analyst --> UC030
+    Analyst --> UC040
+    Writer --> UC060
+    Writer --> UC070
+    Writer --> UC100
+    Agent --> UC080
+    Agent --> UC030
+    Agent --> UC050
+    Maintainer --> UC040
+    Maintainer --> UC090
+
+    UC030 --> UC050
+    UC050 --> UC060
+    UC060 --> UC070
+    UC070 --> UC100
+```
+
+## Use case analysis
+
+### UC-010: Validate Configuration
+
+- **Priority:** MVP
+- **Primary actor:** Human analyst or LLM agent.
+- **Supporting components:** CLI, configuration loader, schema validator,
+  recipe registry.
+- **Trigger:** A caller submits a configuration file for validation before a
+  chart run.
+- **Preconditions:** The configuration file exists and is readable.
+- **Main flow:**
+  1. The system must parse the configuration file.
+  2. The system must validate the schema version and supported keys.
+  3. The system must validate session identity, driver selection, recipe IDs,
+     theme settings, export settings, and output directory.
+  4. The system must resolve recipe IDs through the registry.
+  5. The system must return a success result with normalized configuration
+     values when validation passes.
+- **Alternate flows:** The system must return path-specific validation errors
+  when parsing, schema validation, recipe resolution, or output directory checks
+  fail.
+- **Postconditions:** No chart artifacts are created by validation-only mode.
+- **Primary interface mockup:** `SPEC-001-UC-010-cli-config-validation.svg`.
+- **Related requirements:** REQ-030, REQ-040, REQ-120, API-020.
+
+### UC-020: Run Analysis From Python
+
+- **Priority:** MVP
+- **Primary actor:** Human analyst.
+- **Supporting components:** Python API, configuration model, orchestrator,
+  data gateway, renderer, exporter.
+- **Trigger:** A notebook or Python script calls the public API with a validated
+  configuration or configuration path.
+- **Preconditions:** The package is importable and the caller has a valid
+  configuration.
+- **Main flow:**
+  1. The system must load or accept typed configuration.
+  2. The system must create an analysis request.
+  3. The system must execute the same validation path used by the CLI.
+  4. The system must run the analysis orchestrator.
+  5. The system must return a typed result with run status, manifest location,
+     artifacts, warnings, and errors.
+- **Alternate flows:** The system must raise documented framework exceptions or
+  return documented error result objects for validation and runtime failures.
+- **Postconditions:** Generated artifacts and metadata are written to the output
+  package when the run succeeds or partially succeeds.
+- **Primary interface mockup:** `SPEC-001-UC-020-python-notebook-run.svg`.
+- **Related requirements:** REQ-010, REQ-030, REQ-070, REQ-110, API-010.
+
+### UC-030: Generate Batch Chart Package
+
+- **Priority:** MVP
+- **Primary actor:** Human analyst or LLM agent.
+- **Supporting components:** CLI or Python API, orchestrator, cache, recipe
+  registry, renderer, artifact exporter.
+- **Trigger:** A caller requests two or more chart recipes for one session.
+- **Preconditions:** The configuration is valid and at least one requested chart
+  recipe can be resolved.
+- **Main flow:**
+  1. The system must create a run record in `pending` state.
+  2. The system must load cached data or populate the cache when allowed.
+  3. The system must evaluate each requested recipe independently.
+  4. The system must render successful chart specs.
+  5. The system must write chart images, chart metadata, and a run manifest.
+  6. The system must report successful, skipped, warning, and failed recipe
+     outcomes in the manifest.
+- **Alternate flows:** The system must preserve successful artifacts when one
+  recipe fails after the run starts.
+- **Postconditions:** The package directory contains a manifest that can be
+  consumed by humans, scripts, and LLM agents.
+- **Primary interface mockup:** `SPEC-001-UC-030-batch-chart-package.svg`.
+- **Related requirements:** REQ-020, REQ-050, REQ-060, REQ-070, REQ-080,
+  DATA-020.
+
+### UC-040: Develop Or Debug Chart Recipe
+
+- **Priority:** MVP for core recipes; V2 for external plugins.
+- **Primary actor:** Project maintainer or advanced analyst.
+- **Supporting components:** Recipe registry, normalized dataset model, chart
+  spec model, renderer, fixture tests.
+- **Trigger:** A maintainer creates or modifies a chart recipe.
+- **Preconditions:** Representative fixture data exist for the intended recipe.
+- **Main flow:**
+  1. The system must let the recipe declare its stable ID, required dataset
+     fields, supported config keys, and output artifact type.
+  2. The system must validate recipe configuration before rendering.
+  3. The system must build a renderer-independent chart spec from normalized
+     session data.
+  4. The system must render the chart spec through the configured renderer.
+  5. The system must expose recipe warnings and missing-data errors in the run
+     manifest.
+- **Alternate flows:** The system should allow plugin recipes to register
+  through a documented extension point after V2 is implemented.
+- **Postconditions:** A recipe can be tested against fixtures without direct
+  FastF1 calls.
+- **Primary interface mockup:** `SPEC-001-UC-040-recipe-debugging.svg`.
+- **Related requirements:** REQ-040, REQ-050, REQ-150, NFR-020, NFR-070.
+
+### UC-050: Extract Observations
+
+- **Priority:** V1
+- **Primary actor:** Human analyst or LLM agent.
+- **Supporting components:** Analysis engine, chart metadata, artifact manifest,
+  observation model.
+- **Trigger:** A chart package is available and observation extraction is
+  enabled.
+- **Preconditions:** The run has at least one generated chart artifact and
+  machine-readable chart metadata.
+- **Main flow:**
+  1. The system must inspect chart metadata and normalized session metrics.
+  2. The system must compute supported observations for configured observation
+     families.
+  3. The system must attach metric values, evidence links, confidence, and
+     limitations to each observation.
+  4. The system must avoid causal statements unless the configured observation
+     rule explicitly supports them.
+  5. The system must write observations to the report package.
+- **Alternate flows:** The system must record an observation limitation when
+  available data are insufficient for a stronger claim.
+- **Postconditions:** Observation data are traceable to chart artifacts and
+  source fields.
+- **Primary interface mockup:** `SPEC-001-UC-050-observation-extraction.svg`.
+- **Related requirements:** REQ-090, DATA-030, UX-020.
+
+### UC-060: Generate Markdown Draft
+
+- **Priority:** V1
+- **Primary actor:** Human writer or LLM agent.
+- **Supporting components:** Report package exporter, observation model,
+  Markdown template, artifact manifest.
+- **Trigger:** A caller requests a report package with draft generation enabled.
+- **Preconditions:** The package contains chart artifacts and observation data.
+- **Main flow:**
+  1. The system must select accepted or unreviewed observations according to
+     configuration.
+  2. The system must assemble a portable Markdown draft.
+  3. The system must reference chart artifact IDs and package-relative paths.
+  4. The system must include limitations and warnings that affect interpretation.
+  5. The system must write the draft into the package directory.
+- **Alternate flows:** The system should generate a skeleton draft when no
+  observations are available, and that draft should explicitly show that no
+  supported observations were generated.
+- **Postconditions:** The Markdown draft can be edited by a human without
+  requiring framework runtime access.
+- **Primary interface mockup:** `SPEC-001-UC-060-markdown-draft.svg`.
+- **Related requirements:** REQ-100, UX-030.
+
+### UC-070: Review Observations
+
+- **Priority:** V1
+- **Primary actor:** Human analyst or human writer.
+- **Supporting components:** Observation model, report package, review metadata,
+  optional local preview.
+- **Trigger:** A human reviews generated observations before publication.
+- **Preconditions:** Observation data exist in a report package.
+- **Main flow:**
+  1. The system must preserve each generated observation in its original form.
+  2. The system must allow an observation to be marked as accepted, edited,
+     rejected, or unreviewed.
+  3. The system must store edited text separately from original generated text.
+  4. The system must exclude rejected observations from final draft export.
+  5. The system must keep evidence links intact for accepted and edited
+     observations.
+- **Alternate flows:** The system should support review metadata edits through
+  package files before a dedicated UI exists.
+- **Postconditions:** Reviewed observations remain traceable and can drive a
+  revised Markdown draft.
+- **Primary interface mockup:** `SPEC-001-UC-070-human-review.svg`.
+- **Related requirements:** REQ-140, DATA-030, UX-020.
+
+### UC-080: Invoke LLM Tool Contract
+
+- **Priority:** V1
+- **Primary actor:** LLM agent.
+- **Supporting components:** Tool contract adapter, schema validator,
+  orchestrator, artifact inspector.
+- **Trigger:** An LLM agent submits a JSON request for chart generation or
+  artifact inspection.
+- **Preconditions:** The tool contract version is supported.
+- **Main flow:**
+  1. The system must validate the request against the contract schema.
+  2. The system must reject unsupported contract versions with a structured
+     compatibility error.
+  3. The system must invoke the same orchestration path used by Python and CLI
+     callers.
+  4. The system must return package-relative artifact references and structured
+     warnings.
+  5. The system must provide artifact description responses without exposing
+     unrelated local environment data.
+- **Alternate flows:** The system must return structured errors for missing
+  fields, unsupported recipes, unavailable artifacts, and failed runs.
+- **Postconditions:** The agent receives enough structured context to cite or
+  inspect outputs without guessing local internals.
+- **Primary interface mockup:** `SPEC-001-UC-080-llm-tool-invocation.svg`.
+- **Related requirements:** REQ-130, API-030, SEC-020.
+
+### UC-090: Register Plugin Recipe
+
+- **Priority:** V2
+- **Primary actor:** Project maintainer or advanced analyst.
+- **Supporting components:** Plugin loader, recipe registry, schema extension
+  mechanism, test fixtures.
+- **Trigger:** A caller enables an external recipe plugin.
+- **Preconditions:** The plugin package is installed or available on a configured
+  local path.
+- **Main flow:**
+  1. The system should discover plugin entry points or configured plugin paths.
+  2. The system should validate plugin recipe metadata before registration.
+  3. The system should register plugin recipe IDs without overriding core recipe
+     IDs.
+  4. The system should isolate plugin failures from core recipe registration.
+  5. The system should include plugin identity and version in artifact metadata.
+- **Alternate flows:** The system should reject duplicate recipe IDs with an
+  actionable validation error.
+- **Postconditions:** Plugin recipes can participate in batch generation through
+  the same recipe registry interface as core recipes.
+- **Primary interface mockup:** `SPEC-001-UC-090-plugin-registration.svg`.
+- **Related requirements:** REQ-150.
+
+### UC-100: Preview Package Locally
+
+- **Priority:** V2
+- **Primary actor:** Human analyst or human writer.
+- **Supporting components:** Local preview reader, artifact manifest, chart
+  images, observation data, warnings.
+- **Trigger:** A human opens a generated package in a local preview experience.
+- **Preconditions:** A package manifest exists and references local package
+  files.
+- **Main flow:**
+  1. The system should load the package manifest from a local directory.
+  2. The system should display chart thumbnails, metadata, observations,
+     warnings, and draft status.
+  3. The system should show missing package files as recoverable package
+     integrity warnings.
+  4. The system should avoid requiring a hosted backend service.
+- **Alternate flows:** The system should degrade to manifest-only viewing when
+  chart image files are missing.
+- **Postconditions:** A human can inspect package completeness and analysis
+  status before publication.
+- **Primary interface mockup:** `SPEC-001-UC-100-local-preview.svg`.
+- **Related requirements:** REQ-160, UX-030.
+
+## State flow
+
+### Configuration State
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> Parsed: load file
+    Parsed --> Invalid: parse error or schema error
+    Parsed --> Validated: schema and semantic checks pass
+    Validated --> Resolved: recipes and paths resolve
+    Resolved --> Ready: session request is complete
+    Invalid --> Draft: edit configuration
+    Ready --> [*]
+```
+
+### Analysis Run State
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending
+    Pending --> Validating
+    Validating --> Failed: validation error
+    Validating --> LoadingData: validation passes
+    LoadingData --> Failed: required data unavailable
+    LoadingData --> RenderingCharts
+    RenderingCharts --> PartiallySucceeded: at least one recipe fails
+    RenderingCharts --> ExtractingObservations: all requested MVP charts complete
+    PartiallySucceeded --> ExportingPackage
+    ExtractingObservations --> ExportingPackage
+    ExportingPackage --> Succeeded
+    ExportingPackage --> Failed: manifest cannot be written
+    Succeeded --> [*]
+    Failed --> [*]
+```
+
+### Chart Artifact State
+
+```mermaid
+stateDiagram-v2
+    [*] --> Requested
+    Requested --> Skipped: recipe validation fails
+    Requested --> SpecBuilt: chart spec created
+    SpecBuilt --> Rendered: image created
+    Rendered --> MetadataWritten
+    MetadataWritten --> RegisteredInManifest
+    SpecBuilt --> Failed: renderer error
+    Rendered --> Failed: metadata write error
+    RegisteredInManifest --> [*]
+    Skipped --> [*]
+    Failed --> [*]
+```
+
+### Observation State
+
+```mermaid
+stateDiagram-v2
+    [*] --> Generated
+    Generated --> Unreviewed
+    Unreviewed --> Accepted
+    Unreviewed --> Edited
+    Unreviewed --> Rejected
+    Edited --> Accepted
+    Accepted --> IncludedInDraft
+    Edited --> IncludedInDraft
+    Rejected --> ExcludedFromDraft
+    IncludedInDraft --> [*]
+    ExcludedFromDraft --> [*]
+```
+
+### Report Package State
+
+```mermaid
+stateDiagram-v2
+    [*] --> Creating
+    Creating --> ManifestWritten
+    ManifestWritten --> ChartsWritten
+    ChartsWritten --> ObservationsWritten
+    ObservationsWritten --> DraftWritten
+    DraftWritten --> Complete
+    Creating --> Incomplete: write error
+    ManifestWritten --> Incomplete: missing artifact
+    ChartsWritten --> Incomplete: observation failure
+    Complete --> Reviewed
+    Reviewed --> PublishedOutsideSystem
+    Complete --> [*]
+    Incomplete --> [*]
+```
+
+## Feature activity flows
+
+### ACT-010: Configuration Validation Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Read configuration source]
+    B --> C{Parseable?}
+    C -- no --> Z[Return parse error]
+    C -- yes --> D[Validate schema version and fields]
+    D --> E{Schema valid?}
+    E -- no --> Y[Return path-specific schema errors]
+    E -- yes --> F[Resolve recipes and semantic constraints]
+    F --> G{Resolvable?}
+    G -- no --> X[Return semantic validation errors]
+    G -- yes --> H[Return normalized validated config]
+    H --> I([End])
+```
+
+### ACT-020: Data Loading And Cache Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Build session query]
+    B --> C[Inspect local cache]
+    C --> D{Required data cached?}
+    D -- yes --> E[Load cached FastF1 data]
+    D -- no --> F{Network allowed?}
+    F -- no --> Z[Record cache miss failure]
+    F -- yes --> G[Fetch through FastF1]
+    G --> H[Write cache entries]
+    E --> I[Normalize session dataset]
+    H --> I
+    I --> J[Attach provenance and missing-data flags]
+    J --> K([End])
+```
+
+### ACT-030: Recipe Resolution And Chart Spec Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Read requested recipe IDs]
+    B --> C[Resolve each recipe in registry]
+    C --> D{All IDs known?}
+    D -- no --> E[Record unknown recipe validation error]
+    D -- yes --> F[Validate recipe-specific config]
+    F --> G{Required data present?}
+    G -- no --> H[Mark recipe skipped or failed]
+    G -- yes --> I[Build renderer-independent chart spec]
+    I --> J[Return chart spec for rendering]
+    E --> K([End])
+    H --> K
+    J --> K
+```
+
+### ACT-040: Rendering And Artifact Export Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Apply theme to chart spec]
+    B --> C[Render through Matplotlib renderer]
+    C --> D{Render successful?}
+    D -- no --> E[Record renderer error]
+    D -- yes --> F[Write PNG image]
+    F --> G[Write chart metadata JSON]
+    G --> H[Register artifact in manifest]
+    H --> I([End])
+    E --> I
+```
+
+### ACT-050: Batch Generation Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Create run manifest shell]
+    B --> C[Load normalized dataset]
+    C --> D[Iterate requested recipes]
+    D --> E{More recipes?}
+    E -- yes --> F[Build spec and render artifact]
+    F --> G[Record produced, skipped, warning, or error outcome]
+    G --> D
+    E -- no --> H[Write final manifest]
+    H --> I{Any successful artifacts?}
+    I -- yes --> J[Return success or partial success]
+    I -- no --> K[Return failed run]
+    J --> L([End])
+    K --> L
+```
+
+### ACT-060: Observation Extraction Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Load manifest and chart metadata]
+    B --> C[Select enabled observation families]
+    C --> D[Compute metrics and comparisons]
+    D --> E{Evidence sufficient?}
+    E -- no --> F[Record limitation or skip observation]
+    E -- yes --> G[Create observation with evidence links]
+    F --> H{More observation rules?}
+    G --> H
+    H -- yes --> D
+    H -- no --> I[Write observations JSON]
+    I --> J([End])
+```
+
+### ACT-070: Markdown Draft Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Load package manifest]
+    B --> C[Load observations and review status]
+    C --> D[Select observations for draft]
+    D --> E[Assemble Markdown sections]
+    E --> F[Insert chart artifact references]
+    F --> G[Insert limitations and warnings]
+    G --> H[Write draft.md]
+    H --> I([End])
+```
+
+### ACT-080: Human Review Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Open observations from package]
+    B --> C[Inspect claim, evidence, confidence, and limits]
+    C --> D{Review decision}
+    D -- accept --> E[Set accepted]
+    D -- edit --> F[Store edited text and keep original]
+    D -- reject --> G[Set rejected]
+    E --> H[Save review metadata]
+    F --> H
+    G --> H
+    H --> I[Regenerate or update draft inputs]
+    I --> J([End])
+```
+
+### ACT-090: LLM Tool Invocation Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Receive JSON request]
+    B --> C[Validate contract version]
+    C --> D{Version supported?}
+    D -- no --> E[Return compatibility error]
+    D -- yes --> F[Validate request schema]
+    F --> G{Request valid?}
+    G -- no --> H[Return structured validation error]
+    G -- yes --> I[Invoke orchestrator]
+    I --> J[Return manifest or artifact description]
+    E --> K([End])
+    H --> K
+    J --> K
+```
+
+### ACT-100: Plugin Recipe Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Discover configured plugin]
+    B --> C[Load plugin metadata]
+    C --> D{Metadata valid?}
+    D -- no --> E[Reject plugin]
+    D -- yes --> F{Recipe ID conflicts?}
+    F -- yes --> G[Reject duplicate recipe ID]
+    F -- no --> H[Register plugin recipe]
+    H --> I[Expose recipe through registry]
+    E --> J([End])
+    G --> J
+    I --> J
+```
+
+### ACT-110: Local Preview Activity
+
+```mermaid
+flowchart TD
+    A([Start]) --> B[Open package directory]
+    B --> C[Read manifest]
+    C --> D{Manifest valid?}
+    D -- no --> E[Show package integrity error]
+    D -- yes --> F[Load chart thumbnails and metadata]
+    F --> G[Load observations and draft status]
+    G --> H[Display warnings and missing files]
+    H --> I([End])
+    E --> I
+```
 
 ## Functional requirements
 
@@ -435,8 +1005,9 @@ are stored as spec assets:
   blog drafting and review.
 - **Acceptance criteria:** A completed run produces a package directory with an
   artifact manifest, chart images, chart metadata, observation data, and a
-  Markdown draft; the Markdown draft references chart artifact IDs rather than
-  embedding untraceable claims.
+  portable Markdown draft; the Markdown draft references chart artifact IDs
+  rather than embedding untraceable claims; V1 output does not depend on a
+  platform-specific blog publishing format.
 - **Verification method:** Automated package structure tests and manual review.
 - **Evidence location:** To be filled during implementation.
 
@@ -865,7 +1436,8 @@ failing recipe, data dependency, and output path.
 - The spec keeps requirements in the authoritative spec document rather than
   derived documentation.
 - The spec passes repository governance, spec, and drift validation scripts.
-- The spec remains in Draft until human review and approval.
+- The spec remains in Approved status with amendments recorded for
+  post-approval behavioral or analytical detail changes.
 
 ## Verification matrix
 
@@ -921,28 +1493,43 @@ tests so performance thresholds can be measured consistently.
 
 ## Rollback plan
 
-Because SPEC-001 is currently a draft specification, rollback means removing or
-superseding the draft before approval. After implementation begins, rollback
-should disable new public entry points, remove generated package outputs, and
-return documentation and traceability tables to the last approved state through
-the normal repository review process.
+Because SPEC-001 is approved, rollback of a spec amendment means reverting the
+amended sections or superseding the spec through the normal repository review
+process. After implementation begins, rollback should disable new public entry
+points, remove generated package outputs, and return documentation and
+traceability tables to the last approved state through the normal repository
+review process.
 
 ## Open questions
 
-- [ ] Which race weekend should become the canonical fixture session for MVP
+- [x] Which race weekend should become the canonical fixture session for MVP
       tests and documentation examples?
-- [ ] Should the first public package name use `f1-analysis-framework`,
+      - Decision: use the 2023 Bahrain Grand Prix Race as the canonical fixture
+        session.
+- [x] Should the first public package name use `f1-analysis-framework`,
       `f1-telemetry-charts`, or another distribution name?
-- [ ] Which visual identity should be used for the default theme?
-- [ ] Should V1 report drafts target a specific blog platform format, or only
+      - Decision: use `f1-telemetry-charts` as the distribution name and
+        `f1_telemetry_charts` as the import package name.
+- [x] Which visual identity should be used for the default theme?
+      - Decision: use a restrained technical editorial theme with a white
+        background, dark neutral text, subtle grid lines, official or configured
+        driver/team colors where available, colorblind-safe fallbacks, and a
+        default 16:9 article graphic layout.
+- [x] Should V1 report drafts target a specific blog platform format, or only
       portable Markdown?
+      - Decision: V1 report drafts target portable Markdown only.
 
 ## Human decisions required
 
-- [ ] Approve or amend the MVP, V1, and V2 priority split.
-- [ ] Choose the canonical fixture session for repeatable examples.
-- [ ] Choose the package and import name before implementation.
-- [ ] Approve this spec before any product implementation starts.
+- [x] Approve or amend the MVP, V1, and V2 priority split.
+      - Decision: priority split approved by human on 2026-07-09.
+- [x] Choose the canonical fixture session for repeatable examples.
+      - Decision: 2023 Bahrain Grand Prix Race.
+- [x] Choose the package and import name before implementation.
+      - Decision: distribution `f1-telemetry-charts`, import
+        `f1_telemetry_charts`.
+- [x] Approve this spec before any product implementation starts.
+      - Decision: SPEC-001 approved by human on 2026-07-09 in chat.
 
 ## Conflict check
 
@@ -955,55 +1542,77 @@ for the requirements it introduces.
 
 | Requirement ID | Design / component | Implementation (file/function) | Test | Status |
 | -------------- | ------------------ | ------------------------------ | ---- | ------ |
-| REQ-010 | Data gateway | TBD | TBD | Draft |
-| REQ-020 | Cache management | TBD | TBD | Draft |
-| REQ-030 | Configuration schema | TBD | TBD | Draft |
-| REQ-040 | Recipe registry | TBD | TBD | Draft |
-| REQ-050 | Core recipes | TBD | TBD | Draft |
-| REQ-060 | Theme system | TBD | TBD | Draft |
-| REQ-070 | Artifact export | TBD | TBD | Draft |
-| REQ-080 | Analysis orchestrator | TBD | TBD | Draft |
-| REQ-090 | Analysis engine | TBD | TBD | Draft |
-| REQ-100 | Report package exporter | TBD | TBD | Draft |
-| REQ-110 | Python API | TBD | TBD | Draft |
-| REQ-120 | CLI | TBD | TBD | Draft |
-| REQ-130 | LLM tool contract | TBD | TBD | Draft |
-| REQ-140 | Review workflow | TBD | TBD | Draft |
-| REQ-150 | Plugin extension point | TBD | TBD | Draft |
-| REQ-160 | Local preview | TBD | TBD | Draft |
-| NFR-010 | Runtime support | TBD | TBD | Draft |
-| NFR-020 | Renderer backend | TBD | TBD | Draft |
-| NFR-030 | Determinism | TBD | TBD | Draft |
-| NFR-040 | Offline reproducibility | TBD | TBD | Draft |
-| NFR-050 | Export formats | TBD | TBD | Draft |
-| NFR-060 | Documentation | TBD | TBD | Draft |
-| NFR-070 | Dependency boundary | TBD | TBD | Draft |
-| NFR-110 | Data load performance | TBD | TBD | Draft |
-| NFR-120 | Render performance | TBD | TBD | Draft |
-| NFR-130 | Batch performance | TBD | TBD | Draft |
-| NFR-140 | Artifact size | TBD | TBD | Draft |
-| SEC-010 | Local storage | TBD | TBD | Draft |
-| SEC-020 | LLM data boundary | TBD | TBD | Draft |
-| DATA-010 | Dataset model | TBD | TBD | Draft |
-| DATA-020 | Manifest model | TBD | TBD | Draft |
-| DATA-030 | Observation model | TBD | TBD | Draft |
-| API-010 | Python API | TBD | TBD | Draft |
-| API-020 | CLI contract | TBD | TBD | Draft |
-| API-030 | LLM contract versioning | TBD | TBD | Draft |
-| UX-010 | Config workbench | TBD | TBD | Draft |
-| UX-020 | Analysis review | TBD | TBD | Draft |
-| UX-030 | Report package output | TBD | TBD | Draft |
+| REQ-010 | Data gateway | TBD | TBD | Approved |
+| REQ-020 | Cache management | TBD | TBD | Approved |
+| REQ-030 | Configuration schema | TBD | TBD | Approved |
+| REQ-040 | Recipe registry | TBD | TBD | Approved |
+| REQ-050 | Core recipes | TBD | TBD | Approved |
+| REQ-060 | Theme system | TBD | TBD | Approved |
+| REQ-070 | Artifact export | TBD | TBD | Approved |
+| REQ-080 | Analysis orchestrator | TBD | TBD | Approved |
+| REQ-090 | Analysis engine | TBD | TBD | Approved |
+| REQ-100 | Report package exporter | TBD | TBD | Approved |
+| REQ-110 | Python API | TBD | TBD | Approved |
+| REQ-120 | CLI | TBD | TBD | Approved |
+| REQ-130 | LLM tool contract | TBD | TBD | Approved |
+| REQ-140 | Review workflow | TBD | TBD | Approved |
+| REQ-150 | Plugin extension point | TBD | TBD | Approved |
+| REQ-160 | Local preview | TBD | TBD | Approved |
+| NFR-010 | Runtime support | TBD | TBD | Approved |
+| NFR-020 | Renderer backend | TBD | TBD | Approved |
+| NFR-030 | Determinism | TBD | TBD | Approved |
+| NFR-040 | Offline reproducibility | TBD | TBD | Approved |
+| NFR-050 | Export formats | TBD | TBD | Approved |
+| NFR-060 | Documentation | TBD | TBD | Approved |
+| NFR-070 | Dependency boundary | TBD | TBD | Approved |
+| NFR-110 | Data load performance | TBD | TBD | Approved |
+| NFR-120 | Render performance | TBD | TBD | Approved |
+| NFR-130 | Batch performance | TBD | TBD | Approved |
+| NFR-140 | Artifact size | TBD | TBD | Approved |
+| SEC-010 | Local storage | TBD | TBD | Approved |
+| SEC-020 | LLM data boundary | TBD | TBD | Approved |
+| DATA-010 | Dataset model | TBD | TBD | Approved |
+| DATA-020 | Manifest model | TBD | TBD | Approved |
+| DATA-030 | Observation model | TBD | TBD | Approved |
+| API-010 | Python API | TBD | TBD | Approved |
+| API-020 | CLI contract | TBD | TBD | Approved |
+| API-030 | LLM contract versioning | TBD | TBD | Approved |
+| UX-010 | Config workbench | TBD | TBD | Approved |
+| UX-020 | Analysis review | TBD | TBD | Approved |
+| UX-030 | Report package output | TBD | TBD | Approved |
 
 ## Implementation notes
 
 No implementation has started. This spec intentionally defines the product
 surface first so later code changes can stay scoped to approved requirements.
 
+Human approval recorded on 2026-07-09. The human approved the priority split,
+portable Markdown as the V1 report draft target, and the overall specification;
+the agent selected the canonical fixture session, package/import name, and
+default visual identity as explicitly delegated.
+
 ## Spec amendments
 
 > Required for any behavioral change after the spec is Approved.
 
-No amendments yet.
+### AMEND-001
+
+- **Date:** 2026-07-09
+- **Reason:** Human review found the approved spec insufficiently deep in use
+  case analysis, state flow, feature activity diagrams, and per-use-case
+  interface mockups.
+- **Changed requirements:** REQ-030, REQ-040, REQ-050, REQ-070, REQ-080,
+  REQ-090, REQ-100, REQ-110, REQ-120, REQ-130, REQ-140, REQ-150, REQ-160,
+  DATA-020, DATA-030, API-010, API-020, API-030, UX-010, UX-020, UX-030.
+- **Behavioral impact:** The approved scope is unchanged, but the spec now adds
+  implementation-ready use case flows, state models, feature activity diagrams,
+  and per-use-case interface mockups that constrain how the approved
+  requirements should be interpreted.
+- **Test impact:** Future implementation verification should cover use-case
+  flows, state transitions, package integrity behavior, and interface data
+  availability in addition to requirement-level checks.
+- **Human approval reference:** User requested deeper approved-spec detail in
+  chat on 2026-07-09.
 
 ## Review checklist
 
@@ -1011,7 +1620,7 @@ No amendments yet.
 - [x] Every requirement has an ID, statement, rationale, acceptance criteria,
       verification method, and evidence location.
 - [x] Non-goals are listed.
-- [ ] Open questions are resolved or explicitly deferred.
+- [x] Open questions are resolved or explicitly deferred.
 - [x] Verification matrix covers every requirement.
 - [x] Conflict check completed.
-- [ ] Human approval recorded before status set to Approved.
+- [x] Human approval recorded before status set to Approved.

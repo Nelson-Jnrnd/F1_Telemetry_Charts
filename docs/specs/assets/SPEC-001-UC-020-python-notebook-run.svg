@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-020 Python notebook run mockup</title>
+  <desc id="desc">Notebook cell interface for running an analysis through the public Python API.</desc>
+  <rect width="1100" height="680" fill="#f7f9fb"/>
+  <rect x="36" y="32" width="1028" height="616" rx="8" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="64" y="72" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#243b53">UC-020 Run analysis from Python</text>
+  <rect x="64" y="104" width="972" height="214" rx="6" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="88" y="142" font-family="Consolas, monospace" font-size="16" fill="#334e68">from f1_telemetry_charts import load_config, run_analysis</text>
+  <text x="88" y="178" font-family="Consolas, monospace" font-size="16" fill="#334e68">config = load_config("configs/bahrain-race.yml")</text>
+  <text x="88" y="214" font-family="Consolas, monospace" font-size="16" fill="#334e68">result = run_analysis(config)</text>
+  <text x="88" y="250" font-family="Consolas, monospace" font-size="16" fill="#334e68">result.manifest_path</text>
+  <rect x="64" y="352" width="300" height="204" rx="6" fill="#e6f6ff" stroke="#62b0e8"/>
+  <text x="88" y="390" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#0b5cad">Typed result</text>
+  <text x="88" y="428" font-family="Arial, sans-serif" font-size="14" fill="#334e68">status</text>
+  <text x="88" y="462" font-family="Arial, sans-serif" font-size="14" fill="#334e68">manifest_path</text>
+  <text x="88" y="496" font-family="Arial, sans-serif" font-size="14" fill="#334e68">artifacts[]</text>
+  <text x="88" y="530" font-family="Arial, sans-serif" font-size="14" fill="#334e68">warnings[]</text>
+  <rect x="400" y="352" width="300" height="204" rx="6" fill="#eefaf6" stroke="#57ae85"/>
+  <text x="424" y="390" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1b4332">Package output</text>
+  <text x="424" y="428" font-family="Arial, sans-serif" font-size="14" fill="#334e68">manifest.json</text>
+  <text x="424" y="462" font-family="Arial, sans-serif" font-size="14" fill="#334e68">charts/*.png</text>
+  <text x="424" y="496" font-family="Arial, sans-serif" font-size="14" fill="#334e68">metadata/*.json</text>
+  <rect x="736" y="352" width="300" height="204" rx="6" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="760" y="390" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#975a16">Notebook feedback</text>
+  <text x="760" y="428" font-family="Arial, sans-serif" font-size="14" fill="#334e68">display chart preview</text>
+  <text x="760" y="462" font-family="Arial, sans-serif" font-size="14" fill="#334e68">show warning table</text>
+  <text x="760" y="496" font-family="Arial, sans-serif" font-size="14" fill="#334e68">link package path</text>
+</svg>

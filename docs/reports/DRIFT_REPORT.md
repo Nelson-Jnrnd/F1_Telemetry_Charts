@@ -19,4 +19,5 @@ Untracked requirements: none
 Recommended fix:      none
 ```
 
-One draft spec exists. Repository drift validation reported no blocking drift.
+One approved spec exists. Repository drift validation reported no blocking
+drift.

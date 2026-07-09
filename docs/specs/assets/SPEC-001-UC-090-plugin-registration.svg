@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-090 plugin registration mockup</title>
+  <desc id="desc">Maintainer interface for registering and validating external chart recipe plugins.</desc>
+  <rect width="1100" height="680" fill="#f6f8fa"/>
+  <rect x="34" y="34" width="1032" height="612" rx="8" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="62" y="74" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#243b53">UC-090 Register plugin recipe</text>
+  <rect x="62" y="108" width="300" height="472" rx="6" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="86" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#243b53">Plugin source</text>
+  <text x="86" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">entry point group</text>
+  <text x="86" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">or configured local path</text>
+  <text x="86" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">plugin version</text>
+  <rect x="400" y="108" width="300" height="472" rx="6" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="424" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#975a16">Validation</text>
+  <text x="424" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">metadata shape</text>
+  <text x="424" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">recipe ID uniqueness</text>
+  <text x="424" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">schema extension</text>
+  <text x="424" y="298" font-family="Arial, sans-serif" font-size="14" fill="#334e68">fixture smoke test</text>
+  <rect x="738" y="108" width="300" height="472" rx="6" fill="#eefaf6" stroke="#57ae85"/>
+  <text x="762" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1b4332">Registered recipe</text>
+  <text x="762" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">available in registry</text>
+  <text x="762" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">included in manifest</text>
+  <text x="762" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">isolated from core failures</text>
+</svg>

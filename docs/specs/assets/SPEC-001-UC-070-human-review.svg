@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-070 human observation review mockup</title>
+  <desc id="desc">Review interface for accepting, editing, or rejecting generated observations.</desc>
+  <rect width="1100" height="680" fill="#f6f8fa"/>
+  <rect x="34" y="34" width="1032" height="612" rx="8" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="62" y="74" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#243b53">UC-070 Review observations</text>
+  <rect x="62" y="108" width="286" height="472" rx="6" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="86" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#243b53">Observation list</text>
+  <rect x="86" y="174" width="214" height="76" rx="4" fill="#eefaf6" stroke="#57ae85"/>
+  <text x="106" y="218" font-family="Arial, sans-serif" font-size="14" fill="#334e68">OBS-010 accepted</text>
+  <rect x="86" y="270" width="214" height="76" rx="4" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="106" y="314" font-family="Arial, sans-serif" font-size="14" fill="#334e68">OBS-020 edit</text>
+  <rect x="86" y="366" width="214" height="76" rx="4" fill="#ffeef0" stroke="#d64545"/>
+  <text x="106" y="410" font-family="Arial, sans-serif" font-size="14" fill="#334e68">OBS-030 rejected</text>
+  <rect x="384" y="108" width="400" height="472" rx="6" fill="#ffffff" stroke="#d9e2ec"/>
+  <text x="408" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#243b53">Selected observation</text>
+  <rect x="408" y="174" width="328" height="104" rx="4" fill="#f8fafc" stroke="#cbd2d9"/>
+  <text x="428" y="214" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Original generated text is preserved.</text>
+  <text x="428" y="244" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Edited text is stored separately.</text>
+  <rect x="408" y="318" width="96" height="42" rx="4" fill="#2f9e44"/>
+  <text x="432" y="345" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">Accept</text>
+  <rect x="524" y="318" width="96" height="42" rx="4" fill="#f0b429"/>
+  <text x="556" y="345" font-family="Arial, sans-serif" font-size="14" fill="#243b53">Edit</text>
+  <rect x="640" y="318" width="96" height="42" rx="4" fill="#d64545"/>
+  <text x="664" y="345" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">Reject</text>
+  <rect x="820" y="108" width="218" height="472" rx="6" fill="#e6f6ff" stroke="#62b0e8"/>
+  <text x="844" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#0b5cad">Evidence</text>
+  <text x="844" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">chart IDs</text>
+  <text x="844" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">metric values</text>
+  <text x="844" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">limitations</text>
+</svg>

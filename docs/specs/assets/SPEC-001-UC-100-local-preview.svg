@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-100 local package preview mockup</title>
+  <desc id="desc">Local preview interface for browsing package charts, metadata, observations, warnings, and draft status.</desc>
+  <rect width="1100" height="680" fill="#f7f9fb"/>
+  <rect x="36" y="34" width="1028" height="612" rx="8" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="64" y="74" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#243b53">UC-100 Preview package locally</text>
+  <rect x="64" y="108" width="246" height="472" rx="6" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="88" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#243b53">Package</text>
+  <text x="88" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">manifest.json</text>
+  <text x="88" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">charts/</text>
+  <text x="88" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">metadata/</text>
+  <text x="88" y="298" font-family="Arial, sans-serif" font-size="14" fill="#334e68">draft.md</text>
+  <rect x="346" y="108" width="410" height="472" rx="6" fill="#ffffff" stroke="#d9e2ec"/>
+  <text x="370" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#243b53">Chart gallery</text>
+  <rect x="370" y="176" width="150" height="100" fill="#f8fafc" stroke="#cbd2d9"/>
+  <rect x="548" y="176" width="150" height="100" fill="#f8fafc" stroke="#cbd2d9"/>
+  <rect x="370" y="308" width="150" height="100" fill="#f8fafc" stroke="#cbd2d9"/>
+  <rect x="548" y="308" width="150" height="100" fill="#f8fafc" stroke="#cbd2d9"/>
+  <text x="370" y="462" font-family="Arial, sans-serif" font-size="14" fill="#334e68">select a chart to inspect metadata</text>
+  <rect x="792" y="108" width="246" height="472" rx="6" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="816" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#975a16">Package health</text>
+  <text x="816" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">warnings: 1</text>
+  <text x="816" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">missing files: 0</text>
+  <text x="816" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">draft status: ready</text>
+  <text x="816" y="298" font-family="Arial, sans-serif" font-size="14" fill="#334e68">review status: partial</text>
+</svg>

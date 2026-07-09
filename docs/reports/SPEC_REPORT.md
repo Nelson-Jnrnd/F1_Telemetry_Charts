@@ -12,15 +12,16 @@ _Last updated: 2026-07-09._
 ```
 Spec report
 
-Draft:               SPEC-001 F1 Data Analysis Charting Framework
+Draft:               none
 In review:           none
-Approved:            none
+Approved:            SPEC-001 F1 Data Analysis Charting Framework (AMEND-001)
 In implementation:   none
 Implemented:         none
-Needs human decision: SPEC-001 open questions remain
+Needs human decision: none
 Missing verification: implementation evidence pending
 Potential blockers:   none
 ```
 
-SPEC-001 is the initial product specification draft. It is not approved for
-implementation yet.
+SPEC-001 is approved for implementation planning and includes AMEND-001 for
+deeper use case, state flow, activity flow, and mockup detail. Implementation
+evidence is still pending because no product code has been written yet.

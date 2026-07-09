@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-050 observation extraction mockup</title>
+  <desc id="desc">Interface for inspecting structured observations extracted from chart artifacts.</desc>
+  <rect width="1100" height="680" fill="#f6f8fa"/>
+  <rect x="34" y="34" width="1032" height="612" rx="8" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="62" y="74" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#243b53">UC-050 Extract observations</text>
+  <rect x="62" y="108" width="320" height="472" rx="6" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="86" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#243b53">Inputs</text>
+  <text x="86" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">manifest.json</text>
+  <text x="86" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">chart metadata</text>
+  <text x="86" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">session metrics</text>
+  <text x="86" y="298" font-family="Arial, sans-serif" font-size="14" fill="#334e68">observation rules</text>
+  <rect x="418" y="108" width="300" height="472" rx="6" fill="#e6f6ff" stroke="#62b0e8"/>
+  <text x="442" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#0b5cad">Generated observations</text>
+  <rect x="442" y="176" width="228" height="84" rx="4" fill="#ffffff" stroke="#bcccdc"/>
+  <text x="462" y="210" font-family="Arial, sans-serif" font-size="14" fill="#334e68">OBS-010 pace gap</text>
+  <text x="462" y="238" font-family="Arial, sans-serif" font-size="12" fill="#52606d">confidence: high</text>
+  <rect x="442" y="284" width="228" height="84" rx="4" fill="#ffffff" stroke="#bcccdc"/>
+  <text x="462" y="318" font-family="Arial, sans-serif" font-size="14" fill="#334e68">OBS-020 tyre offset</text>
+  <text x="462" y="346" font-family="Arial, sans-serif" font-size="12" fill="#52606d">confidence: medium</text>
+  <rect x="754" y="108" width="284" height="472" rx="6" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="778" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#975a16">Traceability</text>
+  <text x="778" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">metric values</text>
+  <text x="778" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">chart artifact IDs</text>
+  <text x="778" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">source fields</text>
+  <text x="778" y="298" font-family="Arial, sans-serif" font-size="14" fill="#334e68">limitations</text>
+</svg>

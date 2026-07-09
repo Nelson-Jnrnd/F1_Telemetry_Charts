@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-030 batch chart package mockup</title>
+  <desc id="desc">Interface showing a batch chart generation run and produced artifacts.</desc>
+  <rect width="1100" height="680" fill="#f6f8fa"/>
+  <rect x="34" y="34" width="1032" height="612" rx="8" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="62" y="74" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#243b53">UC-030 Generate batch chart package</text>
+  <rect x="62" y="108" width="300" height="472" rx="6" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="86" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#243b53">Run setup</text>
+  <text x="86" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Session: 2023 Bahrain Race</text>
+  <text x="86" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Drivers: VER, PER, ALO</text>
+  <text x="86" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Recipes: 4 selected</text>
+  <text x="86" y="298" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Cache mode: allowed</text>
+  <rect x="86" y="344" width="228" height="44" rx="4" fill="#1f7a8c"/>
+  <text x="148" y="372" font-family="Arial, sans-serif" font-size="15" fill="#ffffff">Generate</text>
+  <rect x="400" y="108" width="300" height="472" rx="6" fill="#eefaf6" stroke="#57ae85"/>
+  <text x="424" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1b4332">Run status</text>
+  <text x="424" y="188" font-family="Arial, sans-serif" font-size="14" fill="#334e68">telemetry_trace: produced</text>
+  <text x="424" y="226" font-family="Arial, sans-serif" font-size="14" fill="#334e68">lap_time_delta: produced</text>
+  <text x="424" y="264" font-family="Arial, sans-serif" font-size="14" fill="#334e68">tyre_strategy: warning</text>
+  <text x="424" y="302" font-family="Arial, sans-serif" font-size="14" fill="#334e68">position_progression: produced</text>
+  <rect x="424" y="344" width="228" height="104" rx="4" fill="#ffffff" stroke="#bcccdc"/>
+  <text x="448" y="386" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Manifest written</text>
+  <text x="448" y="420" font-family="Arial, sans-serif" font-size="14" fill="#334e68">3 PNGs, 4 metadata files</text>
+  <rect x="738" y="108" width="300" height="472" rx="6" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="762" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#243b53">Artifacts</text>
+  <rect x="762" y="176" width="228" height="78" fill="#ffffff" stroke="#cbd2d9"/>
+  <rect x="762" y="276" width="228" height="78" fill="#ffffff" stroke="#cbd2d9"/>
+  <rect x="762" y="376" width="228" height="78" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="782" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">chart thumbnail</text>
+  <text x="782" y="322" font-family="Arial, sans-serif" font-size="14" fill="#334e68">chart thumbnail</text>
+  <text x="782" y="422" font-family="Arial, sans-serif" font-size="14" fill="#334e68">chart thumbnail</text>
+</svg>

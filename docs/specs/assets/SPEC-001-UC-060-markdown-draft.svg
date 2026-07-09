@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-060 Markdown draft mockup</title>
+  <desc id="desc">Portable Markdown report draft interface showing chart references and limitations.</desc>
+  <rect width="1100" height="680" fill="#f7f9fb"/>
+  <rect x="36" y="34" width="1028" height="612" rx="8" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="64" y="74" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#243b53">UC-060 Generate Markdown draft</text>
+  <rect x="64" y="108" width="646" height="472" rx="6" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="92" y="150" font-family="Consolas, monospace" font-size="18" fill="#243b53"># Bahrain race pace analysis</text>
+  <text x="92" y="198" font-family="Consolas, monospace" font-size="15" fill="#334e68">The first stint showed a measurable pace gap...</text>
+  <text x="92" y="238" font-family="Consolas, monospace" font-size="15" fill="#334e68">![telemetry trace](charts/telemetry_trace.png)</text>
+  <text x="92" y="278" font-family="Consolas, monospace" font-size="15" fill="#334e68">&lt;!-- observation: OBS-010 --&gt;</text>
+  <text x="92" y="318" font-family="Consolas, monospace" font-size="15" fill="#334e68">Limitations: traffic effects are not fully isolated.</text>
+  <text x="92" y="358" font-family="Consolas, monospace" font-size="15" fill="#334e68">## Evidence</text>
+  <text x="92" y="398" font-family="Consolas, monospace" font-size="15" fill="#334e68">- chart: lap_time_delta</text>
+  <rect x="746" y="108" width="292" height="472" rx="6" fill="#eefaf6" stroke="#57ae85"/>
+  <text x="770" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1b4332">Draft controls</text>
+  <text x="770" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Template: default</text>
+  <text x="770" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Format: portable Markdown</text>
+  <text x="770" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Include warnings: yes</text>
+  <text x="770" y="298" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Rejected obs: excluded</text>
+  <rect x="770" y="348" width="220" height="44" rx="4" fill="#1f7a8c"/>
+  <text x="830" y="376" font-family="Arial, sans-serif" font-size="15" fill="#ffffff">Write draft.md</text>
+</svg>

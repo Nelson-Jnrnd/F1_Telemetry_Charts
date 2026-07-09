@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-040 recipe debugging mockup</title>
+  <desc id="desc">Developer interface for inspecting recipe metadata, required fields, and rendering diagnostics.</desc>
+  <rect width="1100" height="680" fill="#f7f9fb"/>
+  <rect x="36" y="34" width="1028" height="612" rx="8" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="64" y="74" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#243b53">UC-040 Develop or debug chart recipe</text>
+  <rect x="64" y="108" width="286" height="472" rx="6" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="88" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#243b53">Recipe metadata</text>
+  <text x="88" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">ID: telemetry_trace</text>
+  <text x="88" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Fields: speed, throttle, brake</text>
+  <text x="88" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Output: PNG + JSON</text>
+  <text x="88" y="298" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Renderer: matplotlib</text>
+  <rect x="386" y="108" width="328" height="472" rx="6" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="410" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#975a16">Diagnostics</text>
+  <text x="410" y="184" font-family="Arial, sans-serif" font-size="14" fill="#334e68">fixture loaded</text>
+  <text x="410" y="222" font-family="Arial, sans-serif" font-size="14" fill="#334e68">required fields present</text>
+  <text x="410" y="260" font-family="Arial, sans-serif" font-size="14" fill="#334e68">theme applied</text>
+  <text x="410" y="298" font-family="Arial, sans-serif" font-size="14" fill="#334e68">warning: none</text>
+  <rect x="750" y="108" width="286" height="472" rx="6" fill="#eefaf6" stroke="#57ae85"/>
+  <text x="774" y="144" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1b4332">Preview</text>
+  <rect x="774" y="178" width="214" height="156" fill="#ffffff" stroke="#cbd2d9"/>
+  <line x1="800" y1="308" x2="964" y2="308" stroke="#829ab1"/>
+  <polyline points="800,286 834,248 868,258 902,210 964,226" fill="none" stroke="#d64545" stroke-width="4"/>
+  <text x="774" y="384" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Spec build: ok</text>
+  <text x="774" y="422" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Render: ok</text>
+</svg>

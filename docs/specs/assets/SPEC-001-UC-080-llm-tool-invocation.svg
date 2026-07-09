@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-080 LLM tool invocation mockup</title>
+  <desc id="desc">Structured request and response interface for the LLM chart generation tool contract.</desc>
+  <rect width="1100" height="680" fill="#f7f9fb"/>
+  <rect x="36" y="34" width="1028" height="612" rx="8" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="64" y="74" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#243b53">UC-080 Invoke LLM tool contract</text>
+  <rect x="64" y="108" width="456" height="472" rx="6" fill="#0d1117"/>
+  <text x="88" y="146" font-family="Consolas, monospace" font-size="15" fill="#c9d1d9">{</text>
+  <text x="108" y="178" font-family="Consolas, monospace" font-size="15" fill="#c9d1d9">"contract_version": "1",</text>
+  <text x="108" y="210" font-family="Consolas, monospace" font-size="15" fill="#c9d1d9">"session": "2023 Bahrain Race",</text>
+  <text x="108" y="242" font-family="Consolas, monospace" font-size="15" fill="#c9d1d9">"recipes": ["telemetry_trace"],</text>
+  <text x="108" y="274" font-family="Consolas, monospace" font-size="15" fill="#c9d1d9">"drivers": ["VER", "PER"]</text>
+  <text x="88" y="306" font-family="Consolas, monospace" font-size="15" fill="#c9d1d9">}</text>
+  <rect x="560" y="108" width="478" height="472" rx="6" fill="#eefaf6" stroke="#57ae85"/>
+  <text x="584" y="146" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1b4332">Structured response</text>
+  <text x="584" y="190" font-family="Arial, sans-serif" font-size="14" fill="#334e68">status: succeeded</text>
+  <text x="584" y="228" font-family="Arial, sans-serif" font-size="14" fill="#334e68">manifest: run/manifest.json</text>
+  <text x="584" y="266" font-family="Arial, sans-serif" font-size="14" fill="#334e68">artifacts: package-relative paths</text>
+  <text x="584" y="304" font-family="Arial, sans-serif" font-size="14" fill="#334e68">warnings: structured list</text>
+  <text x="584" y="342" font-family="Arial, sans-serif" font-size="14" fill="#334e68">no environment variables</text>
+  <text x="584" y="380" font-family="Arial, sans-serif" font-size="14" fill="#334e68">no unrelated local paths</text>
+</svg>

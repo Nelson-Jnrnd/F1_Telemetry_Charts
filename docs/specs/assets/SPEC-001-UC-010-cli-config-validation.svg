@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">UC-010 CLI configuration validation mockup</title>
+  <desc id="desc">Terminal-oriented interface for validating a framework configuration file.</desc>
+  <rect width="1100" height="680" fill="#f6f8fa"/>
+  <rect x="32" y="32" width="1036" height="616" rx="8" fill="#ffffff" stroke="#c9d1d9"/>
+  <rect x="32" y="32" width="1036" height="48" rx="8" fill="#24292f"/>
+  <text x="56" y="63" font-family="Arial, sans-serif" font-size="17" fill="#ffffff">UC-010 Validate configuration</text>
+  <rect x="60" y="112" width="980" height="300" rx="6" fill="#0d1117"/>
+  <text x="84" y="150" font-family="Consolas, monospace" font-size="18" fill="#c9d1d9">$ f1tc config validate configs/bahrain-race.yml --json</text>
+  <text x="84" y="196" font-family="Consolas, monospace" font-size="16" fill="#7ee787">status: valid</text>
+  <text x="84" y="230" font-family="Consolas, monospace" font-size="16" fill="#c9d1d9">schema_version: 1</text>
+  <text x="84" y="264" font-family="Consolas, monospace" font-size="16" fill="#c9d1d9">recipes: telemetry_trace, lap_time_delta</text>
+  <text x="84" y="298" font-family="Consolas, monospace" font-size="16" fill="#c9d1d9">output_dir: runs/2023-bahrain-race</text>
+  <text x="84" y="350" font-family="Consolas, monospace" font-size="16" fill="#ffa657">warnings: cache miss allowed</text>
+  <rect x="60" y="452" width="306" height="132" rx="6" fill="#f0f4f8" stroke="#bcccdc"/>
+  <text x="84" y="486" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#243b53">Inputs</text>
+  <text x="84" y="520" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Config path</text>
+  <text x="84" y="550" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Output mode</text>
+  <rect x="398" y="452" width="306" height="132" rx="6" fill="#f0fff4" stroke="#7bc47f"/>
+  <text x="422" y="486" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#243b53">Validation result</text>
+  <text x="422" y="520" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Normalized config</text>
+  <text x="422" y="550" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Warnings and errors</text>
+  <rect x="736" y="452" width="304" height="132" rx="6" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="760" y="486" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#243b53">No side effects</text>
+  <text x="760" y="520" font-family="Arial, sans-serif" font-size="14" fill="#334e68">No charts generated</text>
+  <text x="760" y="550" font-family="Arial, sans-serif" font-size="14" fill="#334e68">No package written</text>
+</svg>
