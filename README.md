@@ -1,48 +1,46 @@
-# paleo-map
+# F1 Telemetry Charts
 
-> This repository is bootstrapped for **specification-first, AI-agent-led
-> development**. No application code exists yet — the first commit set up the
-> workflow, not a product.
+This repository uses specification-first, AI-agent-led development. The
+authoritative product scope lives in approved specs under `docs/specs/`.
 
-## How this project works
+## How This Project Works
 
-- **Features start with specs.** Every feature or behavior change begins as a
-  written, verifiable specification under [`docs/specs/`](docs/specs/).
-- **Implementation starts only after spec approval.** An agent will not write
-  product code until you approve the spec.
-- **PRs must reference specs.** Every pull request links its spec and the
-  requirement IDs it implements, with verification evidence.
-- **Governance checks protect consistency.** Lightweight scripts under
-  [`scripts/`](scripts/) run in CI to catch missing pieces and documentation
-  drift.
+- Features start with written, verifiable specifications under `docs/specs/`.
+- Implementation starts only after spec approval.
+- PRs must reference specs and requirement IDs.
+- Governance checks protect spec consistency and documentation drift.
 
-This README is derived documentation. Authoritative truth lives in the specs.
-See [`docs/workflow/DOCUMENTATION_AUTHORITY.md`](docs/workflow/DOCUMENTATION_AUTHORITY.md).
+This README is derived documentation. If it conflicts with an approved spec, the
+approved spec wins. See
+[`docs/workflow/DOCUMENTATION_AUTHORITY.md`](docs/workflow/DOCUMENTATION_AUTHORITY.md).
 
-## Start here
+## Start Here
 
-- Agents: read [`CLAUDE.md`](CLAUDE.md) / [`AGENTS.md`](AGENTS.md) first.
-- Humans: read the
-  [Human Review Guide](docs/workflow/HUMAN_REVIEW_GUIDE.md) — you can control
-  the project with short phrases from your phone.
-- The full lifecycle: [`docs/workflow/AGENT_WORKFLOW.md`](docs/workflow/AGENT_WORKFLOW.md).
+- Agents: read [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md).
+- Current spec: [`SPEC-001`](docs/specs/approved/SPEC-001-f1-analysis-framework.md).
+- Workflow: [`AGENT_WORKFLOW.md`](docs/workflow/AGENT_WORKFLOW.md).
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-## Claude Code commands
+## Project Stack
 
-- `/status` — short current-state report.
-- `/spec-report` — state of all specs and the roadmap.
-- `/drift-check` — detect documentation drift and conflicts.
-- `/handoff` — leave a clear state for the next session.
+- Distribution package: `f1-telemetry-charts`
+- Import package: `f1_telemetry_charts`
+- Minimum Python: 3.11
+- Configuration formats currently supported: TOML and JSON
+- Test runner: standard-library `unittest`
 
-## Project stack
+## Build And Test
 
-Not yet defined — there is no application code. When code is added, the build
-and test commands will be recorded in `CONTRIBUTING.md`, `CLAUDE.md`, and a CI
-workflow. Build commands are intentionally not invented here.
+```powershell
+python -m pip install -e .
+python -m unittest discover -s tests -p "test_*.py"
+python scripts/validate_governance.py
+python scripts/validate_specs.py
+python scripts/validate_drift.py
+```
 
-## Manual setup still needed
+## Manual Setup
 
-Branch protection, required checks, and security features are **not** configured
-by the bootstrap. See
+Branch protection, required checks, and security features are not configured by
+the repository itself. See
 [`docs/workflow/REPOSITORY_ADMIN_SETUP.md`](docs/workflow/REPOSITORY_ADMIN_SETUP.md).

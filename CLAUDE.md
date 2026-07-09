@@ -74,7 +74,19 @@ Implementation cannot start until the spec meets
 
 ## Project stack
 
-At bootstrap time this repository contains no application code, so build and
-test commands are not yet defined. When code is added, record the build/test
-commands here and in `CONTRIBUTING.md`, and wire them into
-`.github/workflows/ci.yml`. Do not invent build commands.
+- Distribution package: `f1-telemetry-charts`
+- Import package: `f1_telemetry_charts`
+- Minimum Python: 3.11
+- Tests use Python standard-library `unittest`.
+
+## Build and test commands
+
+```powershell
+python -m pip install -e .
+python -m unittest discover -s tests -p "test_*.py"
+python scripts/validate_governance.py
+python scripts/validate_specs.py
+python scripts/validate_drift.py
+```
+
+CI runs unit tests and governance checks in `.github/workflows/ci.yml`.

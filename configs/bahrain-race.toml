@@ -1,0 +1,33 @@
+schema_version = 1
+project_id = "2023-bahrain-race"
+output_dir = "runs/2023-bahrain-race"
+
+[session]
+season = 2023
+event = "Bahrain Grand Prix"
+session = "Race"
+
+[driver_selection]
+drivers = ["VER", "PER", "ALO"]
+
+[data_cache]
+directory = ".cache/fastf1"
+mode = "cache-or-fetch"
+
+[[recipes]]
+recipe_id = "lap_time_delta"
+
+[[recipes]]
+recipe_id = "telemetry_trace"
+
+[theme]
+name = "technical_editorial"
+figure_width = 16
+figure_height = 9
+dpi = 150
+background_color = "#ffffff"
+foreground_color = "#1f2933"
+grid = true
+
+[exports]
+formats = ["png", "json"]

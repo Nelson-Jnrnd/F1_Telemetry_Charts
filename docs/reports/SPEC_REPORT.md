@@ -22,7 +22,5 @@ Missing verification: implementation evidence pending
 Potential blockers:   none
 ```
 
-SPEC-001 is approved, includes AMEND-001 for deeper use case, state flow,
-activity flow, and mockup detail, and now has an implementation plan.
-Implementation evidence is still pending because no product code has been
-written yet.
+SPEC-001 is in implementation. Slice 1 project scaffold and the contained
+Slice 2 typed configuration validation path are being implemented first.

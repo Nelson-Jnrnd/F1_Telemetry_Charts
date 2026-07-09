@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "f1-telemetry-charts"
+version = "0.1.0"
+description = "Framework for consistent, configurable F1 data analysis charts."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Nelson Jeanrenaud" }
+]
+dependencies = [
+  "pydantic>=2.0"
+]
+
+[project.scripts]
+f1tc = "f1_telemetry_charts.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

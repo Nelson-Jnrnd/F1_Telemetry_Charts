@@ -2,7 +2,7 @@
 doc_type: spec
 spec_id: SPEC-001
 title: F1 Data Analysis Charting Framework
-status: Approved
+status: In Implementation
 owner: Nelson Jeanrenaud
 related_issue:
 related_prs: []
@@ -1445,26 +1445,26 @@ failing recipe, data dependency, and output path.
 | -------------- | -------------------- | ------------------- | ----------------------------- | ----------------- | ------------ |
 | REQ-010 | FastF1-backed session requests return normalized available data and explicit missing-data fields. | Automated integration test | TBD | To be filled during implementation | TBD |
 | REQ-020 | Configured local cache supports cache-hit reruns without network calls. | Automated integration test | TBD | To be filled during implementation | TBD |
-| REQ-030 | Versioned config validates keys, types, enums, and minimal valid runs. | Automated schema validation tests | TBD | To be filled during implementation | TBD |
-| REQ-040 | Registry resolves known IDs and rejects unknown IDs actionably. | Automated unit tests | TBD | To be filled during implementation | TBD |
+| REQ-030 | Versioned config validates keys, types, enums, and minimal valid runs. | Automated schema validation tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_config_validation.py`; Slice 2 partial, analysis options not implemented yet | TBD |
+| REQ-040 | Registry resolves known IDs and rejects unknown IDs actionably. | Automated unit tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/recipes/registry.py`; `tests/test_config_validation.py` | TBD |
 | REQ-050 | Core recipes render from fixtures and report missing required fields. | Automated chart smoke tests | TBD | To be filled during implementation | TBD |
 | REQ-060 | Central theme controls are applied to all core recipes. | Unit tests and visual baseline inspection | TBD | To be filled during implementation | TBD |
 | REQ-070 | Each chart writes PNG and metadata with required manifest fields. | Automated file output tests | TBD | To be filled during implementation | TBD |
 | REQ-080 | Batch runs record produced, skipped, warning, and error states. | Automated integration test | TBD | To be filled during implementation | TBD |
 | REQ-090 | Observations include evidence, metrics, confidence, and limitations. | Automated tests and manual review | TBD | To be filled during implementation | TBD |
 | REQ-100 | Report package includes manifest, images, metadata, observations, and Markdown draft. | Automated package tests and manual review | TBD | To be filled during implementation | TBD |
-| REQ-110 | Python callers can validate config, run analysis, and read manifests. | Automated API tests | TBD | To be filled during implementation | TBD |
-| REQ-120 | CLI validates config, generates packages, and returns correct exit codes. | Automated CLI tests | TBD | To be filled during implementation | TBD |
+| REQ-110 | Python callers can validate config, run analysis, and read manifests. | Automated API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; `tests/test_config_validation.py`; validation API only so far | TBD |
+| REQ-120 | CLI validates config, generates packages, and returns correct exit codes. | Automated CLI tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py`; config validation command only so far | TBD |
 | REQ-130 | LLM contract schemas and examples validate. | Schema and contract example tests | TBD | To be filled during implementation | TBD |
 | REQ-140 | Review statuses preserve generated and edited observations. | Automated report package tests | TBD | To be filled during implementation | TBD |
 | REQ-150 | Plugin fixture registers a recipe without core modification. | Automated plugin fixture tests | TBD | To be filled during implementation | TBD |
 | REQ-160 | Local preview can display package manifest content. | UI smoke tests or manual verification | TBD | To be filled during implementation | TBD |
-| NFR-010 | Python 3.11 or newer is declared and enforced. | Automated environment checks | TBD | To be filled during implementation | TBD |
+| NFR-010 | Python 3.11 or newer is declared and enforced. | Automated environment checks | `python -m pip install -e .`; `python -m unittest discover -s tests -p "test_*.py"` | `pyproject.toml`; local editable install passed | TBD |
 | NFR-020 | MVP charts use Matplotlib behind a renderer interface. | Code inspection and unit tests | TBD | To be filled during implementation | TBD |
 | NFR-030 | Identical deterministic inputs produce equivalent metadata and stable names. | Automated repeatability test | TBD | To be filled during implementation | TBD |
 | NFR-040 | Complete cached sessions render without network access. | Automated integration test | TBD | To be filled during implementation | TBD |
 | NFR-050 | PNG and JSON exports are produced for successful chart artifacts. | Automated output tests | TBD | To be filled during implementation | TBD |
-| NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | TBD | To be filled during implementation | TBD |
+| NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; manifest docs pending | TBD |
 | NFR-070 | FastF1 calls are isolated inside the gateway layer. | Code inspection and fake gateway tests | TBD | To be filled during implementation | TBD |
 | NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | TBD | To be filled during implementation | TBD |
 | NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | TBD | To be filled during implementation | TBD |
@@ -1475,8 +1475,8 @@ failing recipe, data dependency, and output path.
 | DATA-010 | Dataset model represents metadata, laps, telemetry, weather, provenance, and missing data. | Data model tests | TBD | To be filled during implementation | TBD |
 | DATA-020 | Manifest model represents run state, artifacts, warnings, errors, and paths. | Manifest schema tests | TBD | To be filled during implementation | TBD |
 | DATA-030 | Observation model represents traceable claims and review status. | Observation schema tests | TBD | To be filled during implementation | TBD |
-| API-010 | Public Python entry points cover config, validation, runs, and manifests. | API tests | TBD | To be filled during implementation | TBD |
-| API-020 | CLI command names, arguments, exit codes, and machine output are stable. | CLI contract tests | TBD | To be filled during implementation | TBD |
+| API-010 | Public Python entry points cover config, validation, runs, and manifests. | API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; config and validation entry points implemented, run and manifest entry points pending | TBD |
+| API-020 | CLI command names, arguments, exit codes, and machine output are stable. | CLI contract tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts config validate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; config validation command implemented, generation command pending | TBD |
 | API-030 | Unsupported LLM contract versions fail with structured compatibility errors. | Contract compatibility tests | TBD | To be filled during implementation | TBD |
 | UX-010 | Config and manifest models can populate the config workbench wireframe. | Design inspection | TBD | To be filled during implementation | TBD |
 | UX-020 | Observation model can populate the analysis review wireframe. | Design inspection | TBD | To be filled during implementation | TBD |
@@ -1544,26 +1544,26 @@ for the requirements it introduces.
 | -------------- | ------------------ | ------------------------------ | ---- | ------ |
 | REQ-010 | Data gateway | TBD | TBD | Approved |
 | REQ-020 | Cache management | TBD | TBD | Approved |
-| REQ-030 | Configuration schema | TBD | TBD | Approved |
-| REQ-040 | Recipe registry | TBD | TBD | Approved |
+| REQ-030 | Configuration schema | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/config/validation.py`; `src/f1_telemetry_charts/config/loader.py` | `tests/test_config_validation.py` | In Implementation |
+| REQ-040 | Recipe registry | `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_config_validation.py` | In Implementation |
 | REQ-050 | Core recipes | TBD | TBD | Approved |
 | REQ-060 | Theme system | TBD | TBD | Approved |
 | REQ-070 | Artifact export | TBD | TBD | Approved |
 | REQ-080 | Analysis orchestrator | TBD | TBD | Approved |
 | REQ-090 | Analysis engine | TBD | TBD | Approved |
 | REQ-100 | Report package exporter | TBD | TBD | Approved |
-| REQ-110 | Python API | TBD | TBD | Approved |
-| REQ-120 | CLI | TBD | TBD | Approved |
+| REQ-110 | Python API | `src/f1_telemetry_charts/__init__.py` | `tests/test_config_validation.py` | In Implementation |
+| REQ-120 | CLI | `src/f1_telemetry_charts/cli.py`; `src/f1_telemetry_charts/__main__.py` | `tests/test_cli.py` | In Implementation |
 | REQ-130 | LLM tool contract | TBD | TBD | Approved |
 | REQ-140 | Review workflow | TBD | TBD | Approved |
 | REQ-150 | Plugin extension point | TBD | TBD | Approved |
 | REQ-160 | Local preview | TBD | TBD | Approved |
-| NFR-010 | Runtime support | TBD | TBD | Approved |
+| NFR-010 | Runtime support | `pyproject.toml`; `.github/workflows/ci.yml` | local editable install; `tests/test_cli.py` | In Implementation |
 | NFR-020 | Renderer backend | TBD | TBD | Approved |
 | NFR-030 | Determinism | TBD | TBD | Approved |
 | NFR-040 | Offline reproducibility | TBD | TBD | Approved |
 | NFR-050 | Export formats | TBD | TBD | Approved |
-| NFR-060 | Documentation | TBD | TBD | Approved |
+| NFR-060 | Documentation | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md` | manual inspection; CLI help command | In Implementation |
 | NFR-070 | Dependency boundary | TBD | TBD | Approved |
 | NFR-110 | Data load performance | TBD | TBD | Approved |
 | NFR-120 | Render performance | TBD | TBD | Approved |
@@ -1574,8 +1574,8 @@ for the requirements it introduces.
 | DATA-010 | Dataset model | TBD | TBD | Approved |
 | DATA-020 | Manifest model | TBD | TBD | Approved |
 | DATA-030 | Observation model | TBD | TBD | Approved |
-| API-010 | Python API | TBD | TBD | Approved |
-| API-020 | CLI contract | TBD | TBD | Approved |
+| API-010 | Python API | `src/f1_telemetry_charts/__init__.py` | `tests/test_config_validation.py` | In Implementation |
+| API-020 | CLI contract | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
 | API-030 | LLM contract versioning | TBD | TBD | Approved |
 | UX-010 | Config workbench | TBD | TBD | Approved |
 | UX-020 | Analysis review | TBD | TBD | Approved |
@@ -1583,13 +1583,37 @@ for the requirements it introduces.
 
 ## Implementation notes
 
-No implementation has started. This spec intentionally defines the product
-surface first so later code changes can stay scoped to approved requirements.
+Implementation has started under SPEC-001. The initial implemented scope covers
+Slice 1 project scaffold and a contained part of Slice 2 typed configuration
+validation.
 
 Human approval recorded on 2026-07-09. The human approved the priority split,
 portable Markdown as the V1 report draft target, and the overall specification;
 the agent selected the canonical fixture session, package/import name, and
 default visual identity as explicitly delegated.
+
+### Implementation log
+
+#### 2026-07-09 Slice 1 and Slice 2 partial
+
+- Added Python package scaffold for distribution `f1-telemetry-charts` and
+  import package `f1_telemetry_charts`.
+- Added standard-library `unittest` test runner usage, editable install support,
+  and CI unit-test workflow.
+- Added public configuration API entry points: `load_config`,
+  `validate_config`, `ProjectConfig`, `ValidationIssue`, and
+  `ConfigValidationError`.
+- Added `argparse` CLI with `config validate` and machine-readable `--json`
+  output.
+- Added typed Pydantic configuration models for project identity, session,
+  driver selection, cache settings, recipe selection, theme, exports, and
+  output directory.
+- Added recipe registry metadata for the MVP core recipe IDs.
+- Added example TOML configuration for the 2023 Bahrain Grand Prix Race.
+- Deferred YAML support until the project introduces an explicit YAML parser
+  dependency.
+- Deferred FastF1 data loading, rendering, artifact manifests, run analysis,
+  and package generation to later MVP slices.
 
 ### Implementation plan
 
