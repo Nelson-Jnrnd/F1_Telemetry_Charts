@@ -1,0 +1,29 @@
+name: governance
+
+# Runs the specification-first governance checks on every pull request.
+# These scripts are dependency-free (standard library only).
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Validate governance files
+        run: python scripts/validate_governance.py
+
+      - name: Validate specs
+        run: python scripts/validate_specs.py
+
+      - name: Validate drift
+        run: python scripts/validate_drift.py

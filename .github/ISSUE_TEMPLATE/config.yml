@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Workflow and specification docs
+    url: https://github.com/Nelson-Jnrnd/paleo-map/blob/main/docs/workflow/AGENT_WORKFLOW.md
+    about: Read how the specification-first agent workflow works before filing.
+  - name: Human review guide
+    url: https://github.com/Nelson-Jnrnd/paleo-map/blob/main/docs/workflow/HUMAN_REVIEW_GUIDE.md
+    about: Short phrases you can use to control the project from your phone.

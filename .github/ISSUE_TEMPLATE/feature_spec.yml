@@ -1,0 +1,84 @@
+name: Feature specification request
+description: Request a new feature. Starts the specification-first workflow.
+title: "[Spec] <short title>"
+labels: ["spec", "needs-spec"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This starts the spec-first workflow. An agent will turn this into a
+        detailed, verifiable specification for your approval before any code is
+        written. Fill in what you can — the agent will ask if something is
+        unclear.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What does success look like?
+    validations:
+      required: true
+  - type: textarea
+    id: users
+    attributes:
+      label: Users affected
+      description: Who or what benefits from this?
+    validations:
+      required: false
+  - type: textarea
+    id: functional
+    attributes:
+      label: Functional expectations
+      description: What should the system do? List behaviors.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Technical, time, or other constraints.
+    validations:
+      required: false
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: What is explicitly out of scope?
+    validations:
+      required: false
+  - type: textarea
+    id: edge_cases
+    attributes:
+      label: Edge cases
+      description: Unusual conditions to consider.
+    validations:
+      required: false
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification ideas
+      description: How would you confirm this works?
+    validations:
+      required: false
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Low
+        - Medium
+        - High
+    validations:
+      required: true
+  - type: input
+    id: deadline
+    attributes:
+      label: Deadline (if any)
+    validations:
+      required: false

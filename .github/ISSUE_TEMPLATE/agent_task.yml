@@ -1,0 +1,56 @@
+name: Agent task
+description: A direct task for an AI coding agent (chore, tooling, or maintenance).
+title: "[Task] <short title>"
+labels: ["agent-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for direct agent work. If the task changes product behavior, a
+        spec is required first — set "Spec required?" to Yes.
+  - type: textarea
+    id: task
+    attributes:
+      label: Requested task
+      description: What should the agent do?
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Expected output
+      description: What should exist when this is done?
+    validations:
+      required: true
+  - type: textarea
+    id: areas
+    attributes:
+      label: Files or areas likely involved
+    validations:
+      required: false
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Anything the agent must or must not do.
+    validations:
+      required: false
+  - type: dropdown
+    id: spec_required
+    attributes:
+      label: Spec required?
+      description: Does this change product behavior? If yes, a spec is needed first.
+      options:
+        - "No — repository maintenance / no behavior change"
+        - "Yes — a spec must be approved before implementation"
+    validations:
+      required: true
+  - type: dropdown
+    id: approval
+    attributes:
+      label: Human approval needed before implementation?
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true
