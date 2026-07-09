@@ -1591,6 +1591,171 @@ portable Markdown as the V1 report draft target, and the overall specification;
 the agent selected the canonical fixture session, package/import name, and
 default visual identity as explicitly delegated.
 
+### Implementation plan
+
+The implementation should proceed as small vertical slices that keep public
+contracts, verification evidence, and traceability updated after each slice.
+Each slice should leave the repository in a runnable state.
+
+#### Slice 1: Project scaffold and developer baseline
+
+- **Priority:** MVP
+- **Primary requirements:** NFR-010, API-010, API-020, NFR-060.
+- **Scope:** Create the Python package scaffold for distribution
+  `f1-telemetry-charts` and import package `f1_telemetry_charts`; add package
+  metadata, dependency groups, test runner configuration, formatter/linter
+  configuration, and minimal public module boundaries.
+- **Expected files:** `pyproject.toml`, `src/f1_telemetry_charts/`,
+  `tests/`, `docs/usage/` or equivalent documentation location.
+- **Verification:** Package imports under Python 3.11 or newer; unit test
+  runner executes; CLI placeholder returns help; governance scripts still pass.
+- **Exit criteria:** The package can be installed locally and imported; tests
+  can run without requiring FastF1 network access.
+
+#### Slice 2: Typed configuration and validation
+
+- **Priority:** MVP
+- **Primary requirements:** REQ-030, REQ-040, REQ-120, API-020, UC-010.
+- **Scope:** Implement the versioned configuration model, schema validation,
+  semantic validation, path-specific error reporting, recipe ID validation
+  hooks, and the CLI validation command.
+- **Expected files:** Configuration model module, validation error model,
+  CLI command module, config examples, validation tests.
+- **Verification:** Valid minimal config passes; invalid schema version,
+  unknown keys, invalid enum values, unknown recipe IDs, and bad output paths
+  produce deterministic path-specific errors.
+- **Exit criteria:** `f1tc config validate <path>` can validate the canonical
+  example configuration without creating artifacts.
+
+#### Slice 3: Data gateway boundary and fixture strategy
+
+- **Priority:** MVP
+- **Primary requirements:** REQ-010, REQ-020, DATA-010, NFR-040, NFR-070,
+  ACT-020.
+- **Scope:** Define normalized session dataset models, implement the data
+  gateway interface, add a FastF1-backed gateway behind that interface, and add
+  a fixture or fake gateway path for repeatable tests based on the 2023 Bahrain
+  Grand Prix Race.
+- **Expected files:** Dataset models, gateway interface, FastF1 adapter, fixture
+  gateway, cache configuration, fixture data documentation.
+- **Verification:** Fake gateway tests cover dataset shape; cache-only behavior
+  can be tested without network access; FastF1 calls are isolated to the gateway
+  layer.
+- **Exit criteria:** A validated analysis request can produce a normalized
+  session dataset through a fake or cached gateway.
+
+#### Slice 4: Recipe registry and first chart artifact
+
+- **Priority:** MVP
+- **Primary requirements:** REQ-040, REQ-050, REQ-060, REQ-070, NFR-020,
+  DATA-020, ACT-030, ACT-040.
+- **Scope:** Implement the recipe registry, chart spec model, theme model,
+  Matplotlib renderer interface, and one first core recipe. The first recipe
+  should be `lap_time_delta` because it exercises session laps, driver
+  comparison, chart rendering, metadata, and artifact export without requiring
+  the full telemetry trace path first.
+- **Expected files:** Recipe registry, chart spec classes, theme classes,
+  renderer interface, Matplotlib renderer, `lap_time_delta` recipe, artifact
+  writer, tests.
+- **Verification:** The first chart renders from fixture data; PNG and JSON
+  metadata are written; metadata includes recipe ID, session identity, selected
+  drivers, warnings, configuration hash, and package-relative paths.
+- **Exit criteria:** One CLI or Python run can generate one valid chart artifact
+  and manifest entry from fixture data.
+
+#### Slice 5: Batch orchestration and manifest completeness
+
+- **Priority:** MVP
+- **Primary requirements:** REQ-080, DATA-020, NFR-030, ACT-050.
+- **Scope:** Implement analysis run orchestration, run state handling,
+  deterministic output naming, partial success behavior, final manifest writing,
+  and typed Python result objects.
+- **Expected files:** Orchestrator module, run state model, manifest model,
+  output path planner, Python API entry points, integration tests.
+- **Verification:** A batch run with one valid and one invalid recipe preserves
+  successful artifacts and records failed or skipped recipes; identical fixture
+  runs produce equivalent deterministic metadata except declared run-specific
+  fields.
+- **Exit criteria:** CLI and Python API can generate a package manifest with
+  produced, skipped, warning, and error outcomes.
+
+#### Slice 6: Remaining MVP core recipes
+
+- **Priority:** MVP
+- **Primary requirements:** REQ-050, REQ-060, REQ-070, NFR-120.
+- **Scope:** Implement telemetry trace, tyre strategy or stint chart, and
+  position progression recipes using the existing registry, theme, renderer,
+  and artifact export path.
+- **Expected files:** Core recipe modules and fixture-backed chart tests.
+- **Verification:** Each MVP core recipe renders at least one valid chart from
+  fixture data, declares required fields, and handles missing required fields
+  with recipe-specific errors.
+- **Exit criteria:** The configured MVP recipe set can produce a multi-chart
+  package from the canonical fixture.
+
+#### Slice 7: Documentation and MVP traceability hardening
+
+- **Priority:** MVP
+- **Primary requirements:** NFR-060 and all MVP requirements in the verification
+  matrix.
+- **Scope:** Write public CLI and Python examples, document configuration keys,
+  document core recipe IDs, document manifest fields, update traceability, and
+  add benchmark scripts for cached load and chart render thresholds.
+- **Expected files:** Usage documentation, example configs, benchmark scripts,
+  updated verification matrix, updated traceability table.
+- **Verification:** Documentation examples execute or are covered by tests
+  where feasible; governance, spec, drift, unit, integration, and benchmark
+  commands are recorded in the verification matrix.
+- **Exit criteria:** The MVP is demonstrable end-to-end from a clean checkout
+  using the canonical fixture path.
+
+#### Slice 8: V1 analysis and report authoring
+
+- **Priority:** V1
+- **Primary requirements:** REQ-090, REQ-100, REQ-130, REQ-140, DATA-030,
+  API-030, UX-020, UX-030.
+- **Scope:** Implement observation extraction, observation review metadata,
+  portable Markdown draft generation, and the LLM-oriented JSON contract for
+  generation and artifact inspection.
+- **Expected files:** Observation model, analysis engine, Markdown exporter,
+  review metadata support, LLM contract schemas, contract tests.
+- **Verification:** Observations include evidence and limitations; rejected
+  observations are excluded from regenerated drafts; unsupported LLM contract
+  versions fail with structured compatibility errors.
+- **Exit criteria:** A V1 package can support human co-authoring through
+  chart artifacts, observations, review status, and portable Markdown.
+
+#### Slice 9: V2 extension and preview capabilities
+
+- **Priority:** V2
+- **Primary requirements:** REQ-150, REQ-160, UX-010.
+- **Scope:** Implement plugin recipe registration and local package preview
+  once the core package and V1 authoring model are stable.
+- **Expected files:** Plugin loader, plugin fixture, preview reader or local UI,
+  package integrity checks.
+- **Verification:** Plugin failures are isolated from core recipes; preview can
+  load package manifest content and show missing-file warnings.
+- **Exit criteria:** External recipes and local preview can operate without
+  changing core recipe code or requiring a hosted service.
+
+### First implementation target
+
+The next coding task should start with Slice 1 and Slice 2 together only if the
+combined change remains small. If scaffolding expands beyond basic package,
+test, and CLI foundations, Slice 2 should be a separate follow-up. No FastF1
+network integration should be introduced before the configuration model and
+test runner are stable.
+
+### Implementation risk controls
+
+- Keep FastF1 imports out of recipe modules and public API modules.
+- Keep examples runnable from fixture or fake data before adding upstream data
+  dependencies.
+- Update the verification matrix and traceability table after each implemented
+  slice.
+- Record any behavioral change to approved requirements as a new amendment.
+- Prefer adding one recipe end-to-end before broadening recipe coverage.
+
 ## Spec amendments
 
 > Required for any behavioral change after the spec is Approved.

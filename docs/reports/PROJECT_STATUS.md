@@ -12,11 +12,11 @@ _Last updated: 2026-07-09._
 ## Snapshot
 
 - **Current branch:** chatbot
-- **Current phase:** Approved specification; ready for implementation planning
+- **Current phase:** Approved specification with implementation plan
 - **Linked issue:** none
 - **Linked spec:** SPEC-001 F1 Data Analysis Charting Framework
 - **Open PR:** none observed in repository state
 - **Checks:** governance, spec, and drift validation passed on 2026-07-09
 - **Blockers:** none for implementation planning
-- **Recommended next action:** Write the SPEC-001 implementation plan and begin
-  the first MVP vertical slice.
+- **Recommended next action:** Begin SPEC-001 Slice 1: project scaffold and
+  developer baseline.
