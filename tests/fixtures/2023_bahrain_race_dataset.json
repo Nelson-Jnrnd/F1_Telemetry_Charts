@@ -1,0 +1,136 @@
+{
+  "metadata": {
+    "season": 2023,
+    "event": "Bahrain Grand Prix",
+    "session": "Race",
+    "round_number": 1,
+    "official_name": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2023 - Race"
+  },
+  "drivers": [
+    {
+      "driver_number": "1",
+      "abbreviation": "VER",
+      "full_name": "Max Verstappen",
+      "team_name": "Red Bull Racing",
+      "team_color": "#3671C6"
+    },
+    {
+      "driver_number": "11",
+      "abbreviation": "PER",
+      "full_name": "Sergio Perez",
+      "team_name": "Red Bull Racing",
+      "team_color": "#3671C6"
+    },
+    {
+      "driver_number": "14",
+      "abbreviation": "ALO",
+      "full_name": "Fernando Alonso",
+      "team_name": "Aston Martin",
+      "team_color": "#358C75"
+    }
+  ],
+  "laps": [
+    {
+      "driver": "VER",
+      "lap_number": 1,
+      "lap_time_seconds": 97.254,
+      "compound": "SOFT",
+      "stint": 1,
+      "position": 1
+    },
+    {
+      "driver": "VER",
+      "lap_number": 2,
+      "lap_time_seconds": 96.112,
+      "compound": "SOFT",
+      "stint": 1,
+      "position": 1
+    },
+    {
+      "driver": "PER",
+      "lap_number": 1,
+      "lap_time_seconds": 98.044,
+      "compound": "SOFT",
+      "stint": 1,
+      "position": 2
+    },
+    {
+      "driver": "PER",
+      "lap_number": 2,
+      "lap_time_seconds": 96.804,
+      "compound": "SOFT",
+      "stint": 1,
+      "position": 2
+    },
+    {
+      "driver": "ALO",
+      "lap_number": 1,
+      "lap_time_seconds": 99.512,
+      "compound": "SOFT",
+      "stint": 1,
+      "position": 5
+    },
+    {
+      "driver": "ALO",
+      "lap_number": 2,
+      "lap_time_seconds": 97.221,
+      "compound": "SOFT",
+      "stint": 1,
+      "position": 5
+    }
+  ],
+  "telemetry": [
+    {
+      "driver": "VER",
+      "lap_number": 2,
+      "distance_m": 0,
+      "speed_kph": 271.2,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "VER",
+      "lap_number": 2,
+      "distance_m": 250,
+      "speed_kph": 286.4,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "PER",
+      "lap_number": 2,
+      "distance_m": 0,
+      "speed_kph": 269.8,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "ALO",
+      "lap_number": 2,
+      "distance_m": 0,
+      "speed_kph": 268.1,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    }
+  ],
+  "weather": [
+    {
+      "time_seconds": 0,
+      "air_temp_c": 26.8,
+      "track_temp_c": 31.6,
+      "humidity_percent": 41,
+      "rainfall": false
+    }
+  ],
+  "provenance": {
+    "provider": "fixture",
+    "cache_status": "fixture",
+    "source_path": "tests/fixtures/2023_bahrain_race_dataset.json",
+    "fetched_from_network": false
+  },
+  "missing_data": []
+}
