@@ -7,20 +7,20 @@
 Reports may be updated by agents when useful, but they must not become the
 authoritative source of project truth. Regenerate this with `/spec-report`.
 
-_Last updated: 2026-07-07 (bootstrap)._
+_Last updated: 2026-07-09._
 
 ```
 Spec report
 
-Draft:               none
+Draft:               SPEC-001 F1 Data Analysis Charting Framework
 In review:           none
 Approved:            none
 In implementation:   none
 Implemented:         none
-Needs human decision: none
-Missing verification: none
+Needs human decision: SPEC-001 open questions remain
+Missing verification: implementation evidence pending
 Potential blockers:   none
 ```
 
-No product specifications exist yet. Create the first one from
-`docs/specs/SPEC_TEMPLATE.md`.
+SPEC-001 is the initial product specification draft. It is not approved for
+implementation yet.

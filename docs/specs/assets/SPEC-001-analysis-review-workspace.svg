@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Analysis review workspace wireframe</title>
+  <desc id="desc">Wireframe showing generated observations, evidence charts, confidence, limitations, and editorial review state.</desc>
+  <rect width="1200" height="760" fill="#f5f7fa"/>
+  <rect x="0" y="0" width="1200" height="56" fill="#263238"/>
+  <text x="28" y="36" font-family="Arial, sans-serif" font-size="20" fill="#ffffff">Analysis Review</text>
+  <text x="984" y="35" font-family="Arial, sans-serif" font-size="14" fill="#cfd8dc">Run: 2026-monaco-r</text>
+
+  <rect x="24" y="84" width="356" height="650" rx="6" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="48" y="118" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Observations</text>
+  <rect x="48" y="146" width="308" height="110" rx="4" fill="#eefaf6" stroke="#57ae85"/>
+  <text x="68" y="174" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#243b53">OBS-010 Race pace gap</text>
+  <text x="68" y="202" font-family="Arial, sans-serif" font-size="13" fill="#334e68">VER averaged 0.18s faster...</text>
+  <text x="68" y="232" font-family="Arial, sans-serif" font-size="12" fill="#2f855a">accepted</text>
+  <rect x="48" y="274" width="308" height="110" rx="4" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="68" y="302" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#243b53">OBS-020 Tyre offset</text>
+  <text x="68" y="330" font-family="Arial, sans-serif" font-size="13" fill="#334e68">LEC extended the medium stint...</text>
+  <text x="68" y="360" font-family="Arial, sans-serif" font-size="12" fill="#975a16">needs edit</text>
+  <rect x="48" y="402" width="308" height="110" rx="4" fill="#f8fafc" stroke="#bcccdc"/>
+  <text x="68" y="430" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#243b53">OBS-030 Traffic loss</text>
+  <text x="68" y="458" font-family="Arial, sans-serif" font-size="13" fill="#334e68">Lap 34 sector 3 loss...</text>
+  <text x="68" y="488" font-family="Arial, sans-serif" font-size="12" fill="#52606d">unreviewed</text>
+
+  <rect x="404" y="84" width="450" height="650" rx="6" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="428" y="118" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Selected observation</text>
+  <text x="428" y="158" font-family="Arial, sans-serif" font-size="14" fill="#52606d">Summary</text>
+  <rect x="428" y="174" width="398" height="92" rx="4" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="450" y="204" font-family="Arial, sans-serif" font-size="14" fill="#243b53">LEC extended the medium stint by 7 laps</text>
+  <text x="450" y="228" font-family="Arial, sans-serif" font-size="14" fill="#243b53">and kept degradation within 0.06s/lap.</text>
+  <text x="428" y="306" font-family="Arial, sans-serif" font-size="14" fill="#52606d">Evidence</text>
+  <rect x="428" y="322" width="186" height="76" rx="4" fill="#e6f6ff" stroke="#62b0e8"/>
+  <text x="450" y="366" font-family="Arial, sans-serif" font-size="13" fill="#0b5cad">chart-tyre-strategy</text>
+  <rect x="640" y="322" width="186" height="76" rx="4" fill="#e6f6ff" stroke="#62b0e8"/>
+  <text x="662" y="366" font-family="Arial, sans-serif" font-size="13" fill="#0b5cad">chart-lap-delta</text>
+  <text x="428" y="440" font-family="Arial, sans-serif" font-size="14" fill="#52606d">Confidence and limits</text>
+  <rect x="428" y="456" width="398" height="110" rx="4" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="450" y="488" font-family="Arial, sans-serif" font-size="14" fill="#243b53">Confidence: medium</text>
+  <text x="450" y="518" font-family="Arial, sans-serif" font-size="14" fill="#243b53">Limit: traffic and fuel effects not isolated.</text>
+  <rect x="428" y="604" width="116" height="40" rx="4" fill="#2f9e44"/>
+  <text x="462" y="629" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">Accept</text>
+  <rect x="562" y="604" width="116" height="40" rx="4" fill="#f0b429"/>
+  <text x="598" y="629" font-family="Arial, sans-serif" font-size="14" fill="#243b53">Edit</text>
+  <rect x="696" y="604" width="116" height="40" rx="4" fill="#d64545"/>
+  <text x="728" y="629" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">Reject</text>
+
+  <rect x="878" y="84" width="298" height="650" rx="6" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="902" y="118" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Evidence chart</text>
+  <rect x="902" y="146" width="250" height="220" fill="#f8fafc" stroke="#d9e2ec"/>
+  <line x1="930" y1="324" x2="1130" y2="324" stroke="#829ab1"/>
+  <line x1="930" y1="184" x2="930" y2="324" stroke="#829ab1"/>
+  <polyline points="930,296 970,278 1010,244 1050,252 1090,214 1130,232" fill="none" stroke="#d64545" stroke-width="4"/>
+  <polyline points="930,306 970,286 1010,266 1050,260 1090,246 1130,252" fill="none" stroke="#1f7a8c" stroke-width="4"/>
+  <text x="902" y="410" font-family="Arial, sans-serif" font-size="14" fill="#52606d">Metadata</text>
+  <rect x="902" y="430" width="250" height="156" rx="4" fill="#f0f4f8" stroke="#bcccdc"/>
+  <text x="924" y="462" font-family="Arial, sans-serif" font-size="13" fill="#334e68">Recipe: lap_time_delta</text>
+  <text x="924" y="494" font-family="Arial, sans-serif" font-size="13" fill="#334e68">Drivers: VER, LEC</text>
+  <text x="924" y="526" font-family="Arial, sans-serif" font-size="13" fill="#334e68">Source: FastF1 cache</text>
+  <text x="924" y="558" font-family="Arial, sans-serif" font-size="13" fill="#334e68">Warnings: none</text>
+</svg>

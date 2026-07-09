@@ -7,7 +7,7 @@
 Reports may be updated by agents when useful, but they must not become the
 authoritative source of project truth. Regenerate this with `/drift-check`.
 
-_Last updated: 2026-07-07 (bootstrap)._
+_Last updated: 2026-07-09._
 
 ```
 Drift check
@@ -19,4 +19,4 @@ Untracked requirements: none
 Recommended fix:      none
 ```
 
-No specs exist yet, so there is nothing to drift. Re-run after specs are added.
+One draft spec exists. Repository drift validation reported no blocking drift.

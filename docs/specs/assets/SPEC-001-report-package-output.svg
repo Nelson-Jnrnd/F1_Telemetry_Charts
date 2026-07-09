@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Report package output wireframe</title>
+  <desc id="desc">Wireframe showing output package structure with chart images, metadata, observations, warnings, and Markdown draft.</desc>
+  <rect width="1200" height="760" fill="#f7f9fb"/>
+  <rect x="0" y="0" width="1200" height="56" fill="#202a36"/>
+  <text x="28" y="36" font-family="Arial, sans-serif" font-size="20" fill="#ffffff">Report Package</text>
+  <text x="956" y="35" font-family="Arial, sans-serif" font-size="14" fill="#d9e2ec">manifest.json</text>
+
+  <rect x="26" y="84" width="320" height="650" rx="6" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="50" y="118" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Package tree</text>
+  <g font-family="Arial, sans-serif" font-size="14" fill="#334e68">
+    <text x="58" y="160">run-2026-monaco-race/</text>
+    <text x="78" y="198">manifest.json</text>
+    <text x="78" y="236">charts/</text>
+    <text x="98" y="274">telemetry_trace.png</text>
+    <text x="98" y="312">lap_time_delta.png</text>
+    <text x="98" y="350">tyre_strategy.png</text>
+    <text x="78" y="388">metadata/</text>
+    <text x="98" y="426">telemetry_trace.json</text>
+    <text x="98" y="464">lap_time_delta.json</text>
+    <text x="78" y="502">observations.json</text>
+    <text x="78" y="540">draft.md</text>
+    <text x="78" y="578">warnings.json</text>
+  </g>
+
+  <rect x="374" y="84" width="390" height="650" rx="6" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="398" y="118" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Manifest summary</text>
+  <rect x="398" y="146" width="342" height="142" rx="4" fill="#f0f4f8" stroke="#bcccdc"/>
+  <text x="420" y="180" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Session: 2026 Monaco Race</text>
+  <text x="420" y="214" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Recipes requested: 4</text>
+  <text x="420" y="248" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Artifacts generated: 4</text>
+  <text x="420" y="282" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Warnings: 1</text>
+
+  <text x="398" y="338" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Charts</text>
+  <rect x="398" y="362" width="156" height="112" fill="#f8fafc" stroke="#d9e2ec"/>
+  <line x1="418" y1="450" x2="534" y2="450" stroke="#829ab1"/>
+  <polyline points="418,434 450,410 482,420 510,388 534,398" fill="none" stroke="#d64545" stroke-width="3"/>
+  <rect x="584" y="362" width="156" height="112" fill="#f8fafc" stroke="#d9e2ec"/>
+  <rect x="610" y="408" width="22" height="42" fill="#1f7a8c"/>
+  <rect x="646" y="390" width="22" height="60" fill="#f0b429"/>
+  <rect x="682" y="422" width="22" height="28" fill="#d64545"/>
+  <rect x="398" y="502" width="156" height="112" fill="#f8fafc" stroke="#d9e2ec"/>
+  <circle cx="452" cy="558" r="36" fill="none" stroke="#1f7a8c" stroke-width="14"/>
+  <circle cx="500" cy="558" r="36" fill="none" stroke="#f0b429" stroke-width="14"/>
+
+  <rect x="790" y="84" width="384" height="650" rx="6" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="814" y="118" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Markdown draft</text>
+  <rect x="814" y="146" width="336" height="440" rx="4" fill="#f8fafc" stroke="#d9e2ec"/>
+  <text x="838" y="184" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#102a43">Race pace analysis</text>
+  <text x="838" y="226" font-family="Arial, sans-serif" font-size="14" fill="#334e68">The opening stint showed...</text>
+  <text x="838" y="264" font-family="Arial, sans-serif" font-size="14" fill="#334e68">[chart: telemetry_trace]</text>
+  <text x="838" y="316" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Key observation OBS-010...</text>
+  <text x="838" y="354" font-family="Arial, sans-serif" font-size="14" fill="#334e68">[chart: lap_time_delta]</text>
+  <text x="838" y="406" font-family="Arial, sans-serif" font-size="14" fill="#334e68">Limitations and caveats...</text>
+  <text x="814" y="632" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Export status</text>
+  <rect x="814" y="654" width="336" height="48" rx="4" fill="#fffaf0" stroke="#f0b429"/>
+  <text x="838" y="684" font-family="Arial, sans-serif" font-size="14" fill="#975a16">1 warning requires analyst review</text>
+</svg>

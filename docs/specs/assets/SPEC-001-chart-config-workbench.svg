@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Chart configuration workbench wireframe</title>
+  <desc id="desc">Wireframe showing session selection, chart recipe selection, theme controls, validation status, and preview output.</desc>
+  <rect width="1200" height="760" fill="#f6f7f9"/>
+  <rect x="0" y="0" width="1200" height="56" fill="#1f2933"/>
+  <text x="28" y="36" font-family="Arial, sans-serif" font-size="20" fill="#ffffff">F1 Analysis Framework</text>
+  <text x="1010" y="35" font-family="Arial, sans-serif" font-size="14" fill="#d9e2ec">Config valid</text>
+  <circle cx="1124" cy="28" r="8" fill="#2f9e44"/>
+
+  <rect x="24" y="82" width="270" height="654" rx="6" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="44" y="114" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Session</text>
+  <text x="44" y="150" font-family="Arial, sans-serif" font-size="12" fill="#52606d">Season</text>
+  <rect x="44" y="160" width="220" height="34" rx="4" fill="#f0f4f8" stroke="#bcccdc"/>
+  <text x="58" y="182" font-family="Arial, sans-serif" font-size="14" fill="#102a43">2026</text>
+  <text x="44" y="222" font-family="Arial, sans-serif" font-size="12" fill="#52606d">Event</text>
+  <rect x="44" y="232" width="220" height="34" rx="4" fill="#f0f4f8" stroke="#bcccdc"/>
+  <text x="58" y="254" font-family="Arial, sans-serif" font-size="14" fill="#102a43">Monaco Grand Prix</text>
+  <text x="44" y="294" font-family="Arial, sans-serif" font-size="12" fill="#52606d">Session</text>
+  <rect x="44" y="304" width="220" height="34" rx="4" fill="#f0f4f8" stroke="#bcccdc"/>
+  <text x="58" y="326" font-family="Arial, sans-serif" font-size="14" fill="#102a43">Race</text>
+
+  <text x="44" y="378" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Drivers</text>
+  <rect x="44" y="400" width="96" height="32" rx="4" fill="#e6f6ff" stroke="#62b0e8"/>
+  <text x="63" y="421" font-family="Arial, sans-serif" font-size="13" fill="#0b5cad">VER</text>
+  <rect x="152" y="400" width="96" height="32" rx="4" fill="#fff4e6" stroke="#f0b429"/>
+  <text x="171" y="421" font-family="Arial, sans-serif" font-size="13" fill="#8d2b0b">LEC</text>
+  <rect x="44" y="444" width="96" height="32" rx="4" fill="#f3f4f6" stroke="#9aa5b1"/>
+  <text x="63" y="465" font-family="Arial, sans-serif" font-size="13" fill="#334e68">NOR</text>
+
+  <text x="44" y="530" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Actions</text>
+  <rect x="44" y="554" width="220" height="40" rx="4" fill="#1f7a8c"/>
+  <text x="94" y="579" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">Generate package</text>
+  <rect x="44" y="606" width="220" height="40" rx="4" fill="#ffffff" stroke="#829ab1"/>
+  <text x="100" y="631" font-family="Arial, sans-serif" font-size="14" fill="#243b53">Validate only</text>
+
+  <rect x="318" y="82" width="300" height="654" rx="6" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="338" y="114" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Chart recipes</text>
+  <g font-family="Arial, sans-serif" font-size="14" fill="#243b53">
+    <rect x="338" y="140" width="250" height="54" rx="4" fill="#eefaf6" stroke="#57ae85"/>
+    <text x="358" y="172">Telemetry trace</text>
+    <rect x="338" y="210" width="250" height="54" rx="4" fill="#eefaf6" stroke="#57ae85"/>
+    <text x="358" y="242">Lap time comparison</text>
+    <rect x="338" y="280" width="250" height="54" rx="4" fill="#eefaf6" stroke="#57ae85"/>
+    <text x="358" y="312">Tyre strategy</text>
+    <rect x="338" y="350" width="250" height="54" rx="4" fill="#eefaf6" stroke="#57ae85"/>
+    <text x="358" y="382">Position progression</text>
+  </g>
+  <text x="338" y="462" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Theme</text>
+  <rect x="338" y="486" width="250" height="118" rx="4" fill="#f0f4f8" stroke="#bcccdc"/>
+  <text x="358" y="516" font-family="Arial, sans-serif" font-size="13" fill="#52606d">Font: Inter</text>
+  <text x="358" y="548" font-family="Arial, sans-serif" font-size="13" fill="#52606d">Grid: major only</text>
+  <text x="358" y="580" font-family="Arial, sans-serif" font-size="13" fill="#52606d">Export: 1600 x 900 PNG</text>
+
+  <rect x="642" y="82" width="534" height="654" rx="6" fill="#ffffff" stroke="#cbd2d9"/>
+  <text x="666" y="114" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Preview</text>
+  <rect x="666" y="142" width="486" height="304" fill="#f8fafc" stroke="#d9e2ec"/>
+  <line x1="704" y1="396" x2="1118" y2="396" stroke="#829ab1"/>
+  <line x1="704" y1="182" x2="704" y2="396" stroke="#829ab1"/>
+  <polyline points="704,350 760,316 820,330 882,244 944,256 1006,206 1118,230" fill="none" stroke="#d64545" stroke-width="4"/>
+  <polyline points="704,368 760,340 820,344 882,294 944,300 1006,260 1118,282" fill="none" stroke="#1f7a8c" stroke-width="4"/>
+  <text x="710" y="170" font-family="Arial, sans-serif" font-size="13" fill="#52606d">Telemetry trace preview</text>
+
+  <text x="666" y="494" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#243b53">Validation</text>
+  <rect x="666" y="520" width="486" height="148" rx="4" fill="#f0fff4" stroke="#7bc47f"/>
+  <text x="690" y="552" font-family="Arial, sans-serif" font-size="14" fill="#1b4332">All selected recipes have required fields.</text>
+  <text x="690" y="586" font-family="Arial, sans-serif" font-size="14" fill="#1b4332">Cache available for selected session.</text>
+  <text x="690" y="620" font-family="Arial, sans-serif" font-size="14" fill="#1b4332">4 chart artifacts will be generated.</text>
+</svg>
