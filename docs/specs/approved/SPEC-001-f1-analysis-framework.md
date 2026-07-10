@@ -1447,14 +1447,14 @@ failing recipe, data dependency, and output path.
 | REQ-020 | Configured local cache supports cache-hit reruns without network calls. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; cache-hit behavior not exercised against real FastF1 yet | TBD |
 | REQ-030 | Versioned config validates keys, types, enums, and minimal valid runs. | Automated schema validation tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_config_validation.py`; Slice 2 partial, analysis options not implemented yet | TBD |
 | REQ-040 | Registry resolves known IDs and rejects unknown IDs actionably. | Automated unit tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/recipes/registry.py`; `tests/test_config_validation.py` | TBD |
-| REQ-050 | Core recipes render from fixtures and report missing required fields. | Automated chart smoke tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/recipes/lap_time_delta.py`; `tests/test_lap_time_delta_recipe.py`; remaining core recipes pending | TBD |
-| REQ-060 | Central theme controls are applied to all core recipes. | Unit tests and visual baseline inspection | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `tests/test_lap_time_delta_recipe.py`; all-core coverage pending | TBD |
-| REQ-070 | Each chart writes PNG and metadata with required manifest fields. | Automated file output tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `src/f1_telemetry_charts/charts/artifacts.py`; first chart metadata only, full manifest pending | TBD |
+| REQ-050 | Core recipes render from fixtures and report missing required fields. | Automated chart smoke tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/recipes/`; `tests/test_core_recipes.py`; `tests/test_lap_time_delta_recipe.py` | TBD |
+| REQ-060 | Central theme controls are applied to all core recipes. | Unit tests and visual baseline inspection | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `tests/test_core_recipes.py`; `tests/test_lap_time_delta_recipe.py` | TBD |
+| REQ-070 | Each chart writes PNG and metadata with required manifest fields. | Automated file output tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `src/f1_telemetry_charts/charts/artifacts.py`; `tests/test_core_recipes.py` | TBD |
 | REQ-080 | Batch runs record produced, skipped, warning, and error states. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/analysis/manifest.py`; `tests/test_orchestrator.py` | TBD |
 | REQ-090 | Observations include evidence, metrics, confidence, and limitations. | Automated tests and manual review | TBD | To be filled during implementation | TBD |
 | REQ-100 | Report package includes manifest, images, metadata, observations, and Markdown draft. | Automated package tests and manual review | TBD | To be filled during implementation | TBD |
 | REQ-110 | Python callers can validate config, run analysis, and read manifests. | Automated API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_config_validation.py`; `tests/test_orchestrator.py` | TBD |
-| REQ-120 | CLI validates config, generates packages, and returns correct exit codes. | Automated CLI tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py` | TBD |
+| REQ-120 | CLI validates config, generates packages, and returns correct exit codes. | Automated CLI tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py`; example generation returned `succeeded` | TBD |
 | REQ-130 | LLM contract schemas and examples validate. | Schema and contract example tests | TBD | To be filled during implementation | TBD |
 | REQ-140 | Review statuses preserve generated and edited observations. | Automated report package tests | TBD | To be filled during implementation | TBD |
 | REQ-150 | Plugin fixture registers a recipe without core modification. | Automated plugin fixture tests | TBD | To be filled during implementation | TBD |
@@ -1467,7 +1467,7 @@ failing recipe, data dependency, and output path.
 | NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; manifest docs pending | TBD |
 | NFR-070 | FastF1 calls are isolated inside the gateway layer. | Code inspection and fake gateway tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_data_gateway.py` | TBD |
 | NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | TBD | To be filled during implementation | TBD |
-| NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | `python -m unittest discover -s tests -p "test_*.py"` | first renderer smoke test passed; formal benchmark pending | TBD |
+| NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | `python -m unittest discover -s tests -p "test_*.py"` | all recipe renderer smoke tests passed; formal benchmark pending | TBD |
 | NFR-130 | A 10-chart package generates in a maximum of 60 seconds from cached data. | Scripted benchmark | TBD | To be filled during implementation | TBD |
 | NFR-140 | Default PNG chart size stays within 100 KB to 2 MB. | Automated size check | TBD | To be filled during implementation | TBD |
 | SEC-010 | Default storage remains local and does not upload outputs. | Code inspection and integration tests | TBD | To be filled during implementation | TBD |
@@ -1546,7 +1546,7 @@ for the requirements it introduces.
 | REQ-020 | Cache management | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | pending real cache-hit integration test | In Implementation |
 | REQ-030 | Configuration schema | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/config/validation.py`; `src/f1_telemetry_charts/config/loader.py` | `tests/test_config_validation.py` | In Implementation |
 | REQ-040 | Recipe registry | `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_config_validation.py` | In Implementation |
-| REQ-050 | Core recipes | `src/f1_telemetry_charts/recipes/lap_time_delta.py`; `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
+| REQ-050 | Core recipes | `src/f1_telemetry_charts/recipes/lap_time_delta.py`; `src/f1_telemetry_charts/recipes/telemetry_trace.py`; `src/f1_telemetry_charts/recipes/tyre_strategy.py`; `src/f1_telemetry_charts/recipes/position_progression.py`; `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_core_recipes.py`; `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | REQ-060 | Theme system | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | REQ-070 | Artifact export | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | REQ-080 | Analysis orchestrator | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/analysis/manifest.py` | `tests/test_orchestrator.py`; `tests/test_cli.py` | In Implementation |
@@ -1655,6 +1655,17 @@ default visual identity as explicitly delegated.
 - Added orchestration and CLI generation tests.
 - Deferred live FastF1 orchestration, formal package integrity checks, and
   complete MVP recipe coverage to later slices.
+
+#### 2026-07-10 Slice 6
+
+- Added remaining MVP core recipes: `telemetry_trace`, `tyre_strategy`, and
+  `position_progression`.
+- Registered all MVP recipe factories in the recipe registry.
+- Updated the canonical Bahrain example config to render all four MVP recipes.
+- Added tests that verify all MVP recipe factories are registered and all MVP
+  recipes render in one batch package.
+- Deferred formal render benchmarking and broader visual baseline review to
+  Slice 7.
 
 ### Implementation plan
 

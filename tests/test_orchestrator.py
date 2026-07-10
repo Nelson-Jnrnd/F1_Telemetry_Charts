@@ -28,9 +28,18 @@ class OrchestratorTests(unittest.TestCase):
 
     def test_run_analysis_preserves_successful_artifacts_on_recipe_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
+            fixture_path = Path(temp_dir) / "no-telemetry.json"
+            raw_fixture = json.loads(
+                Path("tests/fixtures/2023_bahrain_race_dataset.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            raw_fixture["telemetry"] = []
+            fixture_path.write_text(json.dumps(raw_fixture), encoding="utf-8")
             config = _config(
                 Path(temp_dir),
                 recipe_ids=["lap_time_delta", "telemetry_trace"],
+                fixture_path=fixture_path,
             )
 
             result = run_analysis(config)
@@ -53,7 +62,11 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(first.manifest.configuration_hash, second.manifest.configuration_hash)
 
 
-def _config(output_dir: Path, recipe_ids: list[str]) -> ProjectConfig:
+def _config(
+    output_dir: Path,
+    recipe_ids: list[str],
+    fixture_path: Path = Path("tests/fixtures/2023_bahrain_race_dataset.json"),
+) -> ProjectConfig:
     return validate_config(
         {
             "schema_version": 1,
@@ -66,7 +79,7 @@ def _config(output_dir: Path, recipe_ids: list[str]) -> ProjectConfig:
             },
             "driver_selection": {"drivers": ["VER", "PER", "ALO"]},
             "data_cache": {
-                "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
+                "fixture_path": str(fixture_path)
             },
             "recipes": [{"recipe_id": recipe_id} for recipe_id in recipe_ids],
         }

@@ -21,6 +21,12 @@ recipe_id = "lap_time_delta"
 [[recipes]]
 recipe_id = "telemetry_trace"
 
+[[recipes]]
+recipe_id = "tyre_strategy"
+
+[[recipes]]
+recipe_id = "position_progression"
+
 [theme]
 name = "technical_editorial"
 figure_width = 16
