@@ -1443,8 +1443,8 @@ failing recipe, data dependency, and output path.
 
 | Requirement ID | Acceptance criterion | Verification method | Test / command / manual check | Evidence location | PR reference |
 | -------------- | -------------------- | ------------------- | ----------------------------- | ----------------- | ------------ |
-| REQ-010 | FastF1-backed session requests return normalized available data and explicit missing-data fields. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_data_gateway.py`; live FastF1 integration not exercised yet | TBD |
-| REQ-020 | Configured local cache supports cache-hit reruns without network calls. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; cache-hit behavior not exercised against real FastF1 yet | TBD |
+| REQ-010 | FastF1-backed session requests return normalized available data and explicit missing-data fields. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"`; manual FastF1 smoke on 2026-07-10 | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_fastf1_gateway.py`; live smoke returned 114 laps, 6111 telemetry samples, and 161 weather samples for VER/PER | TBD |
+| REQ-020 | Configured local cache supports cache-hit reruns without network calls. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"`; manual cache-only FastF1 smoke on 2026-07-10 | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; cache-only smoke returned `fetched_from_network=false` | TBD |
 | REQ-030 | Versioned config validates keys, types, enums, and minimal valid runs. | Automated schema validation tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_config_validation.py`; Slice 2 partial, analysis options not implemented yet | TBD |
 | REQ-040 | Registry resolves known IDs and rejects unknown IDs actionably. | Automated unit tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/recipes/registry.py`; `tests/test_config_validation.py` | TBD |
 | REQ-050 | Core recipes render from fixtures and report missing required fields. | Automated chart smoke tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/recipes/`; `tests/test_core_recipes.py`; `tests/test_lap_time_delta_recipe.py` | TBD |
@@ -1462,17 +1462,17 @@ failing recipe, data dependency, and output path.
 | NFR-010 | Python 3.11 or newer is declared and enforced. | Automated environment checks | `python -m pip install -e .`; `python -m unittest discover -s tests -p "test_*.py"` | `pyproject.toml`; local editable install passed | TBD |
 | NFR-020 | MVP charts use Matplotlib behind a renderer interface. | Code inspection and unit tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/base.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | TBD |
 | NFR-030 | Identical deterministic inputs produce equivalent metadata and stable names. | Automated repeatability test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_orchestrator.py` | TBD |
-| NFR-040 | Complete cached sessions render without network access. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json`; rendering pending later slices | TBD |
+| NFR-040 | Complete cached sessions render without network access. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"`; manual FastF1 cache-only smoke on 2026-07-10 | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | TBD |
 | NFR-050 | PNG and JSON exports are produced for successful chart artifacts. | Automated output tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_lap_time_delta_recipe.py` | TBD |
 | NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; `docs/usage/data-gateway.md`; `docs/usage/charts.md`; `docs/usage/generation.md` | TBD |
-| NFR-070 | FastF1 calls are isolated inside the gateway layer. | Code inspection and fake gateway tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_data_gateway.py` | TBD |
+| NFR-070 | FastF1 calls are isolated inside the gateway layer. | Code inspection and fake gateway tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_fastf1_gateway.py`; `tests/test_data_gateway.py` | TBD |
 | NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | `python scripts/benchmark_mvp.py` | Fixture-backed dataset load measured 0.0008 seconds on 2026-07-10 | TBD |
 | NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | `python scripts/benchmark_mvp.py` | Fixture-backed render timings on 2026-07-10: lap_time_delta 1.0102s, telemetry_trace 0.2674s, tyre_strategy 0.2183s, position_progression 0.2301s | TBD |
 | NFR-130 | A 10-chart package generates in a maximum of 60 seconds from cached data. | Scripted benchmark | TBD | To be filled during implementation | TBD |
 | NFR-140 | Default PNG chart size stays within 100 KB to 2 MB. | Automated size check | TBD | To be filled during implementation | TBD |
 | SEC-010 | Default storage remains local and does not upload outputs. | Code inspection and integration tests | TBD | To be filled during implementation | TBD |
 | SEC-020 | LLM responses exclude unrelated paths, environment data, and cache internals. | Contract tests | TBD | To be filled during implementation | TBD |
-| DATA-010 | Dataset model represents metadata, laps, telemetry, weather, provenance, and missing data. | Data model tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/models.py`; `tests/test_data_gateway.py` | TBD |
+| DATA-010 | Dataset model represents metadata, laps, telemetry, weather, provenance, and missing data. | Data model tests | `python -m unittest discover -s tests -p "test_*.py"`; manual FastF1 smoke on 2026-07-10 | `src/f1_telemetry_charts/data/models.py`; `tests/test_data_gateway.py`; `tests/test_fastf1_gateway.py` | TBD |
 | DATA-020 | Manifest model represents run state, artifacts, warnings, errors, and paths. | Manifest schema tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/manifest.py`; `tests/test_orchestrator.py` | TBD |
 | DATA-030 | Observation model represents traceable claims and review status. | Observation schema tests | TBD | To be filled during implementation | TBD |
 | API-010 | Public Python entry points cover config, validation, runs, and manifests. | API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_orchestrator.py` | TBD |
@@ -1678,6 +1678,22 @@ default visual identity as explicitly delegated.
   generation 1.3221 seconds.
 - Remaining MVP caveat: live FastF1 network/cache integration is still deferred;
   current benchmark evidence is fixture-backed and offline.
+
+#### 2026-07-10 FastF1 MVP blocker investigation
+
+- Added `fastf1>=3.5` as a runtime dependency.
+- Updated orchestration so configs without `data_cache.fixture_path` use
+  `FastF1SessionGateway`.
+- Added mocked FastF1 gateway tests for normalization, cache-only directory
+  validation, and cache-only provenance.
+- Added bounded FastF1 telemetry extraction through per-lap car data sampling.
+- Manual live smoke for 2023 Bahrain Race VER/PER succeeded and returned 114
+  laps, 6111 telemetry samples, 161 weather samples, and no missing data.
+- Manual cache-only smoke for the populated cache returned
+  `fetched_from_network=false`.
+- Blocking issue: the cache-only FastF1 load with telemetry measured 14.6111
+  seconds on 2026-07-10, which exceeds NFR-110's maximum 10 seconds. The MVP
+  cannot be honestly marked complete until this is fixed or NFR-110 is amended.
 
 ### Implementation plan
 

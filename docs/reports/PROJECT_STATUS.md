@@ -12,11 +12,12 @@ _Last updated: 2026-07-09._
 ## Snapshot
 
 - **Current branch:** chatbot
-- **Current phase:** SPEC-001 Slice 7 implemented; live FastF1/cache verification remains
+- **Current phase:** SPEC-001 MVP blocked on FastF1 cached-load performance
 - **Linked issue:** none
 - **Linked spec:** SPEC-001 F1 Data Analysis Charting Framework
 - **Open PR:** none observed in repository state
 - **Checks:** governance, spec, and drift validation passed on 2026-07-09
-- **Blockers:** none for implementation planning
-- **Recommended next action:** Decide whether to add and verify live FastF1
-  integration now, or accept the fixture-backed MVP baseline and move to V1.
+- **Blockers:** FastF1 cache-only telemetry load measured 14.6111 seconds,
+  exceeding the approved 10 second cached-load maximum.
+- **Recommended next action:** Optimize the FastF1 telemetry/cache strategy or
+  amend the cached-load performance target before declaring MVP complete.

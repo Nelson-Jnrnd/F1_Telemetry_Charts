@@ -33,5 +33,11 @@ telemetry samples, weather samples, source provenance, and missing-data entries.
 models, recipes, or config modules does not import FastF1. FastF1 is imported
 only when `FastF1SessionGateway.load_session(...)` is called.
 
-FastF1-backed loading is intentionally not used by the default unit tests, so
-the repository remains testable without network access.
+FastF1-backed loading is covered by mocked unit tests and can be used for live
+or cache-only smoke checks. The repository remains testable without network
+access because the default unit tests use fixtures and mocked FastF1-shaped
+objects.
+
+Current blocker: a cache-only load of the canonical 2023 Bahrain Race for VER
+and PER with telemetry extraction measured 14.6111 seconds on 2026-07-10, which
+exceeds the current SPEC-001 NFR-110 maximum of 10 seconds.

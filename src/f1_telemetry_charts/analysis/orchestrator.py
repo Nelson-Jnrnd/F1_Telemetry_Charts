@@ -17,7 +17,7 @@ from f1_telemetry_charts.analysis.manifest import (
 from f1_telemetry_charts.charts.renderers import MatplotlibRenderer
 from f1_telemetry_charts.config.models import ProjectConfig
 from f1_telemetry_charts.data import SessionQuery
-from f1_telemetry_charts.data.gateways import FixtureSessionGateway
+from f1_telemetry_charts.data.gateways import FastF1SessionGateway, FixtureSessionGateway
 from f1_telemetry_charts.recipes.registry import default_recipe_registry
 
 
@@ -114,18 +114,18 @@ def run_analysis(config: ProjectConfig) -> AnalysisResult:
 
 
 def _load_dataset(config: ProjectConfig):
-    if config.data_cache.fixture_path is None:
-        raise ValueError(
-            "A fixture_path is required until live gateway orchestration is implemented"
-        )
-    return FixtureSessionGateway(config.data_cache.fixture_path).load_session(
-        SessionQuery(
-            season=config.session.season,
-            event=config.session.event,
-            session=config.session.session,
-            drivers=config.driver_selection.drivers,
-        )
+    query = SessionQuery(
+        season=config.session.season,
+        event=config.session.event,
+        session=config.session.session,
+        drivers=config.driver_selection.drivers,
     )
+    if config.data_cache.fixture_path is not None:
+        return FixtureSessionGateway(config.data_cache.fixture_path).load_session(query)
+    return FastF1SessionGateway(
+        config.data_cache.directory,
+        cache_only=config.data_cache.mode == "cache-only",
+    ).load_session(query)
 
 
 def _configuration_hash(config: ProjectConfig) -> str:

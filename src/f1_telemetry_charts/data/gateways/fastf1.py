@@ -18,8 +18,11 @@ from f1_telemetry_charts.data.models import (
     SessionMetadata,
     SessionQuery,
     SourceProvenance,
+    TelemetrySample,
     WeatherSample,
 )
+
+MAX_TELEMETRY_SAMPLES_PER_LAP = 50
 
 
 class FastF1SessionGateway:
@@ -36,12 +39,16 @@ class FastF1SessionGateway:
                 "using FastF1SessionGateway."
             ) from exc
 
+        if self.cache_only and not self.cache_dir.exists():
+            raise DataGatewayError(
+                f"FastF1 cache directory does not exist in cache-only mode: {self.cache_dir}"
+            )
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         fastf1.Cache.enable_cache(str(self.cache_dir))
 
         try:
             session = fastf1.get_session(query.season, query.event, query.session)
-            session.load(laps=True, telemetry=False, weather=True, messages=False)
+            session.load(laps=True, telemetry=True, weather=True, messages=False)
         except Exception as exc:
             raise DataGatewayError(
                 f"FastF1 could not load {query.season} {query.event} {query.session}: {exc}"
@@ -60,18 +67,20 @@ def _session_to_dataset(
     driver_rows = getattr(session, "results", None)
     drivers = _drivers_from_results(driver_rows, query.drivers)
     lap_records = _lap_records_from_laps(laps)
+    telemetry = _telemetry_samples_from_laps(laps)
     weather = _weather_samples_from_session(session)
     missing_data = []
     if not weather:
         missing_data.append(
             MissingDataField(field="weather", reason="No weather samples available")
         )
-    missing_data.append(
-        MissingDataField(
-            field="telemetry",
-            reason="Telemetry loading is deferred to a later gateway slice",
+    if not telemetry:
+        missing_data.append(
+            MissingDataField(
+                field="telemetry",
+                reason="No telemetry samples available",
+            )
         )
-    )
 
     return SessionDataset(
         metadata=SessionMetadata(
@@ -83,7 +92,7 @@ def _session_to_dataset(
         ),
         drivers=drivers,
         laps=lap_records,
-        telemetry=[],
+        telemetry=telemetry,
         weather=weather,
         provenance=SourceProvenance(
             provider="FastF1",
@@ -157,6 +166,46 @@ def _weather_samples_from_session(session: Any) -> list[WeatherSample]:
                 rainfall=_bool_or_none(row.get("Rainfall")),
             )
         )
+    return samples
+
+
+def _telemetry_samples_from_laps(laps: Any) -> list[TelemetrySample]:
+    samples: list[TelemetrySample] = []
+    for _, lap in laps.iterrows():
+        get_car_data = getattr(lap, "get_car_data", None)
+        if get_car_data is None:
+            continue
+        try:
+            car_data = get_car_data()
+            add_distance = getattr(car_data, "add_distance", None)
+            if add_distance is not None:
+                car_data = add_distance()
+        except Exception:
+            continue
+
+        row_count = len(car_data)
+        step = max(1, row_count // MAX_TELEMETRY_SAMPLES_PER_LAP)
+        for index, (_, row) in enumerate(car_data.iterrows()):
+            if index % step != 0 and index != row_count - 1:
+                continue
+            time_value = row.get("Time")
+            fallback_distance = (
+                float(time_value.total_seconds())
+                if hasattr(time_value, "total_seconds")
+                else float(index)
+            )
+            distance = _float_or_none(row.get("Distance"))
+            samples.append(
+                TelemetrySample(
+                    driver=str(lap.get("Driver")),
+                    lap_number=int(lap.get("LapNumber")),
+                    distance_m=distance if distance is not None else fallback_distance,
+                    speed_kph=_float_or_none(row.get("Speed")),
+                    throttle_percent=_float_or_none(row.get("Throttle")),
+                    brake=_bool_or_none(row.get("Brake")),
+                    gear=_int_or_none(row.get("nGear")),
+                )
+            )
     return samples
 
 

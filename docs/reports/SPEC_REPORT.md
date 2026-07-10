@@ -22,6 +22,7 @@ Missing verification: implementation evidence pending
 Potential blockers:   none
 ```
 
-SPEC-001 is in implementation. Slices 1 through 7 are implemented through
-fixture-backed package generation, all MVP core recipes, documentation, and
-benchmarking. Live FastF1/cache verification remains the main MVP caveat.
+SPEC-001 is in implementation. Slices 1 through 7 are implemented, and live
+FastF1/cache smoke verification now returns normalized laps, telemetry, and
+weather. MVP is blocked because cache-only FastF1 telemetry loading measured
+14.6111 seconds against the approved 10 second cached-load maximum.
