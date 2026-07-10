@@ -36,6 +36,12 @@ class RecipeRegistry:
         return sorted(self._recipes)
 
     def create(self, recipe_id: str) -> ChartRecipe:
+        if recipe_id not in self._recipes:
+            raise KeyError(f"Unknown recipe ID: {recipe_id}")
+        if recipe_id not in self._factories:
+            raise NotImplementedError(
+                f"Recipe implementation is not available yet: {recipe_id}"
+            )
         return self._factories[recipe_id]()
 
 

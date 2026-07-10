@@ -27,6 +27,7 @@ class DataCacheConfig(BaseModel):
 
     directory: Path = Field(default=Path(".cache/fastf1"))
     mode: Literal["cache-or-fetch", "cache-only"] = "cache-or-fetch"
+    fixture_path: Path | None = None
 
 
 class ChartRecipeConfig(BaseModel):

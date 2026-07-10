@@ -13,6 +13,7 @@ drivers = ["VER", "PER", "ALO"]
 [data_cache]
 directory = ".cache/fastf1"
 mode = "cache-or-fetch"
+fixture_path = "tests/fixtures/2023_bahrain_race_dataset.json"
 
 [[recipes]]
 recipe_id = "lap_time_delta"

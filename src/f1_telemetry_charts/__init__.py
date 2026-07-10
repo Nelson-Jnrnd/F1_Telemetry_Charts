@@ -7,12 +7,15 @@ from f1_telemetry_charts.config.validation import (
     ValidationIssue,
     validate_config,
 )
+from f1_telemetry_charts.analysis.orchestrator import AnalysisResult, run_analysis
 
 __all__ = [
+    "AnalysisResult",
     "ConfigValidationError",
     "ProjectConfig",
     "ValidationIssue",
     "load_config",
+    "run_analysis",
     "validate_config",
 ]
 

@@ -1,0 +1,77 @@
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from f1_telemetry_charts.analysis.orchestrator import run_analysis
+from f1_telemetry_charts.config.models import ProjectConfig
+from f1_telemetry_charts.config.validation import validate_config
+
+
+class OrchestratorTests(unittest.TestCase):
+    def test_run_analysis_writes_manifest_and_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = _config(Path(temp_dir), recipe_ids=["lap_time_delta"])
+
+            result = run_analysis(config)
+
+            self.assertEqual(result.status, "succeeded")
+            self.assertTrue(result.manifest_path.exists())
+            manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest["status"], "succeeded")
+        self.assertEqual(manifest["requested_recipes"], ["lap_time_delta"])
+        self.assertEqual(len(manifest["artifacts"]), 1)
+        self.assertEqual(manifest["recipes"][0]["status"], "produced")
+
+    def test_run_analysis_preserves_successful_artifacts_on_recipe_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = _config(
+                Path(temp_dir),
+                recipe_ids=["lap_time_delta", "telemetry_trace"],
+            )
+
+            result = run_analysis(config)
+            manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.status, "partially_succeeded")
+        self.assertEqual(len(manifest["artifacts"]), 1)
+        self.assertEqual(manifest["recipes"][0]["status"], "produced")
+        self.assertEqual(manifest["recipes"][1]["status"], "failed")
+        self.assertIn("telemetry_trace", manifest["errors"][0])
+
+    def test_run_analysis_uses_deterministic_output_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = _config(Path(temp_dir), recipe_ids=["lap_time_delta"])
+
+            first = run_analysis(config)
+            second = run_analysis(config)
+
+        self.assertEqual(first.output_dir, second.output_dir)
+        self.assertEqual(first.manifest.configuration_hash, second.manifest.configuration_hash)
+
+
+def _config(output_dir: Path, recipe_ids: list[str]) -> ProjectConfig:
+    return validate_config(
+        {
+            "schema_version": 1,
+            "project_id": "test-bahrain",
+            "output_dir": str(output_dir),
+            "session": {
+                "season": 2023,
+                "event": "Bahrain Grand Prix",
+                "session": "Race",
+            },
+            "driver_selection": {"drivers": ["VER", "PER", "ALO"]},
+            "data_cache": {
+                "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
+            },
+            "recipes": [{"recipe_id": recipe_id} for recipe_id in recipe_ids],
+        }
+    )
+
+
+if __name__ == "__main__":
+    unittest.main()

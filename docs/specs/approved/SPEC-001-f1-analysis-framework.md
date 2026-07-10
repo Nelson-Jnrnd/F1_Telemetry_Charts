@@ -1450,18 +1450,18 @@ failing recipe, data dependency, and output path.
 | REQ-050 | Core recipes render from fixtures and report missing required fields. | Automated chart smoke tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/recipes/lap_time_delta.py`; `tests/test_lap_time_delta_recipe.py`; remaining core recipes pending | TBD |
 | REQ-060 | Central theme controls are applied to all core recipes. | Unit tests and visual baseline inspection | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `tests/test_lap_time_delta_recipe.py`; all-core coverage pending | TBD |
 | REQ-070 | Each chart writes PNG and metadata with required manifest fields. | Automated file output tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `src/f1_telemetry_charts/charts/artifacts.py`; first chart metadata only, full manifest pending | TBD |
-| REQ-080 | Batch runs record produced, skipped, warning, and error states. | Automated integration test | TBD | To be filled during implementation | TBD |
+| REQ-080 | Batch runs record produced, skipped, warning, and error states. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/analysis/manifest.py`; `tests/test_orchestrator.py` | TBD |
 | REQ-090 | Observations include evidence, metrics, confidence, and limitations. | Automated tests and manual review | TBD | To be filled during implementation | TBD |
 | REQ-100 | Report package includes manifest, images, metadata, observations, and Markdown draft. | Automated package tests and manual review | TBD | To be filled during implementation | TBD |
-| REQ-110 | Python callers can validate config, run analysis, and read manifests. | Automated API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; `tests/test_config_validation.py`; validation API only so far | TBD |
-| REQ-120 | CLI validates config, generates packages, and returns correct exit codes. | Automated CLI tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py`; config validation command only so far | TBD |
+| REQ-110 | Python callers can validate config, run analysis, and read manifests. | Automated API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_config_validation.py`; `tests/test_orchestrator.py` | TBD |
+| REQ-120 | CLI validates config, generates packages, and returns correct exit codes. | Automated CLI tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py` | TBD |
 | REQ-130 | LLM contract schemas and examples validate. | Schema and contract example tests | TBD | To be filled during implementation | TBD |
 | REQ-140 | Review statuses preserve generated and edited observations. | Automated report package tests | TBD | To be filled during implementation | TBD |
 | REQ-150 | Plugin fixture registers a recipe without core modification. | Automated plugin fixture tests | TBD | To be filled during implementation | TBD |
 | REQ-160 | Local preview can display package manifest content. | UI smoke tests or manual verification | TBD | To be filled during implementation | TBD |
 | NFR-010 | Python 3.11 or newer is declared and enforced. | Automated environment checks | `python -m pip install -e .`; `python -m unittest discover -s tests -p "test_*.py"` | `pyproject.toml`; local editable install passed | TBD |
 | NFR-020 | MVP charts use Matplotlib behind a renderer interface. | Code inspection and unit tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/base.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | TBD |
-| NFR-030 | Identical deterministic inputs produce equivalent metadata and stable names. | Automated repeatability test | TBD | To be filled during implementation | TBD |
+| NFR-030 | Identical deterministic inputs produce equivalent metadata and stable names. | Automated repeatability test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_orchestrator.py` | TBD |
 | NFR-040 | Complete cached sessions render without network access. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json`; rendering pending later slices | TBD |
 | NFR-050 | PNG and JSON exports are produced for successful chart artifacts. | Automated output tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_lap_time_delta_recipe.py` | TBD |
 | NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; manifest docs pending | TBD |
@@ -1473,10 +1473,10 @@ failing recipe, data dependency, and output path.
 | SEC-010 | Default storage remains local and does not upload outputs. | Code inspection and integration tests | TBD | To be filled during implementation | TBD |
 | SEC-020 | LLM responses exclude unrelated paths, environment data, and cache internals. | Contract tests | TBD | To be filled during implementation | TBD |
 | DATA-010 | Dataset model represents metadata, laps, telemetry, weather, provenance, and missing data. | Data model tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/models.py`; `tests/test_data_gateway.py` | TBD |
-| DATA-020 | Manifest model represents run state, artifacts, warnings, errors, and paths. | Manifest schema tests | TBD | To be filled during implementation | TBD |
+| DATA-020 | Manifest model represents run state, artifacts, warnings, errors, and paths. | Manifest schema tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/manifest.py`; `tests/test_orchestrator.py` | TBD |
 | DATA-030 | Observation model represents traceable claims and review status. | Observation schema tests | TBD | To be filled during implementation | TBD |
-| API-010 | Public Python entry points cover config, validation, runs, and manifests. | API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; config and validation entry points implemented, run and manifest entry points pending | TBD |
-| API-020 | CLI command names, arguments, exit codes, and machine output are stable. | CLI contract tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts config validate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; config validation command implemented, generation command pending | TBD |
+| API-010 | Public Python entry points cover config, validation, runs, and manifests. | API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_orchestrator.py` | TBD |
+| API-020 | CLI command names, arguments, exit codes, and machine output are stable. | CLI contract tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts config validate configs/bahrain-race.toml --json`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py` | TBD |
 | API-030 | Unsupported LLM contract versions fail with structured compatibility errors. | Contract compatibility tests | TBD | To be filled during implementation | TBD |
 | UX-010 | Config and manifest models can populate the config workbench wireframe. | Design inspection | TBD | To be filled during implementation | TBD |
 | UX-020 | Observation model can populate the analysis review wireframe. | Design inspection | TBD | To be filled during implementation | TBD |
@@ -1549,7 +1549,7 @@ for the requirements it introduces.
 | REQ-050 | Core recipes | `src/f1_telemetry_charts/recipes/lap_time_delta.py`; `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | REQ-060 | Theme system | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | REQ-070 | Artifact export | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
-| REQ-080 | Analysis orchestrator | TBD | TBD | Approved |
+| REQ-080 | Analysis orchestrator | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/analysis/manifest.py` | `tests/test_orchestrator.py`; `tests/test_cli.py` | In Implementation |
 | REQ-090 | Analysis engine | TBD | TBD | Approved |
 | REQ-100 | Report package exporter | TBD | TBD | Approved |
 | REQ-110 | Python API | `src/f1_telemetry_charts/__init__.py` | `tests/test_config_validation.py` | In Implementation |
@@ -1560,7 +1560,7 @@ for the requirements it introduces.
 | REQ-160 | Local preview | TBD | TBD | Approved |
 | NFR-010 | Runtime support | `pyproject.toml`; `.github/workflows/ci.yml` | local editable install; `tests/test_cli.py` | In Implementation |
 | NFR-020 | Renderer backend | `src/f1_telemetry_charts/charts/renderers/base.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
-| NFR-030 | Determinism | TBD | TBD | Approved |
+| NFR-030 | Determinism | `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_orchestrator.py` | In Implementation |
 | NFR-040 | Offline reproducibility | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json` | `tests/test_data_gateway.py` | In Implementation |
 | NFR-050 | Export formats | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | NFR-060 | Documentation | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md` | manual inspection; CLI help command | In Implementation |
@@ -1572,9 +1572,9 @@ for the requirements it introduces.
 | SEC-010 | Local storage | TBD | TBD | Approved |
 | SEC-020 | LLM data boundary | TBD | TBD | Approved |
 | DATA-010 | Dataset model | `src/f1_telemetry_charts/data/models.py` | `tests/test_data_gateway.py` | In Implementation |
-| DATA-020 | Manifest model | TBD | TBD | Approved |
+| DATA-020 | Manifest model | `src/f1_telemetry_charts/analysis/manifest.py` | `tests/test_orchestrator.py` | In Implementation |
 | DATA-030 | Observation model | TBD | TBD | Approved |
-| API-010 | Python API | `src/f1_telemetry_charts/__init__.py` | `tests/test_config_validation.py` | In Implementation |
+| API-010 | Python API | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_config_validation.py`; `tests/test_orchestrator.py` | In Implementation |
 | API-020 | CLI contract | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
 | API-030 | LLM contract versioning | TBD | TBD | Approved |
 | UX-010 | Config workbench | TBD | TBD | Approved |
@@ -1642,6 +1642,19 @@ default visual identity as explicitly delegated.
 - Added chart usage documentation.
 - Deferred full package manifest, deterministic package naming, and batch
   orchestration to Slice 5.
+
+#### 2026-07-10 Slice 5
+
+- Added analysis manifest models for run status, per-recipe status, artifacts,
+  warnings, errors, session identity, framework version, and configuration hash.
+- Added fixture-backed analysis orchestrator with deterministic run ID and
+  package output directory.
+- Added partial success behavior that preserves successful chart artifacts when
+  a later requested recipe fails.
+- Added public `run_analysis` API and CLI `generate` command with JSON output.
+- Added orchestration and CLI generation tests.
+- Deferred live FastF1 orchestration, formal package integrity checks, and
+  complete MVP recipe coverage to later slices.
 
 ### Implementation plan
 

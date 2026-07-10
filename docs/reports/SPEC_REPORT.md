@@ -22,5 +22,6 @@ Missing verification: implementation evidence pending
 Potential blockers:   none
 ```
 
-SPEC-001 is in implementation. Slice 1 project scaffold and the contained
-Slice 2 typed configuration validation path are being implemented first.
+SPEC-001 is in implementation. Slices 1 through 5 are implemented through
+fixture-backed package generation and manifest writing. Remaining MVP work
+starts with Slice 6 core recipe expansion.
