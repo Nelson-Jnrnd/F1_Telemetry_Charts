@@ -1447,9 +1447,9 @@ failing recipe, data dependency, and output path.
 | REQ-020 | Configured local cache supports cache-hit reruns without network calls. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; cache-hit behavior not exercised against real FastF1 yet | TBD |
 | REQ-030 | Versioned config validates keys, types, enums, and minimal valid runs. | Automated schema validation tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_config_validation.py`; Slice 2 partial, analysis options not implemented yet | TBD |
 | REQ-040 | Registry resolves known IDs and rejects unknown IDs actionably. | Automated unit tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/recipes/registry.py`; `tests/test_config_validation.py` | TBD |
-| REQ-050 | Core recipes render from fixtures and report missing required fields. | Automated chart smoke tests | TBD | To be filled during implementation | TBD |
-| REQ-060 | Central theme controls are applied to all core recipes. | Unit tests and visual baseline inspection | TBD | To be filled during implementation | TBD |
-| REQ-070 | Each chart writes PNG and metadata with required manifest fields. | Automated file output tests | TBD | To be filled during implementation | TBD |
+| REQ-050 | Core recipes render from fixtures and report missing required fields. | Automated chart smoke tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/recipes/lap_time_delta.py`; `tests/test_lap_time_delta_recipe.py`; remaining core recipes pending | TBD |
+| REQ-060 | Central theme controls are applied to all core recipes. | Unit tests and visual baseline inspection | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `tests/test_lap_time_delta_recipe.py`; all-core coverage pending | TBD |
+| REQ-070 | Each chart writes PNG and metadata with required manifest fields. | Automated file output tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `src/f1_telemetry_charts/charts/artifacts.py`; first chart metadata only, full manifest pending | TBD |
 | REQ-080 | Batch runs record produced, skipped, warning, and error states. | Automated integration test | TBD | To be filled during implementation | TBD |
 | REQ-090 | Observations include evidence, metrics, confidence, and limitations. | Automated tests and manual review | TBD | To be filled during implementation | TBD |
 | REQ-100 | Report package includes manifest, images, metadata, observations, and Markdown draft. | Automated package tests and manual review | TBD | To be filled during implementation | TBD |
@@ -1460,14 +1460,14 @@ failing recipe, data dependency, and output path.
 | REQ-150 | Plugin fixture registers a recipe without core modification. | Automated plugin fixture tests | TBD | To be filled during implementation | TBD |
 | REQ-160 | Local preview can display package manifest content. | UI smoke tests or manual verification | TBD | To be filled during implementation | TBD |
 | NFR-010 | Python 3.11 or newer is declared and enforced. | Automated environment checks | `python -m pip install -e .`; `python -m unittest discover -s tests -p "test_*.py"` | `pyproject.toml`; local editable install passed | TBD |
-| NFR-020 | MVP charts use Matplotlib behind a renderer interface. | Code inspection and unit tests | TBD | To be filled during implementation | TBD |
+| NFR-020 | MVP charts use Matplotlib behind a renderer interface. | Code inspection and unit tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/base.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | TBD |
 | NFR-030 | Identical deterministic inputs produce equivalent metadata and stable names. | Automated repeatability test | TBD | To be filled during implementation | TBD |
 | NFR-040 | Complete cached sessions render without network access. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json`; rendering pending later slices | TBD |
-| NFR-050 | PNG and JSON exports are produced for successful chart artifacts. | Automated output tests | TBD | To be filled during implementation | TBD |
+| NFR-050 | PNG and JSON exports are produced for successful chart artifacts. | Automated output tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_lap_time_delta_recipe.py` | TBD |
 | NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; manifest docs pending | TBD |
 | NFR-070 | FastF1 calls are isolated inside the gateway layer. | Code inspection and fake gateway tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_data_gateway.py` | TBD |
 | NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | TBD | To be filled during implementation | TBD |
-| NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | TBD | To be filled during implementation | TBD |
+| NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | `python -m unittest discover -s tests -p "test_*.py"` | first renderer smoke test passed; formal benchmark pending | TBD |
 | NFR-130 | A 10-chart package generates in a maximum of 60 seconds from cached data. | Scripted benchmark | TBD | To be filled during implementation | TBD |
 | NFR-140 | Default PNG chart size stays within 100 KB to 2 MB. | Automated size check | TBD | To be filled during implementation | TBD |
 | SEC-010 | Default storage remains local and does not upload outputs. | Code inspection and integration tests | TBD | To be filled during implementation | TBD |
@@ -1546,9 +1546,9 @@ for the requirements it introduces.
 | REQ-020 | Cache management | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | pending real cache-hit integration test | In Implementation |
 | REQ-030 | Configuration schema | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/config/validation.py`; `src/f1_telemetry_charts/config/loader.py` | `tests/test_config_validation.py` | In Implementation |
 | REQ-040 | Recipe registry | `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_config_validation.py` | In Implementation |
-| REQ-050 | Core recipes | TBD | TBD | Approved |
-| REQ-060 | Theme system | TBD | TBD | Approved |
-| REQ-070 | Artifact export | TBD | TBD | Approved |
+| REQ-050 | Core recipes | `src/f1_telemetry_charts/recipes/lap_time_delta.py`; `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
+| REQ-060 | Theme system | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
+| REQ-070 | Artifact export | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | REQ-080 | Analysis orchestrator | TBD | TBD | Approved |
 | REQ-090 | Analysis engine | TBD | TBD | Approved |
 | REQ-100 | Report package exporter | TBD | TBD | Approved |
@@ -1559,14 +1559,14 @@ for the requirements it introduces.
 | REQ-150 | Plugin extension point | TBD | TBD | Approved |
 | REQ-160 | Local preview | TBD | TBD | Approved |
 | NFR-010 | Runtime support | `pyproject.toml`; `.github/workflows/ci.yml` | local editable install; `tests/test_cli.py` | In Implementation |
-| NFR-020 | Renderer backend | TBD | TBD | Approved |
+| NFR-020 | Renderer backend | `src/f1_telemetry_charts/charts/renderers/base.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | NFR-030 | Determinism | TBD | TBD | Approved |
 | NFR-040 | Offline reproducibility | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json` | `tests/test_data_gateway.py` | In Implementation |
-| NFR-050 | Export formats | TBD | TBD | Approved |
+| NFR-050 | Export formats | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | NFR-060 | Documentation | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md` | manual inspection; CLI help command | In Implementation |
 | NFR-070 | Dependency boundary | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/data/gateways/base.py` | `tests/test_data_gateway.py` | In Implementation |
 | NFR-110 | Data load performance | TBD | TBD | Approved |
-| NFR-120 | Render performance | TBD | TBD | Approved |
+| NFR-120 | Render performance | `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py`; formal benchmark pending | In Implementation |
 | NFR-130 | Batch performance | TBD | TBD | Approved |
 | NFR-140 | Artifact size | TBD | TBD | Approved |
 | SEC-010 | Local storage | TBD | TBD | Approved |
@@ -1629,6 +1629,19 @@ default visual identity as explicitly delegated.
 - Deferred live FastF1 integration verification and full cache-hit assertions to
   later integration work where the dependency and cache fixture strategy are
   available.
+
+#### 2026-07-09 Slice 4
+
+- Added renderer-independent chart spec and series models.
+- Added chart artifact model and JSON metadata writer.
+- Added renderer protocol and Matplotlib renderer.
+- Added first implemented core recipe, `lap_time_delta`, built from normalized
+  fixture data.
+- Added renderer test that writes PNG and JSON metadata in a temporary output
+  directory.
+- Added chart usage documentation.
+- Deferred full package manifest, deterministic package naming, and batch
+  orchestration to Slice 5.
 
 ### Implementation plan
 
