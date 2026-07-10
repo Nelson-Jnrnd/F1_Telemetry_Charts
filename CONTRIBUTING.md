@@ -27,6 +27,7 @@ process.
 ```powershell
 python -m pip install -e .
 python -m unittest discover -s tests -p "test_*.py"
+python scripts/benchmark_mvp.py
 python scripts/validate_governance.py
 python scripts/validate_specs.py
 python scripts/validate_drift.py

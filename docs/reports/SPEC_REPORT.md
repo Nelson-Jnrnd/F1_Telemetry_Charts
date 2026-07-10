@@ -22,6 +22,6 @@ Missing verification: implementation evidence pending
 Potential blockers:   none
 ```
 
-SPEC-001 is in implementation. Slices 1 through 6 are implemented through
-fixture-backed package generation with all MVP core recipes. Remaining MVP work
-starts with Slice 7 documentation, benchmarking, and traceability hardening.
+SPEC-001 is in implementation. Slices 1 through 7 are implemented through
+fixture-backed package generation, all MVP core recipes, documentation, and
+benchmarking. Live FastF1/cache verification remains the main MVP caveat.

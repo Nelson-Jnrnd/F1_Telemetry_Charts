@@ -34,10 +34,18 @@ approved spec wins. See
 ```powershell
 python -m pip install -e .
 python -m unittest discover -s tests -p "test_*.py"
+python scripts/benchmark_mvp.py
 python scripts/validate_governance.py
 python scripts/validate_specs.py
 python scripts/validate_drift.py
 ```
+
+## Usage Docs
+
+- [Configuration](docs/usage/configuration.md)
+- [Data gateway](docs/usage/data-gateway.md)
+- [Charts](docs/usage/charts.md)
+- [Package generation](docs/usage/generation.md)
 
 ## Manual Setup
 

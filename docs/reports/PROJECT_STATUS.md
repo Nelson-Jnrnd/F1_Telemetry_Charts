@@ -12,11 +12,11 @@ _Last updated: 2026-07-09._
 ## Snapshot
 
 - **Current branch:** chatbot
-- **Current phase:** SPEC-001 Slice 6 implemented; MVP hardening next
+- **Current phase:** SPEC-001 Slice 7 implemented; live FastF1/cache verification remains
 - **Linked issue:** none
 - **Linked spec:** SPEC-001 F1 Data Analysis Charting Framework
 - **Open PR:** none observed in repository state
 - **Checks:** governance, spec, and drift validation passed on 2026-07-09
 - **Blockers:** none for implementation planning
-- **Recommended next action:** Begin SPEC-001 Slice 7: documentation and MVP
-  traceability hardening.
+- **Recommended next action:** Decide whether to add and verify live FastF1
+  integration now, or accept the fixture-backed MVP baseline and move to V1.

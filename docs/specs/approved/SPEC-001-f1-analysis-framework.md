@@ -1464,10 +1464,10 @@ failing recipe, data dependency, and output path.
 | NFR-030 | Identical deterministic inputs produce equivalent metadata and stable names. | Automated repeatability test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_orchestrator.py` | TBD |
 | NFR-040 | Complete cached sessions render without network access. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json`; rendering pending later slices | TBD |
 | NFR-050 | PNG and JSON exports are produced for successful chart artifacts. | Automated output tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_lap_time_delta_recipe.py` | TBD |
-| NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; manifest docs pending | TBD |
+| NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; `docs/usage/data-gateway.md`; `docs/usage/charts.md`; `docs/usage/generation.md` | TBD |
 | NFR-070 | FastF1 calls are isolated inside the gateway layer. | Code inspection and fake gateway tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_data_gateway.py` | TBD |
-| NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | TBD | To be filled during implementation | TBD |
-| NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | `python -m unittest discover -s tests -p "test_*.py"` | all recipe renderer smoke tests passed; formal benchmark pending | TBD |
+| NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | `python scripts/benchmark_mvp.py` | Fixture-backed dataset load measured 0.0008 seconds on 2026-07-10 | TBD |
+| NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | `python scripts/benchmark_mvp.py` | Fixture-backed render timings on 2026-07-10: lap_time_delta 1.0102s, telemetry_trace 0.2674s, tyre_strategy 0.2183s, position_progression 0.2301s | TBD |
 | NFR-130 | A 10-chart package generates in a maximum of 60 seconds from cached data. | Scripted benchmark | TBD | To be filled during implementation | TBD |
 | NFR-140 | Default PNG chart size stays within 100 KB to 2 MB. | Automated size check | TBD | To be filled during implementation | TBD |
 | SEC-010 | Default storage remains local and does not upload outputs. | Code inspection and integration tests | TBD | To be filled during implementation | TBD |
@@ -1563,10 +1563,10 @@ for the requirements it introduces.
 | NFR-030 | Determinism | `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_orchestrator.py` | In Implementation |
 | NFR-040 | Offline reproducibility | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json` | `tests/test_data_gateway.py` | In Implementation |
 | NFR-050 | Export formats | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
-| NFR-060 | Documentation | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md` | manual inspection; CLI help command | In Implementation |
+| NFR-060 | Documentation | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/` | manual inspection; CLI help command; generate command | In Implementation |
 | NFR-070 | Dependency boundary | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/data/gateways/base.py` | `tests/test_data_gateway.py` | In Implementation |
-| NFR-110 | Data load performance | TBD | TBD | Approved |
-| NFR-120 | Render performance | `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py`; formal benchmark pending | In Implementation |
+| NFR-110 | Data load performance | `scripts/benchmark_mvp.py`; `src/f1_telemetry_charts/data/gateways/fixture.py` | `scripts/benchmark_mvp.py` | In Implementation |
+| NFR-120 | Render performance | `scripts/benchmark_mvp.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `scripts/benchmark_mvp.py`; `tests/test_core_recipes.py` | In Implementation |
 | NFR-130 | Batch performance | TBD | TBD | Approved |
 | NFR-140 | Artifact size | TBD | TBD | Approved |
 | SEC-010 | Local storage | TBD | TBD | Approved |
@@ -1666,6 +1666,18 @@ default visual identity as explicitly delegated.
   recipes render in one batch package.
 - Deferred formal render benchmarking and broader visual baseline review to
   Slice 7.
+
+#### 2026-07-10 Slice 7
+
+- Added `scripts/benchmark_mvp.py` for fixture-backed data-load, per-recipe
+  render, and package-generation timing.
+- Added the benchmark to documented local commands and CI.
+- Updated README usage links and developer command documentation.
+- Verified benchmark thresholds on 2026-07-10: fixture load 0.0008 seconds;
+  all single recipe renders under the 5 second maximum; fixture-backed package
+  generation 1.3221 seconds.
+- Remaining MVP caveat: live FastF1 network/cache integration is still deferred;
+  current benchmark evidence is fixture-backed and offline.
 
 ### Implementation plan
 
