@@ -1466,7 +1466,7 @@ failing recipe, data dependency, and output path.
 | NFR-050 | PNG and JSON exports are produced for successful chart artifacts. | Automated output tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_lap_time_delta_recipe.py` | TBD |
 | NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; `docs/usage/data-gateway.md`; `docs/usage/charts.md`; `docs/usage/generation.md` | TBD |
 | NFR-070 | FastF1 calls are isolated inside the gateway layer. | Code inspection and fake gateway tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_fastf1_gateway.py`; `tests/test_data_gateway.py` | TBD |
-| NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | `python scripts/benchmark_mvp.py` | Fixture-backed dataset load measured 0.0008 seconds on 2026-07-10 | TBD |
+| NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | `python scripts/benchmark_mvp.py`; `python scripts/benchmark_fastf1_cache.py --cache-dir .cache\fastf1-smoke` | Fixture-backed dataset load measured 0.0008 seconds on 2026-07-10; cache-only FastF1 load measured 9.0840 seconds on 2026-07-10 with `fetched_from_network=false`, 114 laps, 6111 telemetry samples, and 161 weather samples | TBD |
 | NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | `python scripts/benchmark_mvp.py` | Fixture-backed render timings on 2026-07-10: lap_time_delta 1.0102s, telemetry_trace 0.2674s, tyre_strategy 0.2183s, position_progression 0.2301s | TBD |
 | NFR-130 | A 10-chart package generates in a maximum of 60 seconds from cached data. | Scripted benchmark | TBD | To be filled during implementation | TBD |
 | NFR-140 | Default PNG chart size stays within 100 KB to 2 MB. | Automated size check | TBD | To be filled during implementation | TBD |
@@ -1565,7 +1565,7 @@ for the requirements it introduces.
 | NFR-050 | Export formats | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | NFR-060 | Documentation | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/` | manual inspection; CLI help command; generate command | In Implementation |
 | NFR-070 | Dependency boundary | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/data/gateways/base.py` | `tests/test_data_gateway.py` | In Implementation |
-| NFR-110 | Data load performance | `scripts/benchmark_mvp.py`; `src/f1_telemetry_charts/data/gateways/fixture.py` | `scripts/benchmark_mvp.py` | In Implementation |
+| NFR-110 | Data load performance | `scripts/benchmark_mvp.py`; `scripts/benchmark_fastf1_cache.py`; `src/f1_telemetry_charts/data/gateways/fixture.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | `scripts/benchmark_mvp.py`; `scripts/benchmark_fastf1_cache.py`; `tests/test_fastf1_gateway.py` | In Implementation |
 | NFR-120 | Render performance | `scripts/benchmark_mvp.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `scripts/benchmark_mvp.py`; `tests/test_core_recipes.py` | In Implementation |
 | NFR-130 | Batch performance | TBD | TBD | Approved |
 | NFR-140 | Artifact size | TBD | TBD | Approved |
@@ -1691,9 +1691,20 @@ default visual identity as explicitly delegated.
   laps, 6111 telemetry samples, 161 weather samples, and no missing data.
 - Manual cache-only smoke for the populated cache returned
   `fetched_from_network=false`.
-- Blocking issue: the cache-only FastF1 load with telemetry measured 14.6111
-  seconds on 2026-07-10, which exceeds NFR-110's maximum 10 seconds. The MVP
-  cannot be honestly marked complete until this is fixed or NFR-110 is amended.
+- Initial blocking issue: the cache-only FastF1 load with telemetry measured
+  14.6111 seconds on 2026-07-10, which exceeded NFR-110's maximum 10 seconds.
+- Resolved the cache-only load blocker by replacing per-lap
+  `lap.get_car_data().add_distance()` telemetry extraction with grouped
+  selected-driver extraction from loaded `session.car_data`. The grouped path
+  preserves FastF1's inclusive lap-window semantics and distance calculation,
+  including exact lap-boundary rows.
+- Added a cache-backed equivalence test that compares the grouped extractor
+  against the previous FastF1 per-lap reference path when `.cache/fastf1-smoke`
+  is available.
+- Added `scripts/benchmark_fastf1_cache.py` for cache-only FastF1 load evidence.
+  The populated 2023 Bahrain Race VER/PER cache measured 9.0840 seconds on
+  2026-07-10, returning 114 laps, 6111 telemetry samples, 161 weather samples,
+  and `fetched_from_network=false`.
 
 ### Implementation plan
 

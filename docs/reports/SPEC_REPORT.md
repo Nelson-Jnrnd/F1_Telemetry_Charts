@@ -7,7 +7,7 @@
 Reports may be updated by agents when useful, but they must not become the
 authoritative source of project truth. Regenerate this with `/spec-report`.
 
-_Last updated: 2026-07-09._
+_Last updated: 2026-07-10._
 
 ```
 Spec report
@@ -24,5 +24,6 @@ Potential blockers:   none
 
 SPEC-001 is in implementation. Slices 1 through 7 are implemented, and live
 FastF1/cache smoke verification now returns normalized laps, telemetry, and
-weather. MVP is blocked because cache-only FastF1 telemetry loading measured
-14.6111 seconds against the approved 10 second cached-load maximum.
+weather. The prior NFR-110 blocker is resolved: cache-only FastF1 telemetry
+loading measured 9.0840 seconds on 2026-07-10 against the approved 10 second
+cached-load maximum.

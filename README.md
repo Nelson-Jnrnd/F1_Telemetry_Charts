@@ -40,6 +40,12 @@ python scripts/validate_specs.py
 python scripts/validate_drift.py
 ```
 
+With a populated FastF1 smoke cache, the cache-only data-load benchmark is:
+
+```powershell
+python scripts/benchmark_fastf1_cache.py --cache-dir .cache\fastf1-smoke
+```
+
 ## Usage Docs
 
 - [Configuration](docs/usage/configuration.md)

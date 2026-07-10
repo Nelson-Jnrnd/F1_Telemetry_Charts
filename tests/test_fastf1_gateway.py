@@ -4,11 +4,16 @@ import sys
 import tempfile
 import types
 import unittest
+from collections import defaultdict
 from pathlib import Path
 from unittest.mock import patch
 
 from f1_telemetry_charts.data import DataGatewayError, SessionQuery
 from f1_telemetry_charts.data.gateways import FastF1SessionGateway
+from f1_telemetry_charts.data.gateways.fastf1 import (
+    _telemetry_samples_from_lap_methods,
+    _telemetry_samples_from_laps,
+)
 
 
 class FastF1GatewayTests(unittest.TestCase):
@@ -46,6 +51,53 @@ class FastF1GatewayTests(unittest.TestCase):
 
         self.assertEqual(dataset.provenance.cache_status, "cache-only")
         self.assertFalse(dataset.provenance.fetched_from_network)
+        self.assertEqual(fake_fastf1._offline_modes, [True, False])
+
+    def test_grouped_telemetry_matches_fastf1_lap_methods_for_cached_smoke(self) -> None:
+        cache_dir = Path(".cache/fastf1-smoke")
+        if not cache_dir.exists():
+            self.skipTest("FastF1 smoke cache is not available")
+
+        try:
+            import fastf1
+        except ImportError:
+            self.skipTest("FastF1 is not installed")
+
+        fastf1.Cache.enable_cache(str(cache_dir))
+        fastf1.Cache.offline_mode(True)
+        try:
+            session = fastf1.get_session(2023, "Bahrain Grand Prix", "Race")
+            session.load(laps=True, telemetry=True, weather=True, messages=False)
+        finally:
+            fastf1.Cache.offline_mode(False)
+
+        laps = session.laps.pick_drivers(["VER", "PER"])
+        optimized = _telemetry_samples_from_laps(laps, session=session)
+        reference = _telemetry_samples_from_lap_methods(laps)
+
+        optimized_by_lap = _samples_by_lap(optimized)
+        reference_by_lap = _samples_by_lap(reference)
+        self.assertEqual(set(optimized_by_lap), set(reference_by_lap))
+
+        for key, reference_samples in reference_by_lap.items():
+            optimized_samples = optimized_by_lap[key]
+            self.assertEqual(len(optimized_samples), len(reference_samples), key)
+            for optimized_sample, reference_sample in zip(
+                optimized_samples, reference_samples, strict=True
+            ):
+                self.assertAlmostEqual(
+                    optimized_sample.distance_m,
+                    reference_sample.distance_m,
+                    places=9,
+                    msg=str(key),
+                )
+                self.assertEqual(optimized_sample.speed_kph, reference_sample.speed_kph)
+                self.assertEqual(
+                    optimized_sample.throttle_percent,
+                    reference_sample.throttle_percent,
+                )
+                self.assertEqual(optimized_sample.brake, reference_sample.brake)
+                self.assertEqual(optimized_sample.gear, reference_sample.gear)
 
 
 def _query() -> SessionQuery:
@@ -59,9 +111,20 @@ def _query() -> SessionQuery:
 
 def _fake_fastf1_module():
     module = types.SimpleNamespace()
-    module.Cache = types.SimpleNamespace(enable_cache=lambda _: None)
+    module._offline_modes = []
+    module.Cache = types.SimpleNamespace(
+        enable_cache=lambda _: None,
+        offline_mode=lambda enabled: module._offline_modes.append(enabled),
+    )
     module.get_session = lambda *_: _FakeSession()
     return module
+
+
+def _samples_by_lap(samples):
+    grouped = defaultdict(list)
+    for sample in samples:
+        grouped[(sample.driver, sample.lap_number)].append(sample)
+    return grouped
 
 
 class _FakeSession:

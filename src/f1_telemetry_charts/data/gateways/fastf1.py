@@ -45,6 +45,9 @@ class FastF1SessionGateway:
             )
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         fastf1.Cache.enable_cache(str(self.cache_dir))
+        offline_mode = getattr(fastf1.Cache, "offline_mode", None)
+        if offline_mode is not None:
+            offline_mode(self.cache_only)
 
         try:
             session = fastf1.get_session(query.season, query.event, query.session)
@@ -53,6 +56,9 @@ class FastF1SessionGateway:
             raise DataGatewayError(
                 f"FastF1 could not load {query.season} {query.event} {query.session}: {exc}"
             ) from exc
+        finally:
+            if self.cache_only and offline_mode is not None:
+                offline_mode(False)
 
         return _session_to_dataset(session=session, query=query, cache_only=self.cache_only)
 
@@ -67,7 +73,7 @@ def _session_to_dataset(
     driver_rows = getattr(session, "results", None)
     drivers = _drivers_from_results(driver_rows, query.drivers)
     lap_records = _lap_records_from_laps(laps)
-    telemetry = _telemetry_samples_from_laps(laps)
+    telemetry = _telemetry_samples_from_laps(laps, session=session)
     weather = _weather_samples_from_session(session)
     missing_data = []
     if not weather:
@@ -169,7 +175,137 @@ def _weather_samples_from_session(session: Any) -> list[WeatherSample]:
     return samples
 
 
-def _telemetry_samples_from_laps(laps: Any) -> list[TelemetrySample]:
+def _telemetry_samples_from_laps(
+    laps: Any, *, session: Any | None = None
+) -> list[TelemetrySample]:
+    samples = _telemetry_samples_from_session_car_data(session=session, laps=laps)
+    if samples:
+        return samples
+    return _telemetry_samples_from_lap_methods(laps)
+
+
+def _telemetry_samples_from_session_car_data(
+    *, session: Any | None, laps: Any
+) -> list[TelemetrySample]:
+    if session is None:
+        return []
+
+    car_data_by_driver = getattr(session, "car_data", None)
+    if not car_data_by_driver:
+        return []
+
+    try:
+        import pandas as pd
+    except ImportError:
+        return []
+
+    required_lap_columns = {"Driver", "DriverNumber", "LapNumber", "LapStartTime", "Time"}
+    if not required_lap_columns.issubset(set(getattr(laps, "columns", []))):
+        return []
+
+    samples: list[TelemetrySample] = []
+    try:
+        driver_groups = laps.groupby("Driver", sort=False)
+    except Exception:
+        return []
+
+    for driver, driver_laps in driver_groups:
+        if driver_laps.empty:
+            continue
+
+        driver_number = str(driver_laps["DriverNumber"].iloc[0])
+        car_data = car_data_by_driver.get(driver_number)
+        if car_data is None or car_data.empty:
+            continue
+
+        required_car_columns = {"SessionTime", "Speed", "Throttle", "Brake", "nGear"}
+        if not required_car_columns.issubset(set(getattr(car_data, "columns", []))):
+            continue
+
+        lap_windows = (
+            driver_laps.loc[:, ["LapNumber", "LapStartTime", "Time"]]
+            .dropna(subset=["LapStartTime", "Time"])
+            .rename(columns={"Time": "LapEndTime"})
+            .sort_values("LapStartTime")
+        )
+        if lap_windows.empty:
+            continue
+
+        telemetry = (
+            car_data.loc[:, ["SessionTime", "Speed", "Throttle", "Brake", "nGear"]]
+            .dropna(subset=["SessionTime"])
+            .sort_values("SessionTime")
+            .copy()
+        )
+        telemetry = telemetry[
+            (telemetry["SessionTime"] >= lap_windows["LapStartTime"].iloc[0])
+            & (telemetry["SessionTime"] <= lap_windows["LapEndTime"].iloc[-1])
+        ].copy()
+        if telemetry.empty:
+            continue
+
+        telemetry["__row_order"] = range(len(telemetry))
+        primary_rows = pd.merge_asof(
+            telemetry,
+            lap_windows,
+            left_on="SessionTime",
+            right_on="LapStartTime",
+            direction="backward",
+        )
+        primary_rows = primary_rows[
+            primary_rows["SessionTime"] <= primary_rows["LapEndTime"]
+        ]
+
+        end_windows = lap_windows.rename(
+            columns={"LapEndTime": "SessionTime"}
+        ).loc[:, ["SessionTime", "LapNumber", "LapStartTime"]]
+        end_windows["LapEndTime"] = end_windows["SessionTime"]
+        boundary_rows = telemetry.merge(end_windows, on="SessionTime", how="inner")
+
+        merged = (
+            pd.concat([primary_rows, boundary_rows], ignore_index=True)
+            .drop_duplicates(subset=["__row_order", "LapNumber"])
+            .sort_values(["LapStartTime", "__row_order"])
+            .copy()
+        )
+        if merged.empty:
+            continue
+
+        elapsed_seconds = (
+            merged["SessionTime"] - merged["LapStartTime"]
+        ).dt.total_seconds()
+        delta_seconds = elapsed_seconds.groupby(merged["LapNumber"]).diff()
+        delta_seconds = delta_seconds.fillna(elapsed_seconds)
+        distance_step = merged["Speed"].astype(float) / 3.6 * delta_seconds
+        merged["Distance"] = distance_step.groupby(merged["LapNumber"]).cumsum()
+
+        for lap_number, lap_samples in merged.groupby("LapNumber", sort=True):
+            row_count = len(lap_samples)
+            if row_count == 0:
+                continue
+
+            step = max(1, row_count // MAX_TELEMETRY_SAMPLES_PER_LAP)
+            sample_indices = list(range(0, row_count, step))
+            if sample_indices[-1] != row_count - 1:
+                sample_indices.append(row_count - 1)
+
+            for row in lap_samples.iloc[sample_indices].itertuples(index=False):
+                samples.append(
+                    TelemetrySample(
+                        driver=str(driver),
+                        lap_number=int(lap_number),
+                        distance_m=float(row.Distance),
+                        speed_kph=_float_or_none(row.Speed),
+                        throttle_percent=_float_or_none(row.Throttle),
+                        brake=_bool_or_none(row.Brake),
+                        gear=_int_or_none(row.nGear),
+                    )
+                )
+
+    return samples
+
+
+def _telemetry_samples_from_lap_methods(laps: Any) -> list[TelemetrySample]:
     samples: list[TelemetrySample] = []
     for _, lap in laps.iterrows():
         get_car_data = getattr(lap, "get_car_data", None)

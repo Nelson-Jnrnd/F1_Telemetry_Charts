@@ -34,3 +34,6 @@ python scripts/validate_drift.py
 ```
 
 CI runs the same unit and governance checks in `.github/workflows/ci.yml`.
+With a populated FastF1 smoke cache, run
+`python scripts/benchmark_fastf1_cache.py --cache-dir .cache\fastf1-smoke` for
+cache-only FastF1 performance evidence.
