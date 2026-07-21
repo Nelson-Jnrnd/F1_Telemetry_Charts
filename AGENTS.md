@@ -35,6 +35,14 @@ truth. The full lifecycle is in `docs/workflow/AGENT_WORKFLOW.md`.
 - If documentation conflicts, stop and run the drift check. If a blocking
   conflict exists, ask the human to decide.
 
+## UI copy
+
+- Do not put explanatory or instructional product text in the application UI
+  unless the approved spec explicitly requires it.
+- Prefer concise labels, data values, statuses, and action names over text that
+  describes what a page, feature, component, or workflow does.
+- Keep help/how-to content in documentation, not in the working interface.
+
 ## Specification lifecycle
 
 1. Human intent/task.

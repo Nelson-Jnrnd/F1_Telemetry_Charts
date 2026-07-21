@@ -56,6 +56,14 @@ class ExportConfig(BaseModel):
     formats: list[Literal["png", "json"]] = Field(default_factory=lambda: ["png", "json"])
 
 
+class PluginConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = False
+    local_paths: list[Path] = Field(default_factory=list)
+    entry_points_enabled: bool = False
+
+
 class ProjectConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -67,4 +75,5 @@ class ProjectConfig(BaseModel):
     recipes: list[ChartRecipeConfig] = Field(min_length=1)
     theme: ThemeConfig = Field(default_factory=ThemeConfig)
     exports: ExportConfig = Field(default_factory=ExportConfig)
+    plugins: PluginConfig = Field(default_factory=PluginConfig)
     output_dir: Path = Path("runs")

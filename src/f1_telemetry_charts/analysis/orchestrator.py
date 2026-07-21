@@ -20,7 +20,7 @@ from f1_telemetry_charts.charts.renderers import MatplotlibRenderer
 from f1_telemetry_charts.config.models import ProjectConfig
 from f1_telemetry_charts.data import SessionQuery
 from f1_telemetry_charts.data.gateways import FastF1SessionGateway, FixtureSessionGateway
-from f1_telemetry_charts.recipes.registry import default_recipe_registry
+from f1_telemetry_charts.plugins import build_recipe_registry
 
 
 class AnalysisResult(BaseModel):
@@ -43,7 +43,7 @@ def run_analysis(config: ProjectConfig) -> AnalysisResult:
     manifest_path = output_dir / "manifest.json"
 
     dataset = _load_dataset(config)
-    registry = default_recipe_registry()
+    registry = build_recipe_registry(config.plugins)
     renderer = MatplotlibRenderer()
 
     artifacts: list[ChartArtifactEntry] = []

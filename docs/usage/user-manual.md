@@ -1,7 +1,9 @@
 # User Manual
 
 This page is derived documentation. Authoritative requirements live in
-`docs/specs/approved/SPEC-001-f1-analysis-framework.md`.
+`docs/specs/approved/SPEC-001-f1-analysis-framework.md` and
+`docs/specs/approved/SPEC-002-v2-plugin-preview-workbench.md` plus the UI
+specification in `docs/specs/approved/SPEC-003-v2-tailwind-ui-system.md`.
 
 ## What You Can Test
 
@@ -91,6 +93,43 @@ After changing the config, rerun:
 .\scripts\deploy_local_mvp.ps1 -ConfigPath configs\bahrain-race.toml
 ```
 
+## Local Browser UI
+
+Start the local preview UI from the repository root:
+
+```powershell
+& "$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m f1_telemetry_charts preview runs\2023-bahrain-race --no-browser
+```
+
+Then open the printed loopback URL, usually:
+
+```text
+http://127.0.0.1:8000
+```
+
+The UI has four pages:
+
+- Package Preview: open a package, inspect chart thumbnails, open charts in a
+  large overlay, review observations, regenerate the Markdown draft, and inspect
+  package integrity findings.
+- Workbench: edit a standard run configuration through form controls, validate
+  it, save it, and run analysis. The raw payload is available only as an
+  advanced read-only disclosure.
+- Plugins: enable local plugin support, add local plugin paths, enable Python
+  entry-point discovery, validate plugins, and inspect plugin recipes or errors.
+- Run History: inspect recently opened/generated packages and clear history
+  metadata without deleting files.
+
+Important interactions:
+
+- Observation Edit opens a dialog. Cancel closes without saving review state.
+  Save Edit persists edited text and marks the observation `edited`.
+- Open Large on a chart opens a modal image viewer. Escape, Close, or backdrop
+  click dismisses it.
+- Workbench Validate and Run always call backend validation; frontend validation
+  is only an ergonomic first pass.
+- Clear History requires confirmation and does not delete generated packages.
+
 ## Direct CLI Commands
 
 The helper script runs these commands for you:
@@ -99,6 +138,17 @@ The helper script runs these commands for you:
 python -m f1_telemetry_charts config validate configs\bahrain-race.toml --json
 python -m f1_telemetry_charts generate configs\bahrain-race.toml --json
 ```
+
+To open the V2 local browser UI for a generated package with whichever Python
+runtime is active:
+
+```powershell
+python -m f1_telemetry_charts preview runs\2023-bahrain-race --no-browser
+```
+
+The command prints the loopback URL. By default it binds to `127.0.0.1`.
+Use `--check-only --json` to validate the package path and launch settings
+without starting the server.
 
 On this machine, `python` may resolve to the Windows Store alias. If that
 happens, use the bundled runtime:
@@ -129,6 +179,15 @@ through the report helpers.
   in the JSON output and fix the referenced config field.
 - If no charts appear, open `manifest.json` and check `status`, `errors`, and
   per-recipe entries.
+- If the browser shows a blank page, confirm the generated `/assets/*.js` and
+  `/assets/*.css` files resolve in the server log. Rebuild with the bundled
+  Node runtime if the asset hashes are stale:
+
+  ```powershell
+  $env:PATH="$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;$env:PATH"
+  & "$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\fallback\pnpm.cmd" --dir frontend build
+  ```
+
 - The fixture-backed demo does not require network access.
 - Live FastF1 loading requires a populated or writable FastF1 cache and may be
   slower than the fixture demo.

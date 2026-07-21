@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from f1_telemetry_charts.config.models import ProjectConfig
-from f1_telemetry_charts.recipes.registry import default_recipe_registry
+from f1_telemetry_charts.plugins import build_recipe_registry
 
 
 @dataclass(frozen=True)
@@ -32,7 +32,7 @@ def validate_config(raw_config: dict[str, Any]) -> ProjectConfig:
     except ValidationError as exc:
         raise ConfigValidationError(_issues_from_pydantic(exc)) from exc
 
-    registry = default_recipe_registry()
+    registry = build_recipe_registry(config.plugins)
     recipe_issues = [
         ValidationIssue(
             path=f"$.recipes[{index}].recipe_id",

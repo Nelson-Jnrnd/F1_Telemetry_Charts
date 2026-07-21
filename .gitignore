@@ -8,6 +8,8 @@ __pycache__/
 htmlcov/
 build/
 dist/
+node_modules/
+frontend/node_modules/
 .venv/
 venv/
 .cache/

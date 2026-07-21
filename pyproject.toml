@@ -13,9 +13,12 @@ authors = [
   { name = "Nelson Jeanrenaud" }
 ]
 dependencies = [
+  "fastapi>=0.115",
   "fastf1>=3.5",
+  "httpx2>=0.28",
   "matplotlib>=3.8",
-  "pydantic>=2.0"
+  "pydantic>=2.0",
+  "uvicorn[standard]>=0.30"
 ]
 
 [project.scripts]
@@ -23,3 +26,6 @@ f1tc = "f1_telemetry_charts.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+f1_telemetry_charts = ["ui/static/**/*"]

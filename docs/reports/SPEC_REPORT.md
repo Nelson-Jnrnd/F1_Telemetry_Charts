@@ -12,17 +12,25 @@ _Last updated: 2026-07-21._
 ```
 Spec report
 
-Draft:               SPEC-002 V2 Plugin, Preview, and Configuration Workbench
+Draft:               none
 In review:           none
 Approved:            none
-In implementation:   SPEC-001 F1 Data Analysis Charting Framework (AMEND-001)
+In implementation:   SPEC-001 F1 Data Analysis Charting Framework (AMEND-001); SPEC-002 V2 Plugin, Preview, and Configuration Workbench; SPEC-003 V2 Tailwind UI System and Application Rebuild
 Implemented:         none
-Needs human decision: SPEC-002 full draft approval pending
-Missing verification: SPEC-002 implementation evidence pending
+Needs human decision: none
+Missing verification: SPEC-002/SPEC-003 browser visual evidence pending
 Potential blockers:   none
 ```
 
 SPEC-001 is in implementation. The MVP and V1 slice sets are complete. SPEC-002
-is a draft that expands the V2 plugin, local preview, and configuration
-workbench scope into implementation-ready requirements. SPEC-002 needs human
-review and approval before implementation can start.
+is approved and in implementation. Package preview, plugin discovery,
+configuration workbench API, run history, and the React/Vite local UI shell have
+initial implementation evidence. Browser visual verification remains pending
+because the Codex browser connector failed to initialize.
+
+SPEC-003 is approved and in implementation as a dedicated UI spec depending on
+SPEC-002. It defines the Tailwind/Radix frontend rebuild, reusable components,
+package preview, workbench, plugins, and run history UI behavior. Initial
+implementation is complete with frontend typecheck/build and targeted API tests
+passing; browser visual evidence remains pending because the Codex browser
+connector failed to initialize.

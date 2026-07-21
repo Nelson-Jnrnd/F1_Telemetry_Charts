@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import webbrowser
 from pathlib import Path
 from typing import Sequence
 
 from f1_telemetry_charts.analysis.orchestrator import run_analysis
 from f1_telemetry_charts.config.loader import load_config
 from f1_telemetry_charts.config.validation import ConfigValidationError
+from f1_telemetry_charts.preview.reader import PackagePreviewError, read_package_view
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -46,6 +48,34 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print a machine-readable generation result.",
     )
 
+    preview_parser = subparsers.add_parser(
+        "preview",
+        help="Start the local package preview UI.",
+    )
+    preview_parser.add_argument(
+        "package_path",
+        type=Path,
+        nargs="?",
+        help="Generated package directory to open initially.",
+    )
+    preview_parser.add_argument("--host", default="127.0.0.1", help="Bind host.")
+    preview_parser.add_argument("--port", type=int, default=8000, help="Bind port.")
+    preview_parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Do not open a browser automatically.",
+    )
+    preview_parser.add_argument(
+        "--check-only",
+        action="store_true",
+        help="Validate launch options and package input without starting the server.",
+    )
+    preview_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print a machine-readable preview launch result.",
+    )
+
     return parser
 
 
@@ -57,6 +87,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _validate_config_command(args.path, json_output=args.json)
     if args.command == "generate":
         return _generate_command(args.path, json_output=args.json)
+    if args.command == "preview":
+        return _preview_command(
+            args.package_path,
+            host=args.host,
+            port=args.port,
+            open_browser=not args.no_browser,
+            check_only=args.check_only,
+            json_output=args.json,
+        )
 
     parser.print_help()
     return 0
@@ -113,6 +152,52 @@ def _generate_command(path: Path, *, json_output: bool) -> int:
         if result.markdown_path:
             print(f"Markdown draft: {result.markdown_path}")
     return 0 if result.status in {"succeeded", "partially_succeeded"} else 1
+
+
+def _preview_command(
+    package_path: Path | None,
+    *,
+    host: str,
+    port: int,
+    open_browser: bool,
+    check_only: bool,
+    json_output: bool,
+) -> int:
+    url = f"http://{host}:{port}"
+    if package_path is not None:
+        try:
+            view = read_package_view(package_path)
+        except PackagePreviewError as exc:
+            if json_output:
+                print(json.dumps({"status": "invalid", "errors": [str(exc)]}, indent=2))
+            else:
+                print(f"Package preview failed: {exc}")
+            return 1
+        package_path = Path(view.package_path)
+
+    payload = {
+        "status": "ready" if check_only else "starting",
+        "url": url,
+        "package_path": str(package_path) if package_path else None,
+    }
+    if json_output:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"Preview URL: {url}")
+        if package_path:
+            print(f"Package: {package_path}")
+
+    if check_only:
+        return 0
+
+    from f1_telemetry_charts.ui.server import create_app
+
+    import uvicorn
+
+    if open_browser:
+        webbrowser.open(url)
+    uvicorn.run(create_app(package_path), host=host, port=port)
+    return 0
 
 
 def _validate_config_command(path: Path, *, json_output: bool) -> int:

@@ -12,16 +12,20 @@ _Last updated: 2026-07-21._
 ## Snapshot
 
 - **Current branch:** chatbot
-- **Current phase:** SPEC-001 MVP and V1 complete; SPEC-002 V2 draft written
+- **Current phase:** SPEC-001 MVP and V1 complete; SPEC-002 V2 implementation
+  started; SPEC-003 Tailwind UI rebuild in implementation
 - **Linked issue:** none
 - **Linked spec:** SPEC-001 F1 Data Analysis Charting Framework; SPEC-002 V2
-  Plugin, Preview, and Configuration Workbench
+  Plugin, Preview, and Configuration Workbench; SPEC-003 V2 Tailwind UI System
+  and Application Rebuild
 - **Open PR:** none observed in repository state
-- **Checks:** unit tests, benchmark, governance, spec, and drift validation
-  passed on 2026-07-10.
+- **Checks:** SPEC-003 frontend typecheck/build passed; V2 preview/workbench/
+  plugin/dependency-boundary tests passed; governance/spec/drift validation
+  passed on 2026-07-21. Full unittest discovery previously exceeded the local
+  timeout.
 - **Blockers:** none currently recorded for MVP or V1. FastF1 cache-only load
   measured 9.0840 seconds against the approved 10 second maximum. The V1
   10-chart package benchmark measured 13.0207 seconds, and default PNG artifacts
   measured inside the approved size interval.
-- **Recommended next action:** Review and approve or revise SPEC-002 before
-  any V2 implementation starts.
+- **Recommended next action:** Complete browser visual verification when the
+  Codex browser connector is available, then continue V2 hardening.

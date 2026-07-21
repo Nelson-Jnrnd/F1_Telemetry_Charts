@@ -18,6 +18,7 @@ class RecipeMetadata:
     display_name: str
     required_dataset_fields: tuple[str, ...]
     output_artifact_types: tuple[str, ...] = ("png", "json")
+    source: str = "core"
 
 
 class RecipeRegistry:
@@ -37,6 +38,19 @@ class RecipeRegistry:
 
     def list_recipe_ids(self) -> list[str]:
         return sorted(self._recipes)
+
+    def list_metadata(self) -> list[RecipeMetadata]:
+        return [self._recipes[recipe_id] for recipe_id in self.list_recipe_ids()]
+
+    def register(
+        self,
+        metadata: RecipeMetadata,
+        factory: Callable[[], ChartRecipe],
+    ) -> None:
+        if metadata.recipe_id in self._recipes:
+            raise ValueError(f"Duplicate recipe ID: {metadata.recipe_id}")
+        self._recipes[metadata.recipe_id] = metadata
+        self._factories[metadata.recipe_id] = factory
 
     def create(self, recipe_id: str) -> ChartRecipe:
         if recipe_id not in self._recipes:

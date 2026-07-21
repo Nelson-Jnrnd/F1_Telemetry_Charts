@@ -17,7 +17,9 @@ approved spec wins. See
 ## Start Here
 
 - Agents: read [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md).
-- Current spec: [`SPEC-001`](docs/specs/approved/SPEC-001-f1-analysis-framework.md).
+- Current specs: [`SPEC-001`](docs/specs/approved/SPEC-001-f1-analysis-framework.md),
+  [`SPEC-002`](docs/specs/approved/SPEC-002-v2-plugin-preview-workbench.md),
+  and [`SPEC-003`](docs/specs/approved/SPEC-003-v2-tailwind-ui-system.md).
 - Workflow: [`AGENT_WORKFLOW.md`](docs/workflow/AGENT_WORKFLOW.md).
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
@@ -36,6 +38,9 @@ python -m pip install -e .
 python -m unittest discover -s tests -p "test_*.py"
 python scripts/benchmark_mvp.py
 python scripts/benchmark_v1.py
+cd frontend
+pnpm build
+cd ..
 python scripts/validate_governance.py
 python scripts/validate_specs.py
 python scripts/validate_drift.py
@@ -45,6 +50,12 @@ With a populated FastF1 smoke cache, the cache-only data-load benchmark is:
 
 ```powershell
 python scripts/benchmark_fastf1_cache.py --cache-dir .cache\fastf1-smoke
+```
+
+Launch the local V2 preview UI for a generated package:
+
+```powershell
+python -m f1_telemetry_charts preview runs\2023-bahrain-race --no-browser
 ```
 
 ## Usage Docs

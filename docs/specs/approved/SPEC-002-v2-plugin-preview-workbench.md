@@ -2,7 +2,7 @@
 doc_type: spec
 spec_id: SPEC-002
 title: V2 Plugin, Preview, and Configuration Workbench
-status: Draft
+status: In Implementation
 owner: Nelson Jeanrenaud
 related_issue:
 related_prs: []
@@ -58,6 +58,9 @@ The human owner later clarified in chat on 2026-07-21 that the frontend is not
 limited to vanilla JavaScript, that the UI spec must define each page/component
 and interaction clearly, and that Markdown rendering should use an existing
 solution.
+
+The human owner approved implementation in chat on 2026-07-21 with the
+instruction to commit the prior checkpoint and implement `SPEC-002`.
 
 ## Problem statement
 
@@ -896,41 +899,41 @@ Configuration defaults:
 
 | Requirement ID | Acceptance criterion | Verification method | Test / command / manual check | Evidence location | PR reference |
 | -------------- | -------------------- | ------------------- | ----------------------------- | ----------------- | ------------ |
-| REQ-001 | CLI starts local server and prints URL. | CLI integration test | TBD | To be filled during implementation | TBD |
-| REQ-002 | Valid package opens; invalid directory errors. | API and UI smoke tests | TBD | To be filled during implementation | TBD |
-| REQ-003 | Package references are checked for integrity. | Backend package tests | TBD | To be filled during implementation | TBD |
-| REQ-004 | Package overview displays run summary. | UI smoke test | TBD | To be filled during implementation | TBD |
-| REQ-005 | Chart gallery displays artifacts and metadata. | UI smoke test | TBD | To be filled during implementation | TBD |
-| REQ-006 | Observation panel displays review data and evidence. | API and UI smoke tests | TBD | To be filled during implementation | TBD |
-| REQ-007 | Review edits persist and affect draft regeneration. | Backend write and UI interaction tests | TBD | To be filled during implementation | TBD |
-| REQ-008 | Markdown preview displays rendered and raw draft. | UI smoke test | TBD | To be filled during implementation | TBD |
-| REQ-009 | Draft regeneration applies review state. | Backend write and UI interaction tests | TBD | To be filled during implementation | TBD |
-| REQ-010 | Workbench edits, validates, and saves config. | API and UI smoke tests | TBD | To be filled during implementation | TBD |
-| REQ-011 | Workbench runs valid config and opens package. | UI flow test | TBD | To be filled during implementation | TBD |
-| REQ-012 | Local path plugins are discovered and validated. | Plugin fixture tests | TBD | To be filled during implementation | TBD |
-| REQ-013 | Entry-point plugins are discovered and validated. | Entry-point fixture tests | TBD | To be filled during implementation | TBD |
-| REQ-014 | Plugin metadata errors are actionable and isolated. | Plugin validation tests | TBD | To be filled during implementation | TBD |
-| REQ-015 | Plugin recipe runs through package pipeline. | End-to-end plugin fixture test | TBD | To be filled during implementation | TBD |
-| REQ-016 | Plugin UI lists plugin status and recipes. | UI smoke test | TBD | To be filled during implementation | TBD |
-| REQ-017 | Run history lists recent opened and generated packages. | UI flow test | TBD | To be filled during implementation | TBD |
+| REQ-001 | CLI starts local server and prints URL. | CLI integration test | `python -m unittest tests.test_cli -v` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py` | TBD |
+| REQ-002 | Valid package opens; invalid directory errors. | API and UI smoke tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/preview/reader.py`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_preview.py` | TBD |
+| REQ-003 | Package references are checked for integrity. | Backend package tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/preview/reader.py`; `tests/test_preview.py` | TBD |
+| REQ-004 | Package overview displays run summary. | UI smoke test | `pnpm build`; API tests | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/static/`; `tests/test_preview.py` | TBD |
+| REQ-005 | Chart gallery displays artifacts and metadata. | UI smoke test | `pnpm build`; API tests | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_preview.py` | TBD |
+| REQ-006 | Observation panel displays review data and evidence. | API and UI smoke tests | `pnpm build`; `python -m unittest tests.test_preview -v` | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_preview.py` | TBD |
+| REQ-007 | Review edits persist and affect draft regeneration. | Backend write and UI interaction tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/ui/server.py`; `tests/test_preview.py` | TBD |
+| REQ-008 | Markdown preview displays rendered and raw draft. | UI smoke test | `pnpm build` | `frontend/src/main.tsx`; `frontend/package.json` | TBD |
+| REQ-009 | Draft regeneration applies review state. | Backend write and UI interaction tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/ui/server.py`; `tests/test_preview.py` | TBD |
+| REQ-010 | Workbench edits, validates, and saves config. | API and UI smoke tests | `python -m unittest tests.test_workbench_api -v`; `pnpm build` | `src/f1_telemetry_charts/ui/server.py`; `frontend/src/main.tsx`; `tests/test_workbench_api.py` | TBD |
+| REQ-011 | Workbench runs valid config and opens package. | UI flow test | `python -m unittest tests.test_workbench_api -v` | `src/f1_telemetry_charts/ui/server.py`; `tests/test_workbench_api.py` | TBD |
+| REQ-012 | Local path plugins are discovered and validated. | Plugin fixture tests | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/plugins/manager.py`; `tests/test_plugins.py` | TBD |
+| REQ-013 | Entry-point plugins are discovered and validated. | Entry-point fixture tests | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/plugins/manager.py`; `tests/test_plugins.py` | TBD |
+| REQ-014 | Plugin metadata errors are actionable and isolated. | Plugin validation tests | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/plugins/models.py`; `src/f1_telemetry_charts/plugins/manager.py`; `tests/test_plugins.py` | TBD |
+| REQ-015 | Plugin recipe runs through package pipeline. | End-to-end plugin fixture test | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/plugins/manager.py`; `tests/test_plugins.py` | TBD |
+| REQ-016 | Plugin UI lists plugin status and recipes. | UI smoke test | `pnpm build`; `python -m unittest tests.test_plugins -v` | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_plugins.py` | TBD |
+| REQ-017 | Run history lists recent opened and generated packages. | UI flow test | `python -m unittest tests.test_workbench_api -v` | `src/f1_telemetry_charts/ui/server.py`; `frontend/src/main.tsx`; `tests/test_workbench_api.py` | TBD |
 | NFR-001 | UI works offline for local fixture package. | Offline smoke test | TBD | To be filled during implementation | TBD |
 | NFR-002 | Preview loads representative package within 3 seconds. | Scripted benchmark | TBD | To be filled during implementation | TBD |
 | NFR-003 | UI handles 20 charts and 50 observations. | Responsive UI smoke test | TBD | To be filled during implementation | TBD |
-| NFR-004 | Core imports do not import FastAPI. | Import boundary test | TBD | To be filled during implementation | TBD |
-| NFR-005 | UI supports current Chromium. | Browser smoke test | TBD | To be filled during implementation | TBD |
-| NFR-006 | Frontend build is reproducible from checked source. | Frontend build command | TBD | To be filled during implementation | TBD |
-| SEC-001 | Server binds to loopback by default. | CLI/server test | TBD | To be filled during implementation | TBD |
-| SEC-002 | Backend rejects path traversal and unexpected absolute package paths. | Security tests | TBD | To be filled during implementation | TBD |
-| SEC-003 | Plugins load only when explicitly enabled. | Plugin manager tests and docs inspection | TBD | To be filled during implementation | TBD |
-| SEC-004 | UI API avoids env vars, cache internals, and unrelated paths. | Backend API tests | TBD | To be filled during implementation | TBD |
-| DATA-001 | Plugin metadata model represents plugin state. | Data model tests | TBD | To be filled during implementation | TBD |
-| DATA-002 | Package view model represents preview state. | Backend package reader tests | TBD | To be filled during implementation | TBD |
-| DATA-003 | Config draft model preserves validation state. | Config workbench model tests | TBD | To be filled during implementation | TBD |
-| DATA-004 | Integrity finding model is typed and consistent. | Data model tests | TBD | To be filled during implementation | TBD |
-| API-001 | UI server CLI supports launch options. | CLI tests | TBD | To be filled during implementation | TBD |
-| API-002 | Package preview endpoints serve package state and assets. | FastAPI test client tests | TBD | To be filled during implementation | TBD |
-| API-003 | Workbench endpoints load, validate, save, and run configs. | FastAPI test client tests | TBD | To be filled during implementation | TBD |
-| API-004 | Plugin manager functions are testable independent of UI. | Plugin manager tests | TBD | To be filled during implementation | TBD |
+| NFR-004 | Core imports do not import FastAPI. | Import boundary test | `python -m unittest tests.test_dependency_boundaries -v` | `tests/test_dependency_boundaries.py` | TBD |
+| NFR-005 | UI supports current Chromium. | Browser smoke test | Browser connector setup attempted; blocked by connector runtime error | Visual browser evidence pending | TBD |
+| NFR-006 | Frontend build is reproducible from checked source. | Frontend build command | `pnpm install`; `pnpm build` | `frontend/package.json`; `frontend/pnpm-lock.yaml`; `src/f1_telemetry_charts/ui/static/` | TBD |
+| SEC-001 | Server binds to loopback by default. | CLI/server test | `python -m unittest tests.test_cli -v` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py` | TBD |
+| SEC-002 | Backend rejects path traversal and unexpected absolute package paths. | Security tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/preview/reader.py`; `tests/test_preview.py` | TBD |
+| SEC-003 | Plugins load only when explicitly enabled. | Plugin manager tests and docs inspection | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/plugins/manager.py`; `tests/test_plugins.py` | TBD |
+| SEC-004 | UI API avoids env vars, cache internals, and unrelated paths. | Backend API tests | `python -m unittest tests.test_preview tests.test_workbench_api -v` | `src/f1_telemetry_charts/ui/server.py`; `tests/test_preview.py`; `tests/test_workbench_api.py` | TBD |
+| DATA-001 | Plugin metadata model represents plugin state. | Data model tests | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/plugins/models.py`; `tests/test_plugins.py` | TBD |
+| DATA-002 | Package view model represents preview state. | Backend package reader tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/preview/reader.py`; `tests/test_preview.py` | TBD |
+| DATA-003 | Config draft model preserves validation state. | Config workbench model tests | `python -m unittest tests.test_workbench_api -v` | `src/f1_telemetry_charts/ui/server.py`; `tests/test_workbench_api.py` | TBD |
+| DATA-004 | Integrity finding model is typed and consistent. | Data model tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/preview/reader.py`; `tests/test_preview.py` | TBD |
+| API-001 | UI server CLI supports launch options. | CLI tests | `python -m unittest tests.test_cli -v` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py` | TBD |
+| API-002 | Package preview endpoints serve package state and assets. | FastAPI test client tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/ui/server.py`; `tests/test_preview.py` | TBD |
+| API-003 | Workbench endpoints load, validate, save, and run configs. | FastAPI test client tests | `python -m unittest tests.test_workbench_api -v` | `src/f1_telemetry_charts/ui/server.py`; `tests/test_workbench_api.py` | TBD |
+| API-004 | Plugin manager functions are testable independent of UI. | Plugin manager tests | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/plugins/manager.py`; `tests/test_plugins.py` | TBD |
 | UX-001 | App layout is work-focused and navigable. | Design inspection and screenshot smoke test | TBD | To be filled during implementation | TBD |
 | UX-002 | Package preview view supports overview/charts/observations/draft/integrity. | UI smoke test | TBD | To be filled during implementation | TBD |
 | UX-003 | Workbench exposes all required config controls. | UI smoke test and design inspection | TBD | To be filled during implementation | TBD |
@@ -991,7 +994,8 @@ Configuration defaults:
       Answer: clarified in chat on 2026-07-21.
 - [x] Approve supporting both local plugin paths and entry points. Answer:
       approved in chat on 2026-07-21.
-- [ ] Approve or revise this full V2 draft before implementation starts.
+- [x] Approve or revise this full V2 draft before implementation starts.
+      Answer: approved for implementation in chat on 2026-07-21.
 
 ## Conflict check
 
@@ -1006,52 +1010,52 @@ resolved by amendment or human decision.
 
 | Requirement ID | Design / component | Implementation (file/function) | Test | Status |
 | -------------- | ------------------ | ------------------------------ | ---- | ------ |
-| REQ-001 | UI server launch | TBD | TBD | Draft |
-| REQ-002 | Package open flow | TBD | TBD | Draft |
-| REQ-003 | Package integrity checker | TBD | TBD | Draft |
-| REQ-004 | Package overview UI | TBD | TBD | Draft |
-| REQ-005 | Chart gallery UI | TBD | TBD | Draft |
-| REQ-006 | Observation panel UI | TBD | TBD | Draft |
-| REQ-007 | Review editing | TBD | TBD | Draft |
-| REQ-008 | Markdown preview | TBD | TBD | Draft |
-| REQ-009 | Markdown regeneration | TBD | TBD | Draft |
-| REQ-010 | Configuration workbench | TBD | TBD | Draft |
-| REQ-011 | Workbench run flow | TBD | TBD | Draft |
-| REQ-012 | Local plugin discovery | TBD | TBD | Draft |
-| REQ-013 | Entry-point plugin discovery | TBD | TBD | Draft |
-| REQ-014 | Plugin metadata validation | TBD | TBD | Draft |
-| REQ-015 | Plugin recipe execution | TBD | TBD | Draft |
-| REQ-016 | Plugin management UI | TBD | TBD | Draft |
-| REQ-017 | Run history UI | TBD | TBD | Draft |
+| REQ-001 | UI server launch | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
+| REQ-002 | Package open flow | `src/f1_telemetry_charts/preview/reader.py`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | In Implementation |
+| REQ-003 | Package integrity checker | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | In Implementation |
+| REQ-004 | Package overview UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/static/` | `pnpm build`; `tests/test_preview.py` | In Implementation |
+| REQ-005 | Chart gallery UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `pnpm build`; `tests/test_preview.py` | In Implementation |
+| REQ-006 | Observation panel UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `pnpm build`; `tests/test_preview.py` | In Implementation |
+| REQ-007 | Review editing | `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | In Implementation |
+| REQ-008 | Markdown preview | `frontend/src/main.tsx`; `frontend/package.json` | `pnpm build` | In Implementation |
+| REQ-009 | Markdown regeneration | `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | In Implementation |
+| REQ-010 | Configuration workbench | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py`; `pnpm build` | In Implementation |
+| REQ-011 | Workbench run flow | `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py` | In Implementation |
+| REQ-012 | Local plugin discovery | `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
+| REQ-013 | Entry-point plugin discovery | `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
+| REQ-014 | Plugin metadata validation | `src/f1_telemetry_charts/plugins/models.py`; `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
+| REQ-015 | Plugin recipe execution | `src/f1_telemetry_charts/plugins/manager.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_plugins.py` | In Implementation |
+| REQ-016 | Plugin management UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_plugins.py`; `pnpm build` | In Implementation |
+| REQ-017 | Run history UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py` | In Implementation |
 | NFR-001 | Local-only operation | TBD | TBD | Draft |
 | NFR-002 | Preview load time | TBD | TBD | Draft |
 | NFR-003 | Package preview scale | TBD | TBD | Draft |
-| NFR-004 | Dependency boundary | TBD | TBD | Draft |
-| NFR-005 | Browser support | TBD | TBD | Draft |
-| NFR-006 | Frontend build reproducibility | TBD | TBD | Draft |
-| SEC-001 | Loopback binding | TBD | TBD | Draft |
-| SEC-002 | Explicit package roots | TBD | TBD | Draft |
-| SEC-003 | Trusted plugin execution | TBD | TBD | Draft |
-| SEC-004 | UI and LLM data boundary | TBD | TBD | Draft |
-| DATA-001 | Plugin metadata model | TBD | TBD | Draft |
-| DATA-002 | Package view model | TBD | TBD | Draft |
-| DATA-003 | Workbench draft model | TBD | TBD | Draft |
-| DATA-004 | Integrity finding model | TBD | TBD | Draft |
-| API-001 | UI server CLI | TBD | TBD | Draft |
-| API-002 | Package preview API | TBD | TBD | Draft |
-| API-003 | Configuration workbench API | TBD | TBD | Draft |
-| API-004 | Plugin manager API | TBD | TBD | Draft |
-| UX-001 | Application layout | TBD | TBD | Draft |
-| UX-002 | Package preview view | TBD | TBD | Draft |
-| UX-003 | Configuration workbench view | TBD | TBD | Draft |
-| UX-004 | Plugin management view | TBD | TBD | Draft |
-| UX-005 | Error presentation | TBD | TBD | Draft |
-| UX-006 | Responsive behavior | TBD | TBD | Draft |
-| UX-007 | Run history view | TBD | TBD | Draft |
+| NFR-004 | Dependency boundary | `src/f1_telemetry_charts/ui/server.py`; core package imports | `tests/test_dependency_boundaries.py` | In Implementation |
+| NFR-005 | Browser support | `frontend/src/main.tsx`; `frontend/src/styles.css` | Browser connector verification pending | In Implementation |
+| NFR-006 | Frontend build reproducibility | `frontend/package.json`; `frontend/pnpm-lock.yaml`; `frontend/vite.config.ts` | `pnpm build` | In Implementation |
+| SEC-001 | Loopback binding | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
+| SEC-002 | Explicit package roots | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | In Implementation |
+| SEC-003 | Trusted plugin execution | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
+| SEC-004 | UI and LLM data boundary | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py`; `tests/test_workbench_api.py` | In Implementation |
+| DATA-001 | Plugin metadata model | `src/f1_telemetry_charts/plugins/models.py` | `tests/test_plugins.py` | In Implementation |
+| DATA-002 | Package view model | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | In Implementation |
+| DATA-003 | Workbench draft model | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/config/models.py` | `tests/test_workbench_api.py` | In Implementation |
+| DATA-004 | Integrity finding model | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | In Implementation |
+| API-001 | UI server CLI | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
+| API-002 | Package preview API | `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | In Implementation |
+| API-003 | Configuration workbench API | `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py` | In Implementation |
+| API-004 | Plugin manager API | `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
+| UX-001 | Application layout | `frontend/src/main.tsx`; `frontend/src/styles.css` | `pnpm build`; browser verification pending | In Implementation |
+| UX-002 | Package preview view | `frontend/src/main.tsx` | `pnpm build`; `tests/test_preview.py` | In Implementation |
+| UX-003 | Configuration workbench view | `frontend/src/main.tsx` | `pnpm build`; `tests/test_workbench_api.py` | In Implementation |
+| UX-004 | Plugin management view | `frontend/src/main.tsx` | `pnpm build`; `tests/test_plugins.py` | In Implementation |
+| UX-005 | Error presentation | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `pnpm build`; API tests | In Implementation |
+| UX-006 | Responsive behavior | `frontend/src/styles.css` | `pnpm build`; browser verification pending | In Implementation |
+| UX-007 | Run history view | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py`; `pnpm build` | In Implementation |
 
 ## Implementation notes
 
-Implementation has not started. Drafting assumptions:
+Implementation started on 2026-07-21. Current implementation notes:
 
 - UI routes and exact endpoint paths may be finalized during implementation
   planning as long as the API impact requirements are satisfied.
@@ -1060,6 +1064,8 @@ Implementation has not started. Drafting assumptions:
 - Markdown preview should use `react-markdown` with `remark-gfm`; raw HTML
   should be disabled or sanitized.
 - Plugins are trusted Python code; this spec does not promise sandboxing.
+- Browser visual verification is pending because the Codex in-app browser
+  connector failed to initialize with `Cannot redefine property: process`.
 
 ## Spec amendments
 
@@ -1083,4 +1089,4 @@ Implementation has not started. Drafting assumptions:
 - [x] Open questions are resolved or explicitly deferred.
 - [x] Verification matrix covers every requirement.
 - [x] Conflict check completed.
-- [ ] Human approval recorded before status set to Approved.
+- [x] Human approval recorded before status set to Approved.
