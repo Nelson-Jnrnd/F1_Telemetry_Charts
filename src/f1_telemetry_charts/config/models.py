@@ -44,7 +44,7 @@ class ThemeConfig(BaseModel):
     name: str = "technical_editorial"
     figure_width: float = Field(default=16.0, gt=0)
     figure_height: float = Field(default=9.0, gt=0)
-    dpi: int = Field(default=150, ge=72, le=600)
+    dpi: int = Field(default=300, ge=72, le=600)
     background_color: str = "#ffffff"
     foreground_color: str = "#1f2933"
     grid: bool = True

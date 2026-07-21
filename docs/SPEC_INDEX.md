@@ -30,6 +30,7 @@ Terminal alternatives: `Superseded`, `Archived`, `Rejected`.
 | Spec ID | Title | Status | Owner | Related issue | Related PRs | Location |
 | ------- | ----- | ------ | ----- | ------------- | ----------- | -------- |
 | SPEC-001 | F1 Data Analysis Charting Framework | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-001-f1-analysis-framework.md` |
+| SPEC-002 | V2 Plugin, Preview, and Configuration Workbench | Draft | Nelson Jeanrenaud | | [] | `docs/specs/active/SPEC-002-v2-plugin-preview-workbench.md` |
 
 > Keep this table in sync with the frontmatter of each spec. `/spec-report` and
 > `scripts/validate_drift.py` help detect drift between this index and the

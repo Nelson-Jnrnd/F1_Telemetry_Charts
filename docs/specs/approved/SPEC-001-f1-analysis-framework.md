@@ -1451,12 +1451,12 @@ failing recipe, data dependency, and output path.
 | REQ-060 | Central theme controls are applied to all core recipes. | Unit tests and visual baseline inspection | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `tests/test_core_recipes.py`; `tests/test_lap_time_delta_recipe.py` | TBD |
 | REQ-070 | Each chart writes PNG and metadata with required manifest fields. | Automated file output tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `src/f1_telemetry_charts/charts/artifacts.py`; `tests/test_core_recipes.py` | TBD |
 | REQ-080 | Batch runs record produced, skipped, warning, and error states. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/analysis/manifest.py`; `tests/test_orchestrator.py` | TBD |
-| REQ-090 | Observations include evidence, metrics, confidence, and limitations. | Automated tests and manual review | TBD | To be filled during implementation | TBD |
-| REQ-100 | Report package includes manifest, images, metadata, observations, and Markdown draft. | Automated package tests and manual review | TBD | To be filled during implementation | TBD |
+| REQ-090 | Observations include evidence, metrics, confidence, and limitations. | Automated tests and manual review | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/analysis/engine.py`; `src/f1_telemetry_charts/analysis/observations.py`; `tests/test_analysis_report.py`; generated `observations.json` | TBD |
+| REQ-100 | Report package includes manifest, images, metadata, observations, and Markdown draft. | Automated package tests and manual review | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/analysis/report.py`; `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_analysis_report.py`; generated `draft.md` | TBD |
 | REQ-110 | Python callers can validate config, run analysis, and read manifests. | Automated API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_config_validation.py`; `tests/test_orchestrator.py` | TBD |
 | REQ-120 | CLI validates config, generates packages, and returns correct exit codes. | Automated CLI tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py`; example generation returned `succeeded` | TBD |
-| REQ-130 | LLM contract schemas and examples validate. | Schema and contract example tests | TBD | To be filled during implementation | TBD |
-| REQ-140 | Review statuses preserve generated and edited observations. | Automated report package tests | TBD | To be filled during implementation | TBD |
+| REQ-130 | LLM contract schemas and examples validate. | Schema and contract example tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/llm/contract.py`; `tests/test_llm_contract.py`; `docs/usage/llm-contract.md` | TBD |
+| REQ-140 | Review statuses preserve generated and edited observations. | Automated report package tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/observations.py`; `src/f1_telemetry_charts/analysis/report.py`; `tests/test_analysis_report.py` | TBD |
 | REQ-150 | Plugin fixture registers a recipe without core modification. | Automated plugin fixture tests | TBD | To be filled during implementation | TBD |
 | REQ-160 | Local preview can display package manifest content. | UI smoke tests or manual verification | TBD | To be filled during implementation | TBD |
 | NFR-010 | Python 3.11 or newer is declared and enforced. | Automated environment checks | `python -m pip install -e .`; `python -m unittest discover -s tests -p "test_*.py"` | `pyproject.toml`; local editable install passed | TBD |
@@ -1464,23 +1464,23 @@ failing recipe, data dependency, and output path.
 | NFR-030 | Identical deterministic inputs produce equivalent metadata and stable names. | Automated repeatability test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_orchestrator.py` | TBD |
 | NFR-040 | Complete cached sessions render without network access. | Automated integration test | `python -m unittest discover -s tests -p "test_*.py"`; manual FastF1 cache-only smoke on 2026-07-10 | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | TBD |
 | NFR-050 | PNG and JSON exports are produced for successful chart artifacts. | Automated output tests | `python -m unittest discover -s tests -p "test_*.py"` | `tests/test_lap_time_delta_recipe.py` | TBD |
-| NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; `docs/usage/data-gateway.md`; `docs/usage/charts.md`; `docs/usage/generation.md` | TBD |
+| NFR-060 | Public configuration, API, CLI, recipes, and manifest fields are documented. | Documentation inspection | manual inspection; `python -m f1_telemetry_charts --help`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/configuration.md`; `docs/usage/data-gateway.md`; `docs/usage/charts.md`; `docs/usage/generation.md`; `docs/usage/user-manual.md`; `docs/usage/llm-contract.md` | TBD |
 | NFR-070 | FastF1 calls are isolated inside the gateway layer. | Code inspection and fake gateway tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_fastf1_gateway.py`; `tests/test_data_gateway.py` | TBD |
-| NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | `python scripts/benchmark_mvp.py`; `python scripts/benchmark_fastf1_cache.py --cache-dir .cache\fastf1-smoke` | Fixture-backed dataset load measured 0.0008 seconds on 2026-07-10; cache-only FastF1 load measured 9.0840 seconds on 2026-07-10 with `fetched_from_network=false`, 114 laps, 6111 telemetry samples, and 161 weather samples | TBD |
-| NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | `python scripts/benchmark_mvp.py` | Fixture-backed render timings on 2026-07-10: lap_time_delta 1.0102s, telemetry_trace 0.2674s, tyre_strategy 0.2183s, position_progression 0.2301s | TBD |
-| NFR-130 | A 10-chart package generates in a maximum of 60 seconds from cached data. | Scripted benchmark | TBD | To be filled during implementation | TBD |
-| NFR-140 | Default PNG chart size stays within 100 KB to 2 MB. | Automated size check | TBD | To be filled during implementation | TBD |
-| SEC-010 | Default storage remains local and does not upload outputs. | Code inspection and integration tests | TBD | To be filled during implementation | TBD |
-| SEC-020 | LLM responses exclude unrelated paths, environment data, and cache internals. | Contract tests | TBD | To be filled during implementation | TBD |
+| NFR-110 | Cached session loading completes in a maximum of 10 seconds. | Scripted benchmark | `python scripts/benchmark_mvp.py`; `python scripts/benchmark_fastf1_cache.py --cache-dir .cache\fastf1-smoke` | Fixture-backed dataset load measured 0.0017 seconds on 2026-07-10; cache-only FastF1 load measured 9.0840 seconds on 2026-07-10 with `fetched_from_network=false`, 114 laps, 6111 telemetry samples, and 161 weather samples | TBD |
+| NFR-120 | Each core chart renders in a maximum of 5 seconds after data load. | Scripted benchmark | `python scripts/benchmark_mvp.py` | Fixture-backed render timings on 2026-07-10: lap_time_delta 2.2379s, telemetry_trace 1.3741s, tyre_strategy 1.4838s, position_progression 1.2000s | TBD |
+| NFR-130 | A 10-chart package generates in a maximum of 60 seconds from cached data. | Scripted benchmark | `python scripts/benchmark_v1.py` | `scripts/benchmark_v1.py`; 10-chart fixture-backed package measured 13.0207 seconds on 2026-07-10 | TBD |
+| NFR-140 | Default PNG chart size stays within 100 KB to 2 MB. | Automated size check | `python scripts/benchmark_v1.py` | `scripts/benchmark_v1.py`; default PNG sizes measured 112142 to 193353 bytes on 2026-07-10 | TBD |
+| SEC-010 | Default storage remains local and does not upload outputs. | Code inspection and integration tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py`; `tests/test_orchestrator.py` verifies package-relative manifest paths and configured local output directory writes | TBD |
+| SEC-020 | LLM responses exclude unrelated paths, environment data, and cache internals. | Contract tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/llm/contract.py`; `tests/test_llm_contract.py` verifies package-relative artifact paths | TBD |
 | DATA-010 | Dataset model represents metadata, laps, telemetry, weather, provenance, and missing data. | Data model tests | `python -m unittest discover -s tests -p "test_*.py"`; manual FastF1 smoke on 2026-07-10 | `src/f1_telemetry_charts/data/models.py`; `tests/test_data_gateway.py`; `tests/test_fastf1_gateway.py` | TBD |
 | DATA-020 | Manifest model represents run state, artifacts, warnings, errors, and paths. | Manifest schema tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/manifest.py`; `tests/test_orchestrator.py` | TBD |
-| DATA-030 | Observation model represents traceable claims and review status. | Observation schema tests | TBD | To be filled during implementation | TBD |
+| DATA-030 | Observation model represents traceable claims and review status. | Observation schema tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/observations.py`; `tests/test_analysis_report.py` | TBD |
 | API-010 | Public Python entry points cover config, validation, runs, and manifests. | API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_orchestrator.py` | TBD |
 | API-020 | CLI command names, arguments, exit codes, and machine output are stable. | CLI contract tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts config validate configs/bahrain-race.toml --json`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py` | TBD |
-| API-030 | Unsupported LLM contract versions fail with structured compatibility errors. | Contract compatibility tests | TBD | To be filled during implementation | TBD |
+| API-030 | Unsupported LLM contract versions fail with structured compatibility errors. | Contract compatibility tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/llm/contract.py`; `tests/test_llm_contract.py` | TBD |
 | UX-010 | Config and manifest models can populate the config workbench wireframe. | Design inspection | TBD | To be filled during implementation | TBD |
-| UX-020 | Observation model can populate the analysis review wireframe. | Design inspection | TBD | To be filled during implementation | TBD |
-| UX-030 | Report package structure can populate the package output wireframe. | Package tests and manual inspection | TBD | To be filled during implementation | TBD |
+| UX-020 | Observation model can populate the analysis review wireframe. | Design inspection | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/observations.py`; generated `observations.json` and `review.json` include claim, evidence, confidence, limitations, and editorial status fields | TBD |
+| UX-030 | Report package structure can populate the package output wireframe. | Package tests and manual inspection | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/analysis/manifest.py`; `src/f1_telemetry_charts/analysis/report.py`; generated package includes charts, metadata, observations, review metadata, and Markdown draft | TBD |
 
 ## Test plan
 
@@ -1550,12 +1550,12 @@ for the requirements it introduces.
 | REQ-060 | Theme system | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | REQ-070 | Artifact export | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
 | REQ-080 | Analysis orchestrator | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/analysis/manifest.py` | `tests/test_orchestrator.py`; `tests/test_cli.py` | In Implementation |
-| REQ-090 | Analysis engine | TBD | TBD | Approved |
-| REQ-100 | Report package exporter | TBD | TBD | Approved |
+| REQ-090 | Analysis engine | `src/f1_telemetry_charts/analysis/engine.py`; `src/f1_telemetry_charts/analysis/observations.py` | `tests/test_analysis_report.py` | In Implementation |
+| REQ-100 | Report package exporter | `src/f1_telemetry_charts/analysis/report.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_analysis_report.py`; `tests/test_cli.py` | In Implementation |
 | REQ-110 | Python API | `src/f1_telemetry_charts/__init__.py` | `tests/test_config_validation.py` | In Implementation |
 | REQ-120 | CLI | `src/f1_telemetry_charts/cli.py`; `src/f1_telemetry_charts/__main__.py` | `tests/test_cli.py` | In Implementation |
-| REQ-130 | LLM tool contract | TBD | TBD | Approved |
-| REQ-140 | Review workflow | TBD | TBD | Approved |
+| REQ-130 | LLM tool contract | `src/f1_telemetry_charts/llm/contract.py`; `src/f1_telemetry_charts/llm/__init__.py` | `tests/test_llm_contract.py` | In Implementation |
+| REQ-140 | Review workflow | `src/f1_telemetry_charts/analysis/observations.py`; `src/f1_telemetry_charts/analysis/report.py` | `tests/test_analysis_report.py` | In Implementation |
 | REQ-150 | Plugin extension point | TBD | TBD | Approved |
 | REQ-160 | Local preview | TBD | TBD | Approved |
 | NFR-010 | Runtime support | `pyproject.toml`; `.github/workflows/ci.yml` | local editable install; `tests/test_cli.py` | In Implementation |
@@ -1567,19 +1567,19 @@ for the requirements it introduces.
 | NFR-070 | Dependency boundary | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/data/gateways/base.py` | `tests/test_data_gateway.py` | In Implementation |
 | NFR-110 | Data load performance | `scripts/benchmark_mvp.py`; `scripts/benchmark_fastf1_cache.py`; `src/f1_telemetry_charts/data/gateways/fixture.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | `scripts/benchmark_mvp.py`; `scripts/benchmark_fastf1_cache.py`; `tests/test_fastf1_gateway.py` | In Implementation |
 | NFR-120 | Render performance | `scripts/benchmark_mvp.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `scripts/benchmark_mvp.py`; `tests/test_core_recipes.py` | In Implementation |
-| NFR-130 | Batch performance | TBD | TBD | Approved |
-| NFR-140 | Artifact size | TBD | TBD | Approved |
-| SEC-010 | Local storage | TBD | TBD | Approved |
-| SEC-020 | LLM data boundary | TBD | TBD | Approved |
+| NFR-130 | Batch performance | `scripts/benchmark_v1.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `scripts/benchmark_v1.py`; `tests/test_orchestrator.py` | In Implementation |
+| NFR-140 | Artifact size | `scripts/benchmark_v1.py`; `src/f1_telemetry_charts/config/models.py`; `configs/bahrain-race.toml` | `scripts/benchmark_v1.py` | In Implementation |
+| SEC-010 | Local storage | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_orchestrator.py` | In Implementation |
+| SEC-020 | LLM data boundary | `src/f1_telemetry_charts/llm/contract.py` | `tests/test_llm_contract.py` | In Implementation |
 | DATA-010 | Dataset model | `src/f1_telemetry_charts/data/models.py` | `tests/test_data_gateway.py` | In Implementation |
 | DATA-020 | Manifest model | `src/f1_telemetry_charts/analysis/manifest.py` | `tests/test_orchestrator.py` | In Implementation |
-| DATA-030 | Observation model | TBD | TBD | Approved |
+| DATA-030 | Observation model | `src/f1_telemetry_charts/analysis/observations.py` | `tests/test_analysis_report.py` | In Implementation |
 | API-010 | Python API | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_config_validation.py`; `tests/test_orchestrator.py` | In Implementation |
 | API-020 | CLI contract | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
-| API-030 | LLM contract versioning | TBD | TBD | Approved |
+| API-030 | LLM contract versioning | `src/f1_telemetry_charts/llm/contract.py` | `tests/test_llm_contract.py` | In Implementation |
 | UX-010 | Config workbench | TBD | TBD | Approved |
-| UX-020 | Analysis review | TBD | TBD | Approved |
-| UX-030 | Report package output | TBD | TBD | Approved |
+| UX-020 | Analysis review | `src/f1_telemetry_charts/analysis/observations.py`; `src/f1_telemetry_charts/analysis/report.py` | `tests/test_analysis_report.py` | In Implementation |
+| UX-030 | Report package output | `src/f1_telemetry_charts/analysis/manifest.py`; `src/f1_telemetry_charts/analysis/report.py` | `tests/test_analysis_report.py`; `tests/test_cli.py` | In Implementation |
 
 ## Implementation notes
 
@@ -1705,6 +1705,41 @@ default visual identity as explicitly delegated.
   The populated 2023 Bahrain Race VER/PER cache measured 9.0840 seconds on
   2026-07-10, returning 114 laps, 6111 telemetry samples, 161 weather samples,
   and `fetched_from_network=false`.
+
+#### 2026-07-10 MVP completion hardening
+
+- Added regression coverage for local-first package output behavior. Generated
+  manifests keep chart artifact paths package-relative, and generated image and
+  metadata files are verified under the configured local output directory.
+- Reran the MVP verification set with the bundled Python runtime on 2026-07-10:
+  unit tests, governance validation, spec validation, drift validation, fixture
+  benchmark, config validation CLI smoke, and package generation CLI smoke all
+  passed.
+- Fixture-backed benchmark evidence on 2026-07-10 measured data load at 0.0005
+  seconds, package generation at 0.6205 seconds, and each MVP recipe render
+  below the 5 second maximum.
+- The MVP scope is complete. SPEC-001 remains in implementation for V1 and V2
+  requirements.
+
+#### 2026-07-10 Slice 8
+
+- Added structured observation models with evidence links, metric values,
+  confidence, limitations, review status, and separate edited text.
+- Added deterministic observation extraction for fastest selected-driver lap,
+  best final recorded selected-driver position, peak recorded selected-driver
+  speed, and recorded tyre compounds.
+- Added report package export for `observations.json`, `review.json`, and
+  `draft.md`, with rejected observations excluded from regenerated drafts.
+- Added a versioned LLM contract for chart generation and artifact inspection.
+  Unsupported contract versions return structured compatibility errors, and
+  contract responses keep artifact/report paths package-relative.
+- Added unique artifact IDs for duplicate recipe requests so 10-chart packages
+  do not overwrite files.
+- Raised the default/demo DPI to 300 so default PNG chart artifacts satisfy the
+  approved 100 KB to 2 MB interval.
+- Added `scripts/benchmark_v1.py`. The 10-chart fixture-backed package
+  benchmark measured 13.0207 seconds on 2026-07-10, and PNG sizes measured
+  112142 to 193353 bytes.
 
 ### Implementation plan
 

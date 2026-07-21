@@ -8,12 +8,17 @@ from f1_telemetry_charts.config.validation import (
     validate_config,
 )
 from f1_telemetry_charts.analysis.orchestrator import AnalysisResult, run_analysis
+from f1_telemetry_charts.analysis.observations import Observation
+from f1_telemetry_charts.llm import describe_artifact, generate_charts
 
 __all__ = [
     "AnalysisResult",
     "ConfigValidationError",
+    "Observation",
     "ProjectConfig",
     "ValidationIssue",
+    "describe_artifact",
+    "generate_charts",
     "load_config",
     "run_analysis",
     "validate_config",

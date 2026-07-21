@@ -94,6 +94,11 @@ def _generate_command(path: Path, *, json_output: bool) -> int:
         "status": result.status,
         "output_dir": str(result.output_dir),
         "manifest_path": str(result.manifest_path),
+        "observations_path": str(result.observations_path)
+        if result.observations_path
+        else None,
+        "review_path": str(result.review_path) if result.review_path else None,
+        "markdown_path": str(result.markdown_path) if result.markdown_path else None,
     }
     if json_output:
         print(json.dumps(payload, indent=2, sort_keys=True))
@@ -101,6 +106,12 @@ def _generate_command(path: Path, *, json_output: bool) -> int:
         print(f"Generation status: {result.status}")
         print(f"Output directory: {result.output_dir}")
         print(f"Manifest: {result.manifest_path}")
+        if result.observations_path:
+            print(f"Observations: {result.observations_path}")
+        if result.review_path:
+            print(f"Review metadata: {result.review_path}")
+        if result.markdown_path:
+            print(f"Markdown draft: {result.markdown_path}")
     return 0 if result.status in {"succeeded", "partially_succeeded"} else 1
 
 

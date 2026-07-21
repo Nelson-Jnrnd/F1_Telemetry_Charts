@@ -9,11 +9,13 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from f1_telemetry_charts.analysis.engine import extract_observations
 from f1_telemetry_charts.analysis.manifest import (
     ArtifactManifest,
     ChartArtifactEntry,
     RecipeRunEntry,
 )
+from f1_telemetry_charts.analysis.report import write_report_package
 from f1_telemetry_charts.charts.renderers import MatplotlibRenderer
 from f1_telemetry_charts.config.models import ProjectConfig
 from f1_telemetry_charts.data import SessionQuery
@@ -27,6 +29,9 @@ class AnalysisResult(BaseModel):
     status: str
     output_dir: Path
     manifest_path: Path
+    observations_path: Path | None = None
+    review_path: Path | None = None
+    markdown_path: Path | None = None
     manifest: ArtifactManifest
 
 
@@ -46,12 +51,18 @@ def run_analysis(config: ProjectConfig) -> AnalysisResult:
     errors: list[str] = []
     warnings: list[str] = []
 
-    for recipe_config in config.recipes:
+    requested_recipe_ids = [recipe.recipe_id for recipe in config.recipes]
+    for index, recipe_config in enumerate(config.recipes):
         recipe_id = recipe_config.recipe_id
         try:
             recipe = registry.create(recipe_id)
             spec = recipe.build_spec(dataset, recipe_config)
-            artifact_id = f"{recipe_id}-{config_hash[:8]}"
+            artifact_id = _artifact_id(
+                recipe_id,
+                config_hash,
+                index,
+                requested_recipe_ids,
+            )
             artifact = renderer.render(
                 spec,
                 theme=config.theme,
@@ -98,17 +109,39 @@ def run_analysis(config: ProjectConfig) -> AnalysisResult:
             "event": config.session.event,
             "session": config.session.session,
         },
-        requested_recipes=[recipe.recipe_id for recipe in config.recipes],
+        requested_recipes=requested_recipe_ids,
         artifacts=artifacts,
         recipes=recipe_entries,
         warnings=warnings,
         errors=errors,
     )
+
+    observations_path = None
+    review_path = None
+    markdown_path = None
+    if artifacts:
+        observations = extract_observations(dataset, artifacts)
+        report_paths = write_report_package(output_dir, manifest, observations)
+        observations_path = report_paths.observations_path
+        review_path = report_paths.review_path
+        markdown_path = report_paths.markdown_path
+        manifest = manifest.model_copy(
+            update={
+                "observations_path": _relative_path(observations_path, output_dir),
+                "review_path": _relative_path(review_path, output_dir),
+                "markdown_path": _relative_path(markdown_path, output_dir),
+            },
+            deep=True,
+        )
+
     manifest.write(manifest_path)
     return AnalysisResult(
         status=status,
         output_dir=output_dir,
         manifest_path=manifest_path,
+        observations_path=observations_path,
+        review_path=review_path,
+        markdown_path=markdown_path,
         manifest=manifest,
     )
 
@@ -139,6 +172,17 @@ def _configuration_hash(config: ProjectConfig) -> str:
 
 def _run_id(config: ProjectConfig, config_hash: str) -> str:
     return f"{config.project_id}-{config_hash[:8]}"
+
+
+def _artifact_id(
+    recipe_id: str,
+    config_hash: str,
+    index: int,
+    requested_recipe_ids: list[str],
+) -> str:
+    if requested_recipe_ids.count(recipe_id) == 1:
+        return f"{recipe_id}-{config_hash[:8]}"
+    return f"{recipe_id}-{index + 1}-{config_hash[:8]}"
 
 
 def _relative_path(path: Path, base: Path) -> str:

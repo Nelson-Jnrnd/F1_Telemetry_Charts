@@ -35,6 +35,7 @@ approved spec wins. See
 python -m pip install -e .
 python -m unittest discover -s tests -p "test_*.py"
 python scripts/benchmark_mvp.py
+python scripts/benchmark_v1.py
 python scripts/validate_governance.py
 python scripts/validate_specs.py
 python scripts/validate_drift.py
@@ -48,10 +49,12 @@ python scripts/benchmark_fastf1_cache.py --cache-dir .cache\fastf1-smoke
 
 ## Usage Docs
 
+- [User manual](docs/usage/user-manual.md)
 - [Configuration](docs/usage/configuration.md)
 - [Data gateway](docs/usage/data-gateway.md)
 - [Charts](docs/usage/charts.md)
 - [Package generation](docs/usage/generation.md)
+- [LLM contract](docs/usage/llm-contract.md)
 
 ## Manual Setup
 

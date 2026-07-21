@@ -7,23 +7,22 @@
 Reports may be updated by agents when useful, but they must not become the
 authoritative source of project truth. Regenerate this with `/spec-report`.
 
-_Last updated: 2026-07-10._
+_Last updated: 2026-07-21._
 
 ```
 Spec report
 
-Draft:               none
+Draft:               SPEC-002 V2 Plugin, Preview, and Configuration Workbench
 In review:           none
-Approved:            SPEC-001 F1 Data Analysis Charting Framework (AMEND-001)
-In implementation:   none
+Approved:            none
+In implementation:   SPEC-001 F1 Data Analysis Charting Framework (AMEND-001)
 Implemented:         none
-Needs human decision: none
-Missing verification: implementation evidence pending
+Needs human decision: SPEC-002 full draft approval pending
+Missing verification: SPEC-002 implementation evidence pending
 Potential blockers:   none
 ```
 
-SPEC-001 is in implementation. Slices 1 through 7 are implemented, and live
-FastF1/cache smoke verification now returns normalized laps, telemetry, and
-weather. The prior NFR-110 blocker is resolved: cache-only FastF1 telemetry
-loading measured 9.0840 seconds on 2026-07-10 against the approved 10 second
-cached-load maximum.
+SPEC-001 is in implementation. The MVP and V1 slice sets are complete. SPEC-002
+is a draft that expands the V2 plugin, local preview, and configuration
+workbench scope into implementation-ready requirements. SPEC-002 needs human
+review and approval before implementation can start.

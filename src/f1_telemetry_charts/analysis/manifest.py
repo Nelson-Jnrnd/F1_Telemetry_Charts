@@ -44,6 +44,9 @@ class ArtifactManifest(BaseModel):
     requested_recipes: list[str]
     artifacts: list[ChartArtifactEntry] = Field(default_factory=list)
     recipes: list[RecipeRunEntry] = Field(default_factory=list)
+    observations_path: str | None = None
+    review_path: str | None = None
+    markdown_path: str | None = None
     warnings: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
 

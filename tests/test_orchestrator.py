@@ -61,6 +61,38 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(first.output_dir, second.output_dir)
         self.assertEqual(first.manifest.configuration_hash, second.manifest.configuration_hash)
 
+    def test_manifest_paths_are_package_relative_and_outputs_stay_local(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            local_output_dir = Path(temp_dir)
+            config = _config(local_output_dir, recipe_ids=["lap_time_delta"])
+
+            result = run_analysis(config)
+            manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+
+            artifact = manifest["artifacts"][0]
+            for key in ("image_path", "metadata_path"):
+                path = Path(artifact[key])
+                self.assertFalse(path.is_absolute())
+                self.assertTrue((result.output_dir / path).is_file())
+
+            self.assertEqual(local_output_dir, result.output_dir.parent)
+
+    def test_duplicate_recipe_requests_get_unique_artifact_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = _config(
+                Path(temp_dir),
+                recipe_ids=["lap_time_delta", "lap_time_delta"],
+            )
+
+            result = run_analysis(config)
+            artifact_ids = [
+                artifact.artifact_id for artifact in result.manifest.artifacts
+            ]
+
+        self.assertEqual(len(artifact_ids), 2)
+        self.assertEqual(len(set(artifact_ids)), 2)
+        self.assertTrue(all("lap_time_delta" in item for item in artifact_ids))
+
 
 def _config(
     output_dir: Path,
