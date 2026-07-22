@@ -1,7 +1,8 @@
 # LLM Contract Usage
 
 This page is derived documentation. Authoritative requirements live in
-`docs/specs/approved/SPEC-001-f1-analysis-framework.md`.
+`docs/specs/approved/SPEC-001-f1-analysis-framework.md` and
+`docs/specs/approved/SPEC-004-v2-analysis-workbench-pipeline.md`.
 
 ## Contract Version
 
@@ -52,3 +53,34 @@ print(response["artifact"]["metadata"])
 
 The caller supplies the local manifest path explicitly. The returned artifact
 paths remain package-relative.
+
+## Inspect An Analysis
+
+```python
+from f1_telemetry_charts.llm import inspect_analysis
+
+response = inspect_analysis(
+    {
+        "contract_version": "1.0",
+        "analysis_path": "analysis/bahrain-race",
+    }
+)
+print(response["analysis"]["sessions"])
+print(response["recipe_schemas"])
+```
+
+## Update Chart Parameters
+
+```python
+from f1_telemetry_charts.llm import update_analysis_chart_parameters
+
+response = update_analysis_chart_parameters(
+    {
+        "contract_version": "1.0",
+        "analysis_path": "analysis/bahrain-race/analysis.json",
+        "chart_instance_id": "chart-abc123",
+        "parameters": {"title": "Race pace delta"},
+    }
+)
+print(response["status"])
+```

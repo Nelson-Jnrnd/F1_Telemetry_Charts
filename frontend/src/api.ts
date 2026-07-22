@@ -1,4 +1,5 @@
 import type {
+  AnalysisView,
   HistoryItem,
   PackageView,
   PluginStatus,
@@ -91,4 +92,94 @@ export function getHistory() {
 
 export function clearHistory() {
   return request<{ status: string }>("/api/history", { method: "DELETE" });
+}
+
+export function getAnalysis() {
+  return request<AnalysisView>("/api/analysis");
+}
+
+export function createAnalysis(path: string, name: string) {
+  return request<AnalysisView>("/api/analysis/create", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ path, name })
+  });
+}
+
+export function openAnalysis(path: string) {
+  return request<AnalysisView>("/api/analysis/open", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ path })
+  });
+}
+
+export function saveAnalysis() {
+  return request<AnalysisView>("/api/analysis/save", { method: "POST" });
+}
+
+export function addAnalysisSession(payload: {
+  name?: string | null;
+  session: { season: number; event: string; session: string };
+  drivers: string[];
+  data_cache: { directory?: string; mode?: "cache-or-fetch" | "cache-only"; fixture_path?: string | null };
+  load?: boolean;
+}) {
+  return request<AnalysisView>("/api/analysis/sessions", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
+export function loadAnalysisSession(sessionId: string) {
+  return request<AnalysisView>(`/api/analysis/sessions/${sessionId}/load`, { method: "POST" });
+}
+
+export function removeAnalysisSession(sessionId: string, confirmDeleteDependents: boolean) {
+  return request<AnalysisView>(`/api/analysis/sessions/${sessionId}?confirm_delete_dependents=${confirmDeleteDependents}`, { method: "DELETE" });
+}
+
+export function addAnalysisChart(payload: { recipe_id: string; target_session_ids: string[]; name?: string | null; parameters?: Record<string, unknown>; preset_id?: string | null }) {
+  return request<AnalysisView>("/api/analysis/charts", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateAnalysisChart(chartId: string, payload: { name?: string | null; target_session_ids?: string[]; parameters?: Record<string, unknown>; preset_id?: string | null }) {
+  return request<AnalysisView>(`/api/analysis/charts/${chartId}`, {
+    method: "PUT",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
+export function removeAnalysisChart(chartId: string) {
+  return request<AnalysisView>(`/api/analysis/charts/${chartId}`, { method: "DELETE" });
+}
+
+export function generateAnalysisCharts(chartIds?: string[]) {
+  return request<AnalysisView>("/api/analysis/charts/generate", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ chart_ids: chartIds ?? null })
+  });
+}
+
+export function refreshAnalysisReview() {
+  return request<AnalysisView>("/api/analysis/review/refresh", { method: "POST" });
+}
+
+export function exportAnalysis() {
+  return request<AnalysisView>("/api/analysis/export", { method: "POST" });
+}
+
+export function saveAnalysisPreset(payload: { recipe_id: string; display_name: string; parameters: Record<string, unknown>; scope: "analysis" | "global"; notes?: string | null }) {
+  return request<AnalysisView>("/api/analysis/presets", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
 }

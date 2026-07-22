@@ -1,5 +1,4 @@
-export type Page = "preview" | "workbench" | "plugins" | "history";
-export type PreviewTab = "charts" | "observations" | "draft" | "integrity";
+export type Page = "workbench" | "plugins" | "history";
 export type HealthStatus = "healthy" | "warning" | "unhealthy";
 export type ReviewStatus = "accepted" | "rejected" | "edited" | "unreviewed";
 
@@ -89,6 +88,96 @@ export type SelectedDetail =
   | { kind: "recipe"; value: PluginRecipe & { plugin_id?: string; source?: string } }
   | { kind: "history"; value: HistoryItem }
   | { kind: "draft"; value: { markdownPath?: string | null; reviewCount: number } };
+
+export type ParameterField = {
+  name: string;
+  label: string;
+  field_type: "text" | "number" | "checkbox" | "select" | "multi_select" | "driver_selector" | "lap_range" | "color";
+  required: boolean;
+  default?: unknown;
+  options: string[];
+  minimum?: number | null;
+  maximum?: number | null;
+  group?: string | null;
+  order: number;
+};
+
+export type RecipeParameterSchema = {
+  recipe_id: string;
+  schema_version: number;
+  fields: ParameterField[];
+};
+
+export type AnalysisSession = {
+  session_id: string;
+  name: string;
+  session: { season: number; event: string; session: string };
+  drivers: string[];
+  data_cache: { directory: string; mode: "cache-or-fetch" | "cache-only"; fixture_path: string | null };
+  load_state: "not_loaded" | "loading" | "loaded" | "failed" | "stale";
+  snapshot?: { snapshot_id: string; dataset_hash: string; dataset_path: string; snapshot_path: string } | null;
+  stale: boolean;
+  errors: string[];
+};
+
+export type ChartInstance = {
+  chart_instance_id: string;
+  recipe_id: string;
+  name: string;
+  target_session_ids: string[];
+  enabled: boolean;
+  parameters: Record<string, unknown>;
+  parameter_hash: string;
+  schema_version: number;
+  preset_id?: string | null;
+  order: number;
+  generation_state: "not_generated" | "generated" | "failed" | "stale";
+  artifact_id?: string | null;
+  image_path?: string | null;
+  metadata_path?: string | null;
+  stale: boolean;
+  observations_stale: boolean;
+  errors: string[];
+};
+
+export type ParameterPreset = {
+  preset_id: string;
+  recipe_id: string;
+  schema_version: number;
+  display_name: string;
+  scope: "analysis" | "global";
+  parameters: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  notes?: string | null;
+};
+
+export type AnalysisWorkspace = {
+  analysis_id: string;
+  name: string;
+  root_path: string;
+  schema_version: number;
+  created_at: string;
+  updated_at: string;
+  sessions: AnalysisSession[];
+  charts: ChartInstance[];
+  presets: ParameterPreset[];
+  review_stale: boolean;
+  exported_package_path?: string | null;
+  errors: string[];
+};
+
+export type AnalysisRecipe = PluginRecipe & {
+  source: string;
+  parameter_schema: RecipeParameterSchema;
+};
+
+export type AnalysisView = {
+  analysis: AnalysisWorkspace;
+  recipe_schemas: RecipeParameterSchema[];
+  recipes: AnalysisRecipe[];
+  global_presets: ParameterPreset[];
+};
 
 export type ProjectConfigForm = {
   schema_version: 1;

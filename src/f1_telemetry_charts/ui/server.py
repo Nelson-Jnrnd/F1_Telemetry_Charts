@@ -17,8 +17,14 @@ from f1_telemetry_charts.analysis.observations import (
 )
 from f1_telemetry_charts.analysis.report import apply_observation_review, render_markdown_draft
 from f1_telemetry_charts.analysis.orchestrator import run_analysis
+from f1_telemetry_charts.analysis.workspace import (
+    AnalysisService,
+    AnalysisView,
+    PresetScope,
+    list_recipe_metadata_payloads,
+)
 from f1_telemetry_charts.config.loader import load_config
-from f1_telemetry_charts.config.models import ProjectConfig
+from f1_telemetry_charts.config.models import DataCacheConfig, ProjectConfig, SessionConfig
 from f1_telemetry_charts.config.validation import (
     ConfigValidationError,
     ValidationIssue,
@@ -72,10 +78,66 @@ class ConfigValidationResponse(BaseModel):
     issues: list[dict[str, str]] = Field(default_factory=list)
 
 
+class AnalysisPathRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    path: Path
+
+
+class AnalysisCreateRequest(AnalysisPathRequest):
+    name: str = "Untitled Analysis"
+
+
+class AnalysisSessionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = None
+    session: SessionConfig
+    drivers: list[str] = Field(min_length=1)
+    data_cache: DataCacheConfig = Field(default_factory=DataCacheConfig)
+    load: bool = True
+
+
+class AnalysisChartRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    recipe_id: str
+    target_session_ids: list[str] = Field(min_length=1)
+    name: str | None = None
+    parameters: dict = Field(default_factory=dict)
+    preset_id: str | None = None
+
+
+class AnalysisChartUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = None
+    target_session_ids: list[str] | None = None
+    parameters: dict | None = None
+    preset_id: str | None = None
+
+
+class ChartGenerationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_ids: list[str] | None = None
+
+
+class PresetSaveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    recipe_id: str
+    display_name: str
+    parameters: dict = Field(default_factory=dict)
+    scope: PresetScope = "analysis"
+    notes: str | None = None
+
+
 def create_app(initial_package: Path | None = None) -> FastAPI:
     app = FastAPI(title="F1 Telemetry Charts Local UI")
     state = {
         "package_path": initial_package.resolve() if initial_package else None,
+        "analysis_path": None,
         "history": [],
     }
     if initial_package is not None:
@@ -235,6 +297,166 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
             "package": read_package_view(result.output_dir).model_dump(mode="json"),
         }
 
+    @app.get("/api/analysis", response_model=AnalysisView)
+    def get_analysis() -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        return service.view()
+
+    @app.post("/api/analysis/create", response_model=AnalysisView)
+    def create_analysis_endpoint(request: AnalysisCreateRequest) -> AnalysisView:
+        service = AnalysisService(request.path)
+        analysis = service.create(request.name)
+        state["analysis_path"] = analysis.root_path
+        return service.view(analysis)
+
+    @app.post("/api/analysis/open", response_model=AnalysisView)
+    def open_analysis_endpoint(request: AnalysisPathRequest) -> AnalysisView:
+        service = AnalysisService(request.path)
+        analysis = service.open()
+        state["analysis_path"] = analysis.root_path
+        return service.view(analysis)
+
+    @app.post("/api/analysis/save", response_model=AnalysisView)
+    def save_analysis_endpoint() -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        analysis = service.save(service.open())
+        return service.view(analysis)
+
+    @app.post("/api/analysis/sessions", response_model=AnalysisView)
+    def add_analysis_session(request: AnalysisSessionRequest) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.add_session(
+                service.open(),
+                session=request.session,
+                drivers=request.drivers,
+                data_cache=request.data_cache,
+                name=request.name,
+                load=request.load,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.post("/api/analysis/sessions/{session_id}/load", response_model=AnalysisView)
+    def load_analysis_session(session_id: str) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        analysis = service.load_session(service.open(), session_id)
+        return service.view(analysis)
+
+    @app.delete("/api/analysis/sessions/{session_id}", response_model=AnalysisView)
+    def remove_analysis_session(
+        session_id: str,
+        confirm_delete_dependents: bool = False,
+    ) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.remove_session(
+                service.open(),
+                session_id,
+                confirm_delete_dependents=confirm_delete_dependents,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.get("/api/analysis/recipes")
+    def list_analysis_recipes() -> list[dict]:
+        service = _optional_analysis_service(state["analysis_path"])
+        if service is None:
+            return list_recipe_metadata_payloads()
+        return service.view().recipes
+
+    @app.post("/api/analysis/charts", response_model=AnalysisView)
+    def add_analysis_chart(request: AnalysisChartRequest) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.add_chart(
+                service.open(),
+                recipe_id=request.recipe_id,
+                target_session_ids=request.target_session_ids,
+                name=request.name,
+                parameters=request.parameters,
+                preset_id=request.preset_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.put("/api/analysis/charts/{chart_id}", response_model=AnalysisView)
+    def update_analysis_chart(
+        chart_id: str,
+        request: AnalysisChartUpdateRequest,
+    ) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        preset_update = {}
+        if "preset_id" in request.model_fields_set:
+            preset_update["preset_id"] = request.preset_id
+        try:
+            analysis = service.update_chart(
+                service.open(),
+                chart_id,
+                name=request.name,
+                target_session_ids=request.target_session_ids,
+                parameters=request.parameters,
+                **preset_update,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.delete("/api/analysis/charts/{chart_id}", response_model=AnalysisView)
+    def remove_analysis_chart(chart_id: str) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        analysis = service.remove_chart(service.open(), chart_id)
+        return service.view(analysis)
+
+    @app.post("/api/analysis/charts/generate", response_model=AnalysisView)
+    def generate_analysis_charts(request: ChartGenerationRequest) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        analysis = service.generate_charts(service.open(), request.chart_ids)
+        return service.view(analysis)
+
+    @app.post("/api/analysis/review/refresh", response_model=AnalysisView)
+    def refresh_analysis_review() -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        analysis = service.refresh_observations(service.open())
+        state["package_path"] = Path(analysis.exported_package_path).resolve() if analysis.exported_package_path else None
+        return service.view(analysis)
+
+    @app.post("/api/analysis/export", response_model=AnalysisView)
+    def export_analysis() -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        analysis = service.export_package(service.open())
+        state["package_path"] = Path(analysis.exported_package_path).resolve() if analysis.exported_package_path else None
+        if state["package_path"] is not None:
+            _remember_history(state["history"], state["package_path"], "exported")
+        return service.view(analysis)
+
+    @app.post("/api/analysis/presets", response_model=AnalysisView)
+    def save_analysis_preset(request: PresetSaveRequest) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis, _preset = service.save_preset(
+                service.open(),
+                recipe_id=request.recipe_id,
+                display_name=request.display_name,
+                parameters=request.parameters,
+                scope=request.scope,
+                notes=request.notes,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.get("/api/analysis/assets/{asset_path:path}")
+    def get_analysis_asset(asset_path: str) -> FileResponse:
+        service = _require_analysis_service(state["analysis_path"])
+        path = _resolve_local_asset(service.root, asset_path)
+        if not path.exists() or not path.is_file():
+            raise HTTPException(status_code=404, detail="Analysis asset not found.")
+        return FileResponse(path)
+
     @app.get("/api/history")
     def get_history() -> list[dict[str, str]]:
         return list(state["history"])
@@ -251,6 +473,29 @@ def _require_package_path(package_path: Path | None) -> Path:
     if package_path is None:
         raise HTTPException(status_code=404, detail="No package is currently open.")
     return package_path
+
+
+def _require_analysis_service(analysis_path: Path | None) -> AnalysisService:
+    service = _optional_analysis_service(analysis_path)
+    if service is None:
+        raise HTTPException(status_code=404, detail="No analysis is currently open.")
+    return service
+
+
+def _optional_analysis_service(analysis_path: Path | None) -> AnalysisService | None:
+    if analysis_path is None:
+        return None
+    return AnalysisService(analysis_path)
+
+
+def _resolve_local_asset(root: Path, relative_path: str) -> Path:
+    path = Path(relative_path)
+    if path.is_absolute():
+        raise HTTPException(status_code=400, detail="Asset path must be relative.")
+    resolved = (root / path).resolve()
+    if resolved != root and root not in resolved.parents:
+        raise HTTPException(status_code=400, detail="Asset path escapes analysis root.")
+    return resolved
 
 
 def _read_observations(path: Path) -> list[Observation]:

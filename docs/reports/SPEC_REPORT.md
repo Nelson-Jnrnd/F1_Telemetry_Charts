@@ -15,11 +15,11 @@ Spec report
 Draft:               none
 In review:           none
 Approved:            none
-In implementation:   SPEC-001 F1 Data Analysis Charting Framework (AMEND-001); SPEC-002 V2 Plugin, Preview, and Configuration Workbench; SPEC-003 V2 Tailwind UI System and Application Rebuild
+In implementation:   SPEC-001 F1 Data Analysis Charting Framework (AMEND-001); SPEC-002 V2 Plugin, Preview, and Configuration Workbench; SPEC-003 V2 Tailwind UI System and Application Rebuild; SPEC-004 V2 Analysis Workbench and Staged Run Pipeline
 Implemented:         none
 Needs human decision: none
-Missing verification: SPEC-002/SPEC-003 browser visual evidence pending
-Potential blockers:   none
+Missing verification: SPEC-002/SPEC-003/SPEC-004 browser visual evidence pending
+Potential blockers:   SPEC-004 browser visual evidence pending
 ```
 
 SPEC-001 is in implementation. The MVP and V1 slice sets are complete. SPEC-002
@@ -34,3 +34,15 @@ package preview, workbench, plugins, and run history UI behavior. Initial
 implementation is complete with frontend typecheck/build and targeted API tests
 passing; browser visual evidence remains pending because the Codex browser
 connector failed to initialize.
+
+SPEC-004 is approved and in implementation. It addresses the product model
+change from package-first generation to an Analysis Workbench. It defines
+Analysis as the top-level user object, with sessions, deterministic JSON dataset
+snapshots, chart instances, editable recipe parameters, reusable local/global
+presets, review/export state, and save/load behavior. It records `chart
+template` as the preferred future user-facing term while deferring the rename.
+Initial backend, API, LLM contract, and frontend Workbench implementation is in
+place with tests, frontend build, and snapshot-regeneration benchmark passing.
+The primary UI is now Analysis-first, with exported package inspection embedded
+inside the Export workflow. Browser visual verification remains blocked by the
+in-app browser connector initialization failure.

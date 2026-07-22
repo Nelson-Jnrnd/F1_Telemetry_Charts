@@ -4,9 +4,10 @@ import { Dialog } from "./ui/Dialog";
 type ChartLightboxProps = {
   artifact: Artifact | null;
   onOpenChange: (open: boolean) => void;
+  assetBase?: string;
 };
 
-export function ChartLightbox({ artifact, onOpenChange }: ChartLightboxProps) {
+export function ChartLightbox({ artifact, onOpenChange, assetBase = "/api/package/assets" }: ChartLightboxProps) {
   return (
     <Dialog
       open={artifact !== null}
@@ -18,7 +19,7 @@ export function ChartLightbox({ artifact, onOpenChange }: ChartLightboxProps) {
       {artifact?.image_path ? (
         <div className="grid gap-3">
           <img
-            src={`/api/package/assets/${artifact.image_path}`}
+            src={`${assetBase}/${artifact.image_path}`}
             alt={artifact.artifact_id}
             className="max-h-[calc(100vh-220px)] w-full rounded-md border border-line object-contain"
           />

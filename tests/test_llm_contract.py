@@ -4,7 +4,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from f1_telemetry_charts.llm import describe_artifact, generate_charts
+from f1_telemetry_charts.analysis.workspace import AnalysisService
+from f1_telemetry_charts.config.models import DataCacheConfig, SessionConfig
+from f1_telemetry_charts.llm import (
+    describe_artifact,
+    generate_charts,
+    inspect_analysis,
+    update_analysis_chart_parameters,
+)
 
 
 class LlmContractTests(unittest.TestCase):
@@ -61,6 +68,51 @@ class LlmContractTests(unittest.TestCase):
 
         self.assertEqual(payload["status"], "incompatible_contract")
         self.assertEqual(payload["error"]["code"], "unsupported_contract_version")
+
+    def test_analysis_contract_inspects_and_updates_chart_parameters(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "analysis"
+            service = AnalysisService(root)
+            analysis = service.create("LLM Analysis")
+            analysis = service.add_session(
+                analysis,
+                session=SessionConfig(
+                    season=2023,
+                    event="Bahrain Grand Prix",
+                    session="Race",
+                ),
+                drivers=["VER", "PER"],
+                data_cache=DataCacheConfig(
+                    fixture_path=Path("tests/fixtures/2023_bahrain_race_dataset.json")
+                ),
+            )
+            analysis = service.add_chart(
+                analysis,
+                recipe_id="lap_time_delta",
+                target_session_ids=[analysis.sessions[0].session_id],
+                parameters={"title": "Initial"},
+            )
+            chart_id = analysis.charts[0].chart_instance_id
+
+            inspected = inspect_analysis(
+                {"contract_version": "1.0", "analysis_path": str(root)}
+            )
+            self.assertEqual(inspected["status"], "succeeded")
+            self.assertEqual(inspected["analysis"]["analysis_id"], analysis.analysis_id)
+            self.assertTrue(inspected["recipe_schemas"])
+
+            updated = update_analysis_chart_parameters(
+                {
+                    "contract_version": "1.0",
+                    "analysis_path": str(root / "analysis.json"),
+                    "chart_instance_id": chart_id,
+                    "parameters": {"title": "Updated"},
+                }
+            )
+            self.assertEqual(updated["status"], "succeeded")
+            chart = updated["analysis"]["charts"][0]
+            self.assertEqual(chart["parameters"]["title"], "Updated")
+            self.assertTrue(chart["stale"])
 
 
 def _config_payload(output_root: Path) -> dict:

@@ -11,10 +11,3 @@ export function compactPath(value?: string | null) {
   const parts = normalized.split("/");
   return parts.length > 4 ? `.../${parts.slice(-4).join("/")}` : value;
 }
-
-export function apiIssuePathToField(path: string) {
-  return path
-    .replace(/^\$\.?/, "")
-    .replace(/\[(\d+)\]/g, ".$1")
-    .replaceAll("/", ".");
-}

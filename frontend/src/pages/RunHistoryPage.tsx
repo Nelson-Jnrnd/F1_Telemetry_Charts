@@ -11,10 +11,9 @@ type RunHistoryPageProps = {
   history: HistoryItem[];
   clearHistory: () => Promise<void>;
   setSelected: (selected: SelectedDetail) => void;
-  openHistoryPackage: (path: string) => Promise<void>;
 };
 
-export function RunHistoryPage({ history, clearHistory, setSelected, openHistoryPackage }: RunHistoryPageProps) {
+export function RunHistoryPage({ history, clearHistory, setSelected }: RunHistoryPageProps) {
   const [confirmClear, setConfirmClear] = useState(false);
 
   return (
@@ -35,7 +34,6 @@ export function RunHistoryPage({ history, clearHistory, setSelected, openHistory
               <tr>
                 <Th>Action</Th>
                 <Th>Path</Th>
-                <Th>Open</Th>
               </tr>
             </thead>
             <tbody>
@@ -43,14 +41,6 @@ export function RunHistoryPage({ history, clearHistory, setSelected, openHistory
                 <tr key={`${item.action}-${item.package_path}`} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelected({ kind: "history", value: item })}>
                   <Td><StatusBadge value={item.action} /></Td>
                   <Td>{item.package_path}</Td>
-                  <Td>
-                    <Button onClick={(event) => {
-                      event.stopPropagation();
-                      openHistoryPackage(item.package_path);
-                    }}>
-                      Open Package
-                    </Button>
-                  </Td>
                 </tr>
               ))}
             </tbody>

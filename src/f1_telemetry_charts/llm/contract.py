@@ -8,6 +8,7 @@ from typing import Any
 
 from f1_telemetry_charts.analysis.manifest import ArtifactManifest
 from f1_telemetry_charts.analysis.orchestrator import run_analysis
+from f1_telemetry_charts.analysis.workspace import AnalysisService
 from f1_telemetry_charts.config.loader import load_config
 from f1_telemetry_charts.config.validation import (
     ConfigValidationError,
@@ -130,6 +131,73 @@ def describe_artifact(request_json: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
+    compatibility_error = _validate_contract_version(request_json)
+    if compatibility_error is not None:
+        return compatibility_error
+
+    analysis_path = request_json.get("analysis_path")
+    if not isinstance(analysis_path, str):
+        return _invalid_request("analysis_path is required.")
+    try:
+        service = AnalysisService(analysis_path)
+        view = service.view(service.open())
+    except Exception as exc:
+        return {
+            "contract_version": CONTRACT_VERSION,
+            "status": "failed",
+            "error": {"code": "analysis_read_failed", "message": str(exc)},
+        }
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "status": "succeeded",
+        "analysis": view.analysis.model_dump(mode="json"),
+        "recipes": [recipe for recipe in view.recipes],
+        "recipe_schemas": [
+            schema.model_dump(mode="json") for schema in view.recipe_schemas
+        ],
+        "global_presets": [
+            preset.model_dump(mode="json") for preset in view.global_presets
+        ],
+    }
+
+
+def update_analysis_chart_parameters(request_json: dict[str, Any]) -> dict[str, Any]:
+    compatibility_error = _validate_contract_version(request_json)
+    if compatibility_error is not None:
+        return compatibility_error
+
+    analysis_path = request_json.get("analysis_path")
+    chart_instance_id = request_json.get("chart_instance_id")
+    parameters = request_json.get("parameters")
+    if not isinstance(analysis_path, str):
+        return _invalid_request("analysis_path is required.")
+    if not isinstance(chart_instance_id, str):
+        return _invalid_request("chart_instance_id is required.")
+    if not isinstance(parameters, dict):
+        return _invalid_request("parameters is required.")
+
+    try:
+        service = AnalysisService(analysis_path)
+        analysis = service.update_chart(
+            service.open(),
+            chart_instance_id,
+            parameters=parameters,
+        )
+        view = service.view(analysis)
+    except Exception as exc:
+        return {
+            "contract_version": CONTRACT_VERSION,
+            "status": "failed",
+            "error": {"code": "analysis_update_failed", "message": str(exc)},
+        }
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "status": "succeeded",
+        "analysis": view.analysis.model_dump(mode="json"),
+    }
+
+
 def _validate_contract_version(request_json: dict[str, Any]) -> dict[str, Any] | None:
     version = request_json.get("contract_version", CONTRACT_VERSION)
     if version == CONTRACT_VERSION:
@@ -144,6 +212,14 @@ def _validate_contract_version(request_json: dict[str, Any]) -> dict[str, Any] |
                 f"supported version is {CONTRACT_VERSION!r}."
             ),
         },
+    }
+
+
+def _invalid_request(message: str) -> dict[str, Any]:
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "status": "invalid_request",
+        "error": {"code": "missing_required_field", "message": message},
     }
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -49,6 +50,10 @@ class ArtifactManifest(BaseModel):
     markdown_path: str | None = None
     warnings: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
+    analysis_id: str | None = None
+    analysis_path: str | None = None
+    sessions: list[dict[str, Any]] = Field(default_factory=list)
+    chart_instances: list[dict[str, Any]] = Field(default_factory=list)
 
     def write(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

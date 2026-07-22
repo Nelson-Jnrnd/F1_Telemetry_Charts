@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -36,6 +37,8 @@ class ChartRecipeConfig(BaseModel):
     recipe_id: str = Field(min_length=1)
     enabled: bool = True
     title: str | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    preset_id: str | None = None
 
 
 class ThemeConfig(BaseModel):

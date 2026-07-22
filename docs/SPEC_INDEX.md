@@ -32,6 +32,7 @@ Terminal alternatives: `Superseded`, `Archived`, `Rejected`.
 | SPEC-001 | F1 Data Analysis Charting Framework | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-001-f1-analysis-framework.md` |
 | SPEC-002 | V2 Plugin, Preview, and Configuration Workbench | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-002-v2-plugin-preview-workbench.md` |
 | SPEC-003 | V2 Tailwind UI System and Application Rebuild | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-003-v2-tailwind-ui-system.md` |
+| SPEC-004 | V2 Analysis Workbench and Staged Run Pipeline | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-004-v2-analysis-workbench-pipeline.md` |
 
 > Keep this table in sync with the frontmatter of each spec. `/spec-report` and
 > `scripts/validate_drift.py` help detect drift between this index and the
