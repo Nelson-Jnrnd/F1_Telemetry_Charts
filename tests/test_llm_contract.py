@@ -99,7 +99,10 @@ class LlmContractTests(unittest.TestCase):
             )
             self.assertEqual(inspected["status"], "succeeded")
             self.assertEqual(inspected["analysis"]["analysis_id"], analysis.analysis_id)
+            self.assertTrue(inspected["templates"])
+            self.assertIn("parameter_schema", inspected["templates"][0])
             self.assertTrue(inspected["recipe_schemas"])
+            self.assertEqual(inspected["chart_instances"][0]["chart_instance_id"], chart_id)
 
             updated = update_analysis_chart_parameters(
                 {
@@ -111,7 +114,7 @@ class LlmContractTests(unittest.TestCase):
             )
             self.assertEqual(updated["status"], "succeeded")
             chart = updated["analysis"]["charts"][0]
-            self.assertEqual(chart["parameters"]["title"], "Updated")
+            self.assertEqual(chart["parameters"]["chart"]["title"], "Updated")
             self.assertTrue(chart["stale"])
 
 

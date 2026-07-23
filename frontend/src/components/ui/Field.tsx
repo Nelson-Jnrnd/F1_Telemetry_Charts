@@ -11,7 +11,7 @@ type FieldShellProps = {
 
 export function FieldShell({ label, description, error, children, className }: FieldShellProps) {
   return (
-    <label className={cn("grid gap-1.5 text-sm", className)}>
+    <label className={cn("grid min-w-0 gap-1.5 text-sm", className)}>
       <span className="font-medium text-ink">{label}</span>
       {children}
       {description && <span className="text-xs leading-5 text-muted">{description}</span>}
@@ -31,7 +31,7 @@ export function Field({ label, description, error, className, ...props }: FieldP
     <FieldShell label={label} description={description} error={error}>
       <input
         className={cn(
-          "h-10 rounded-md border border-line bg-panel px-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-blue-100",
+          "h-10 w-full min-w-0 rounded-md border border-line bg-panel px-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-blue-100",
           error && "border-danger focus:border-danger focus:ring-red-100",
           className
         )}
@@ -52,7 +52,7 @@ export function TextAreaField({ label, description, error, className, ...props }
     <FieldShell label={label} description={description} error={error}>
       <textarea
         className={cn(
-          "min-h-28 rounded-md border border-line bg-panel px-3 py-2 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-blue-100",
+          "min-h-28 w-full min-w-0 rounded-md border border-line bg-panel px-3 py-2 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-blue-100",
           error && "border-danger focus:border-danger focus:ring-red-100",
           className
         )}

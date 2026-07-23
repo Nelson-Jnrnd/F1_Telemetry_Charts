@@ -48,6 +48,10 @@ class LapTimeDeltaRecipeTests(unittest.TestCase):
         self.assertEqual(metadata["artifact_id"], "lap_time_delta")
         self.assertEqual(metadata["recipe_id"], "lap_time_delta")
         self.assertEqual(metadata["selected_drivers"], ["VER", "PER", "ALO"])
+        self.assertFalse(metadata["x_axis_inverted"])
+        self.assertFalse(metadata["y_axis_inverted"])
+        self.assertEqual(metadata["vertical_markers"], [])
+        self.assertIn("effective_configuration", metadata)
 
 
 def _fixture_dataset():

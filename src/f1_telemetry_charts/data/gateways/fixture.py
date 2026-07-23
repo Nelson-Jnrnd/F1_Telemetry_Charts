@@ -7,7 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from f1_telemetry_charts.data.gateways.base import DataGatewayError
-from f1_telemetry_charts.data.models import SessionDataset, SessionQuery
+from f1_telemetry_charts.data.models import (
+    SessionDataset,
+    SessionQuery,
+    requests_all_drivers,
+)
 
 
 class FixtureSessionGateway:
@@ -36,10 +40,11 @@ def _assert_query_matches_fixture(
     if metadata.session != query.session:
         mismatches.append(f"session {query.session}")
 
-    available_drivers = {driver.abbreviation for driver in dataset.drivers}
-    missing_drivers = [driver for driver in query.drivers if driver not in available_drivers]
-    if missing_drivers:
-        mismatches.append(f"drivers {', '.join(missing_drivers)}")
+    if not requests_all_drivers(query.drivers):
+        available_drivers = {driver.abbreviation for driver in dataset.drivers}
+        missing_drivers = [driver for driver in query.drivers if driver not in available_drivers]
+        if missing_drivers:
+            mismatches.append(f"drivers {', '.join(missing_drivers)}")
 
     if mismatches:
         raise DataGatewayError(

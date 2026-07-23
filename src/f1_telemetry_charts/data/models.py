@@ -8,6 +8,13 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+ALL_DRIVER_CODES = {"*", "ALL"}
+
+
+def requests_all_drivers(driver_codes: list[str]) -> bool:
+    return any(driver.upper() in ALL_DRIVER_CODES for driver in driver_codes)
+
+
 class SessionQuery(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -48,6 +55,13 @@ class LapRecord(BaseModel):
     position: int | None = None
     is_pit_in_lap: bool = False
     is_pit_out_lap: bool = False
+    is_deleted: bool = False
+    is_generated: bool = False
+    is_accurate: bool | None = None
+    sector_1_time_seconds: float | None = None
+    sector_2_time_seconds: float | None = None
+    sector_3_time_seconds: float | None = None
+    track_status: str | None = None
 
 
 class TelemetrySample(BaseModel):
@@ -100,6 +114,8 @@ class SessionDataset(BaseModel):
     missing_data: list[MissingDataField] = Field(default_factory=list)
 
     def filter_drivers(self, driver_codes: list[str]) -> "SessionDataset":
+        if requests_all_drivers(driver_codes):
+            return self.model_copy(deep=True)
         requested = set(driver_codes)
         return self.model_copy(
             update={

@@ -7,7 +7,7 @@
 Reports may be updated by agents when useful, but they must not become the
 authoritative source of project truth. Regenerate this with `/drift-check`.
 
-_Last updated: 2026-07-09._
+_Last updated: 2026-07-23._
 
 ```
 Drift check
@@ -19,5 +19,7 @@ Untracked requirements: none
 Recommended fix:      none
 ```
 
-One approved spec exists. Repository drift validation reported no blocking
-drift.
+Six approved specs exist. SPEC-006 implementation is complete but remains in
+the approved/in implementation lifecycle folder until a related PR reference
+exists. Repository drift validation reported no blocking drift after the
+governance-safe lifecycle update.

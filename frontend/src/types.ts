@@ -92,7 +92,7 @@ export type SelectedDetail =
 export type ParameterField = {
   name: string;
   label: string;
-  field_type: "text" | "number" | "checkbox" | "select" | "multi_select" | "driver_selector" | "lap_range" | "color";
+  field_type: "text" | "number" | "checkbox" | "select" | "multi_select" | "driver_selector" | "lap_range" | "color" | "color_map" | "numeric_range" | "object";
   required: boolean;
   default?: unknown;
   options: string[];
@@ -100,6 +100,11 @@ export type ParameterField = {
   maximum?: number | null;
   group?: string | null;
   order: number;
+  mode: "basic" | "advanced";
+  visible_when: Record<string, unknown>;
+  enabled_when: Record<string, unknown>;
+  required_when: Record<string, unknown>;
+  reset_group?: string | null;
 };
 
 export type RecipeParameterSchema = {
@@ -113,6 +118,7 @@ export type AnalysisSession = {
   name: string;
   session: { season: number; event: string; session: string };
   drivers: string[];
+  available_teams: string[];
   data_cache: { directory: string; mode: "cache-or-fetch" | "cache-only"; fixture_path: string | null };
   load_state: "not_loaded" | "loading" | "loaded" | "failed" | "stale";
   snapshot?: { snapshot_id: string; dataset_hash: string; dataset_path: string; snapshot_path: string } | null;
@@ -138,6 +144,18 @@ export type ChartInstance = {
   stale: boolean;
   observations_stale: boolean;
   errors: string[];
+};
+
+export type ParameterDiagnostics = {
+  status: "valid" | "invalid";
+  recipe_id: string;
+  schema_version: number;
+  parameters: Record<string, unknown>;
+  errors: Array<{ field: string; message: string }>;
+  warnings: Array<{ field: string; message: string }>;
+  active_filter_summary: string[];
+  exclusion_counts: Record<string, number>;
+  effective_configuration: Record<string, unknown>;
 };
 
 export type ParameterPreset = {
@@ -168,6 +186,14 @@ export type AnalysisWorkspace = {
 };
 
 export type AnalysisRecipe = PluginRecipe & {
+  template_id: string;
+  description?: string | null;
+  source_type: "built_in" | "plugin";
+  source_label: string;
+  supported_session_count: { minimum: number; maximum: number };
+  parameter_schema_version: number;
+  availability_status: "available" | "unavailable" | "error";
+  diagnostics: string[];
   source: string;
   parameter_schema: RecipeParameterSchema;
 };

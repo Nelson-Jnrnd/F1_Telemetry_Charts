@@ -26,6 +26,17 @@ class DataGatewayTests(unittest.TestCase):
         self.assertTrue(dataset.weather)
         self.assertEqual({lap.driver for lap in dataset.laps}, {"VER", "PER"})
 
+    def test_fixture_gateway_loads_all_drivers_when_requested(self) -> None:
+        gateway = FixtureSessionGateway(FIXTURE_PATH)
+
+        dataset = gateway.load_session(_query(["*"]))
+
+        self.assertEqual(
+            [driver.abbreviation for driver in dataset.drivers],
+            ["VER", "PER", "ALO"],
+        )
+        self.assertEqual({lap.driver for lap in dataset.laps}, {"VER", "PER", "ALO"})
+
     def test_fixture_gateway_rejects_session_mismatch(self) -> None:
         gateway = FixtureSessionGateway(FIXTURE_PATH)
         query = SessionQuery(

@@ -2,6 +2,7 @@ import type {
   AnalysisView,
   HistoryItem,
   PackageView,
+  ParameterDiagnostics,
   PluginStatus,
   ProjectConfigForm,
   ReviewStatus,
@@ -140,7 +141,7 @@ export function removeAnalysisSession(sessionId: string, confirmDeleteDependents
   return request<AnalysisView>(`/api/analysis/sessions/${sessionId}?confirm_delete_dependents=${confirmDeleteDependents}`, { method: "DELETE" });
 }
 
-export function addAnalysisChart(payload: { recipe_id: string; target_session_ids: string[]; name?: string | null; parameters?: Record<string, unknown>; preset_id?: string | null }) {
+export function addAnalysisChart(payload: { template_id: string; recipe_id?: string; target_session_ids: string[]; name?: string | null; parameters?: Record<string, unknown>; preset_id?: string | null }) {
   return request<AnalysisView>("/api/analysis/charts", {
     method: "POST",
     headers: jsonHeaders,
@@ -168,6 +169,14 @@ export function generateAnalysisCharts(chartIds?: string[]) {
   });
 }
 
+export function resolveAnalysisChartDiagnostics(payload: { template_id: string; recipe_id?: string; target_session_ids: string[]; parameters?: Record<string, unknown> }) {
+  return request<ParameterDiagnostics>("/api/analysis/charts/diagnostics", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
 export function refreshAnalysisReview() {
   return request<AnalysisView>("/api/analysis/review/refresh", { method: "POST" });
 }
@@ -176,10 +185,22 @@ export function exportAnalysis() {
   return request<AnalysisView>("/api/analysis/export", { method: "POST" });
 }
 
-export function saveAnalysisPreset(payload: { recipe_id: string; display_name: string; parameters: Record<string, unknown>; scope: "analysis" | "global"; notes?: string | null }) {
+export function saveAnalysisPreset(payload: { template_id: string; recipe_id?: string; display_name: string; parameters: Record<string, unknown>; scope: "analysis" | "global"; notes?: string | null; replace_existing?: boolean }) {
   return request<AnalysisView>("/api/analysis/presets", {
     method: "POST",
     headers: jsonHeaders,
     body: JSON.stringify(payload)
   });
+}
+
+export function updateAnalysisPreset(presetId: string, payload: { display_name?: string | null; parameters?: Record<string, unknown> | null; replace_existing?: boolean }) {
+  return request<AnalysisView>(`/api/analysis/presets/${presetId}`, {
+    method: "PUT",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteAnalysisPreset(presetId: string) {
+  return request<AnalysisView>(`/api/analysis/presets/${presetId}`, { method: "DELETE" });
 }

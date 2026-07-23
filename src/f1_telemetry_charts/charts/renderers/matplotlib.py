@@ -40,10 +40,54 @@ class MatplotlibRenderer:
         if theme.grid:
             axis.grid(True, color="#d9e2ec", linewidth=0.8)
 
-        for series in spec.series:
-            axis.plot(series.x, series.y, label=series.label, color=series.color)
+        for region in spec.shaded_regions:
+            axis.axvspan(
+                region.x_start,
+                region.x_end,
+                color=region.color,
+                alpha=region.alpha,
+                label=region.label,
+            )
 
-        axis.legend()
+        for bar in spec.horizontal_bars:
+            axis.barh(
+                bar.y,
+                bar.x_end - bar.x_start,
+                left=bar.x_start,
+                label=bar.label,
+                color=bar.color,
+                alpha=bar.alpha,
+            )
+
+        for series in spec.series:
+            if series.render_mode == "step":
+                axis.step(
+                    series.x,
+                    series.y,
+                    where="post",
+                    label=series.label,
+                    color=series.color,
+                )
+            else:
+                axis.plot(series.x, series.y, label=series.label, color=series.color)
+
+        for marker in spec.vertical_markers:
+            axis.axvline(
+                marker.x,
+                color=marker.color or theme.foreground_color,
+                alpha=marker.alpha,
+                linestyle=marker.line_style,
+                label=marker.label,
+            )
+
+        if spec.x_axis_inverted:
+            axis.invert_xaxis()
+        if spec.y_axis_inverted:
+            axis.invert_yaxis()
+
+        handles, labels = axis.get_legend_handles_labels()
+        if handles:
+            axis.legend()
         figure.tight_layout()
         figure.savefig(image_path)
         plt.close(figure)
@@ -57,6 +101,17 @@ class MatplotlibRenderer:
             "series_count": len(spec.series),
             "warnings": spec.warnings,
             "renderer": "matplotlib",
+            "x_axis_inverted": spec.x_axis_inverted,
+            "y_axis_inverted": spec.y_axis_inverted,
+            "vertical_markers": [
+                marker.model_dump(mode="json") for marker in spec.vertical_markers
+            ],
+            "shaded_regions": [
+                region.model_dump(mode="json") for region in spec.shaded_regions
+            ],
+            "horizontal_bars": [
+                bar.model_dump(mode="json") for bar in spec.horizontal_bars
+            ],
             **spec.metadata,
         }
         write_metadata(metadata_path, metadata)

@@ -20,6 +20,7 @@ from f1_telemetry_charts.analysis.orchestrator import run_analysis
 from f1_telemetry_charts.analysis.workspace import (
     AnalysisService,
     AnalysisView,
+    ParameterDiagnosticsView,
     PresetScope,
     list_recipe_metadata_payloads,
 )
@@ -101,7 +102,8 @@ class AnalysisSessionRequest(BaseModel):
 class AnalysisChartRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    recipe_id: str
+    recipe_id: str | None = None
+    template_id: str | None = None
     target_session_ids: list[str] = Field(min_length=1)
     name: str | None = None
     parameters: dict = Field(default_factory=dict)
@@ -123,14 +125,33 @@ class ChartGenerationRequest(BaseModel):
     chart_ids: list[str] | None = None
 
 
+class AnalysisChartDiagnosticsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    recipe_id: str | None = None
+    template_id: str | None = None
+    target_session_ids: list[str] = Field(min_length=1)
+    parameters: dict = Field(default_factory=dict)
+
+
 class PresetSaveRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    recipe_id: str
+    recipe_id: str | None = None
+    template_id: str | None = None
     display_name: str
     parameters: dict = Field(default_factory=dict)
     scope: PresetScope = "analysis"
     notes: str | None = None
+    replace_existing: bool = False
+
+
+class PresetUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: str | None = None
+    parameters: dict | None = None
+    replace_existing: bool = False
 
 
 def create_app(initial_package: Path | None = None) -> FastAPI:
@@ -367,13 +388,21 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
             return list_recipe_metadata_payloads()
         return service.view().recipes
 
+    @app.get("/api/analysis/templates")
+    def list_analysis_templates() -> list[dict]:
+        service = _optional_analysis_service(state["analysis_path"])
+        if service is None:
+            return list_recipe_metadata_payloads()
+        return service.view().recipes
+
     @app.post("/api/analysis/charts", response_model=AnalysisView)
     def add_analysis_chart(request: AnalysisChartRequest) -> AnalysisView:
         service = _require_analysis_service(state["analysis_path"])
+        recipe_id = _request_template_id(request.recipe_id, request.template_id)
         try:
             analysis = service.add_chart(
                 service.open(),
-                recipe_id=request.recipe_id,
+                recipe_id=recipe_id,
                 target_session_ids=request.target_session_ids,
                 name=request.name,
                 parameters=request.parameters,
@@ -417,6 +446,19 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
         analysis = service.generate_charts(service.open(), request.chart_ids)
         return service.view(analysis)
 
+    @app.post("/api/analysis/charts/diagnostics", response_model=ParameterDiagnosticsView)
+    def resolve_analysis_chart_diagnostics(
+        request: AnalysisChartDiagnosticsRequest,
+    ) -> ParameterDiagnosticsView:
+        service = _require_analysis_service(state["analysis_path"])
+        recipe_id = _request_template_id(request.recipe_id, request.template_id)
+        return service.resolve_chart_diagnostics(
+            service.open(),
+            recipe_id=recipe_id,
+            target_session_ids=request.target_session_ids,
+            parameters=request.parameters,
+        )
+
     @app.post("/api/analysis/review/refresh", response_model=AnalysisView)
     def refresh_analysis_review() -> AnalysisView:
         service = _require_analysis_service(state["analysis_path"])
@@ -436,15 +478,46 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
     @app.post("/api/analysis/presets", response_model=AnalysisView)
     def save_analysis_preset(request: PresetSaveRequest) -> AnalysisView:
         service = _require_analysis_service(state["analysis_path"])
+        recipe_id = _request_template_id(request.recipe_id, request.template_id)
         try:
             analysis, _preset = service.save_preset(
                 service.open(),
-                recipe_id=request.recipe_id,
+                recipe_id=recipe_id,
                 display_name=request.display_name,
                 parameters=request.parameters,
                 scope=request.scope,
                 notes=request.notes,
+                replace_existing=request.replace_existing,
             )
+        except ValueError as exc:
+            status_code = 409 if "already exists" in str(exc) else 400
+            raise HTTPException(status_code=status_code, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.put("/api/analysis/presets/{preset_id}", response_model=AnalysisView)
+    def update_analysis_preset(
+        preset_id: str,
+        request: PresetUpdateRequest,
+    ) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis, _preset = service.update_preset(
+                service.open(),
+                preset_id,
+                display_name=request.display_name,
+                parameters=request.parameters,
+                replace_existing=request.replace_existing,
+            )
+        except ValueError as exc:
+            status_code = 409 if "already exists" in str(exc) else 400
+            raise HTTPException(status_code=status_code, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.delete("/api/analysis/presets/{preset_id}", response_model=AnalysisView)
+    def delete_analysis_preset(preset_id: str) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.delete_preset(service.open(), preset_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return service.view(analysis)
@@ -486,6 +559,13 @@ def _optional_analysis_service(analysis_path: Path | None) -> AnalysisService | 
     if analysis_path is None:
         return None
     return AnalysisService(analysis_path)
+
+
+def _request_template_id(recipe_id: str | None, template_id: str | None) -> str:
+    value = template_id or recipe_id
+    if not value:
+        raise HTTPException(status_code=422, detail="Chart template is required.")
+    return value
 
 
 def _resolve_local_asset(root: Path, relative_path: str) -> Path:

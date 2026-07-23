@@ -152,9 +152,19 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
         "contract_version": CONTRACT_VERSION,
         "status": "succeeded",
         "analysis": view.analysis.model_dump(mode="json"),
+        "chart_instances": [
+            chart.model_dump(mode="json") for chart in view.analysis.charts
+        ],
+        "templates": [template for template in view.recipes],
         "recipes": [recipe for recipe in view.recipes],
         "recipe_schemas": [
             schema.model_dump(mode="json") for schema in view.recipe_schemas
+        ],
+        "template_schemas": [
+            schema.model_dump(mode="json") for schema in view.recipe_schemas
+        ],
+        "analysis_presets": [
+            preset.model_dump(mode="json") for preset in view.analysis.presets
         ],
         "global_presets": [
             preset.model_dump(mode="json") for preset in view.global_presets
@@ -195,6 +205,9 @@ def update_analysis_chart_parameters(request_json: dict[str, Any]) -> dict[str, 
         "contract_version": CONTRACT_VERSION,
         "status": "succeeded",
         "analysis": view.analysis.model_dump(mode="json"),
+        "chart_instances": [
+            chart.model_dump(mode="json") for chart in view.analysis.charts
+        ],
     }
 
 

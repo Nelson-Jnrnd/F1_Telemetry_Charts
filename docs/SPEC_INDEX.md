@@ -33,6 +33,8 @@ Terminal alternatives: `Superseded`, `Archived`, `Rejected`.
 | SPEC-002 | V2 Plugin, Preview, and Configuration Workbench | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-002-v2-plugin-preview-workbench.md` |
 | SPEC-003 | V2 Tailwind UI System and Application Rebuild | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-003-v2-tailwind-ui-system.md` |
 | SPEC-004 | V2 Analysis Workbench and Staged Run Pipeline | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-004-v2-analysis-workbench-pipeline.md` |
+| SPEC-005 | V2 Chart Templates and Parameter Presets | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-005-v2-chart-templates-and-presets.md` |
+| SPEC-006 | Analyst-Grade Chart Parameters and Renderer Semantics | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-006-analyst-grade-chart-parameters.md` |
 
 > Keep this table in sync with the frontmatter of each spec. `/spec-report` and
 > `scripts/validate_drift.py` help detect drift between this index and the

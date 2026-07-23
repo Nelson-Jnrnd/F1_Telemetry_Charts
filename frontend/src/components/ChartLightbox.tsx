@@ -25,7 +25,7 @@ export function ChartLightbox({ artifact, onOpenChange, assetBase = "/api/packag
           />
           <dl className="grid gap-2 rounded-md border border-line bg-slate-50 p-3 text-sm md:grid-cols-2">
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-normal text-muted">Recipe</dt>
+              <dt className="text-xs font-semibold uppercase tracking-normal text-muted">Template</dt>
               <dd className="break-words text-ink">{artifact.recipe_id}</dd>
             </div>
             <div>

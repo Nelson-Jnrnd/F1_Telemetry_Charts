@@ -11,6 +11,8 @@ from unittest.mock import patch
 from f1_telemetry_charts.data import DataGatewayError, SessionQuery
 from f1_telemetry_charts.data.gateways import FastF1SessionGateway
 from f1_telemetry_charts.data.gateways.fastf1 import (
+    _lap_records_from_laps,
+    _percentage_or_none,
     _telemetry_samples_from_lap_methods,
     _telemetry_samples_from_laps,
 )
@@ -52,6 +54,59 @@ class FastF1GatewayTests(unittest.TestCase):
         self.assertEqual(dataset.provenance.cache_status, "cache-only")
         self.assertFalse(dataset.provenance.fetched_from_network)
         self.assertEqual(fake_fastf1._offline_modes, [True, False])
+
+    def test_fastf1_gateway_keeps_all_laps_when_all_drivers_requested(self) -> None:
+        fake_fastf1 = _fake_fastf1_module()
+        query = SessionQuery(
+            season=2023,
+            event="Bahrain Grand Prix",
+            session="Race",
+            drivers=["*"],
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(sys.modules, {"fastf1": fake_fastf1}):
+                dataset = FastF1SessionGateway(temp_dir).load_session(query)
+
+        self.assertEqual([driver.abbreviation for driver in dataset.drivers], ["VER", "PER"])
+        self.assertEqual({lap.driver for lap in dataset.laps}, {"VER", "PER"})
+
+    def test_fastf1_percentage_channels_are_clamped_to_model_range(self) -> None:
+        self.assertEqual(_percentage_or_none(104.0), 100.0)
+        self.assertEqual(_percentage_or_none(-2.0), 0.0)
+        self.assertIsNone(_percentage_or_none(None))
+
+    def test_fastf1_missing_lap_values_do_not_become_pit_or_valid_flags(self) -> None:
+        laps = _FakeRows(
+            [
+                {
+                    "Driver": "VER",
+                    "LapNumber": 1,
+                    "LapTime": _Duration(96.0),
+                    "Compound": "SOFT",
+                    "Stint": 1,
+                    "Position": 1,
+                    "PitInTime": "NaT",
+                    "PitOutTime": float("nan"),
+                    "Deleted": float("nan"),
+                    "IsGenerated": "NaT",
+                    "IsAccurate": float("nan"),
+                    "Sector1Time": float("nan"),
+                    "Sector2Time": _Duration(42.0),
+                    "Sector3Time": _Duration(24.0),
+                    "TrackStatus": "1",
+                }
+            ]
+        )
+
+        records = _lap_records_from_laps(laps)
+
+        self.assertFalse(records[0].is_pit_in_lap)
+        self.assertFalse(records[0].is_pit_out_lap)
+        self.assertFalse(records[0].is_deleted)
+        self.assertFalse(records[0].is_generated)
+        self.assertIsNone(records[0].is_accurate)
+        self.assertIsNone(records[0].sector_1_time_seconds)
 
     def test_grouped_telemetry_matches_fastf1_lap_methods_for_cached_smoke(self) -> None:
         cache_dir = Path(".cache/fastf1-smoke")
@@ -143,6 +198,16 @@ class _FakeSession:
                     "Position": 1,
                     "PitInTime": None,
                     "PitOutTime": None,
+                },
+                {
+                    "Driver": "PER",
+                    "LapNumber": 1,
+                    "LapTime": _Duration(97.0),
+                    "Compound": "SOFT",
+                    "Stint": 1,
+                    "Position": 2,
+                    "PitInTime": None,
+                    "PitOutTime": None,
                 }
             ]
         )
@@ -152,6 +217,13 @@ class _FakeSession:
                     "DriverNumber": "1",
                     "Abbreviation": "VER",
                     "FullName": "Max Verstappen",
+                    "TeamName": "Red Bull Racing",
+                    "TeamColor": "#3671C6",
+                },
+                {
+                    "DriverNumber": "11",
+                    "Abbreviation": "PER",
+                    "FullName": "Sergio Perez",
                     "TeamName": "Red Bull Racing",
                     "TeamColor": "#3671C6",
                 }

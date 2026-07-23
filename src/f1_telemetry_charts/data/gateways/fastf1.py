@@ -6,6 +6,7 @@ tests do not depend on FastF1 unless this gateway is used.
 
 from __future__ import annotations
 
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,7 @@ from f1_telemetry_charts.data.models import (
     SourceProvenance,
     TelemetrySample,
     WeatherSample,
+    requests_all_drivers,
 )
 
 MAX_TELEMETRY_SAMPLES_PER_LAP = 50
@@ -67,11 +69,13 @@ def _session_to_dataset(
     *, session: Any, query: SessionQuery, cache_only: bool
 ) -> SessionDataset:
     laps = session.laps
-    if query.drivers:
+    selected_driver_codes = _selected_driver_codes(laps, query)
+    if not requests_all_drivers(query.drivers):
         laps = laps.pick_drivers(query.drivers)
+        selected_driver_codes = query.drivers
 
     driver_rows = getattr(session, "results", None)
-    drivers = _drivers_from_results(driver_rows, query.drivers)
+    drivers = _drivers_from_results(driver_rows, selected_driver_codes)
     lap_records = _lap_records_from_laps(laps)
     telemetry = _telemetry_samples_from_laps(laps, session=session)
     weather = _weather_samples_from_session(session)
@@ -110,6 +114,26 @@ def _session_to_dataset(
     )
 
 
+def _selected_driver_codes(laps: Any, query: SessionQuery) -> list[str]:
+    if not requests_all_drivers(query.drivers):
+        return query.drivers
+
+    try:
+        columns = set(getattr(laps, "columns", []))
+        if "Driver" in columns:
+            raw_drivers = laps["Driver"].dropna().tolist()
+            return list(dict.fromkeys(str(driver) for driver in raw_drivers))
+    except Exception:
+        pass
+
+    rows = getattr(laps, "_rows", None)
+    if isinstance(rows, list):
+        return list(
+            dict.fromkeys(str(row["Driver"]) for row in rows if row.get("Driver") is not None)
+        )
+    return query.drivers
+
+
 def _drivers_from_results(results: Any, fallback_drivers: list[str]) -> list[DriverMetadata]:
     drivers: list[DriverMetadata] = []
     if results is not None:
@@ -145,8 +169,15 @@ def _lap_records_from_laps(laps: Any) -> list[LapRecord]:
                 compound=_string_or_none(row.get("Compound")),
                 stint=_int_or_none(row.get("Stint")),
                 position=_int_or_none(row.get("Position")),
-                is_pit_in_lap=row.get("PitInTime") is not None,
-                is_pit_out_lap=row.get("PitOutTime") is not None,
+                is_pit_in_lap=_has_value(row.get("PitInTime")),
+                is_pit_out_lap=_has_value(row.get("PitOutTime")),
+                is_deleted=_bool_or_false(row.get("Deleted")),
+                is_generated=_bool_or_false(row.get("IsGenerated")),
+                is_accurate=_bool_or_none(row.get("IsAccurate")),
+                sector_1_time_seconds=_duration_seconds_or_none(row.get("Sector1Time")),
+                sector_2_time_seconds=_duration_seconds_or_none(row.get("Sector2Time")),
+                sector_3_time_seconds=_duration_seconds_or_none(row.get("Sector3Time")),
+                track_status=_string_or_none(row.get("TrackStatus")),
             )
         )
     return records
@@ -296,7 +327,7 @@ def _telemetry_samples_from_session_car_data(
                         lap_number=int(lap_number),
                         distance_m=float(row.Distance),
                         speed_kph=_float_or_none(row.Speed),
-                        throttle_percent=_float_or_none(row.Throttle),
+                        throttle_percent=_percentage_or_none(row.Throttle),
                         brake=_bool_or_none(row.Brake),
                         gear=_int_or_none(row.nGear),
                     )
@@ -337,7 +368,7 @@ def _telemetry_samples_from_lap_methods(laps: Any) -> list[TelemetrySample]:
                     lap_number=int(lap.get("LapNumber")),
                     distance_m=distance if distance is not None else fallback_distance,
                     speed_kph=_float_or_none(row.get("Speed")),
-                    throttle_percent=_float_or_none(row.get("Throttle")),
+                    throttle_percent=_percentage_or_none(row.get("Throttle")),
                     brake=_bool_or_none(row.get("Brake")),
                     gear=_int_or_none(row.get("nGear")),
                 )
@@ -346,27 +377,64 @@ def _telemetry_samples_from_lap_methods(laps: Any) -> list[TelemetrySample]:
 
 
 def _string_or_none(value: Any) -> str | None:
-    if value is None:
+    if _is_missing(value):
         return None
     text = str(value)
-    return text if text and text.lower() != "nan" else None
+    return text if text else None
 
 
 def _int_or_none(value: Any) -> int | None:
+    if _is_missing(value):
+        return None
     try:
-        return None if value is None else int(value)
+        return int(value)
     except (TypeError, ValueError):
         return None
 
 
 def _float_or_none(value: Any) -> float | None:
+    if _is_missing(value):
+        return None
     try:
-        return None if value is None else float(value)
+        number = float(value)
     except (TypeError, ValueError):
         return None
+    return number if isfinite(number) else None
+
+
+def _percentage_or_none(value: Any) -> float | None:
+    number = _float_or_none(value)
+    if number is None or not isfinite(number):
+        return None
+    return min(100.0, max(0.0, number))
+
+
+def _duration_seconds_or_none(value: Any) -> float | None:
+    if hasattr(value, "total_seconds"):
+        return float(value.total_seconds())
+    return _float_or_none(value)
 
 
 def _bool_or_none(value: Any) -> bool | None:
-    if value is None:
+    if _is_missing(value):
         return None
     return bool(value)
+
+
+def _bool_or_false(value: Any) -> bool:
+    return bool(_bool_or_none(value))
+
+
+def _has_value(value: Any) -> bool:
+    return not _is_missing(value)
+
+
+def _is_missing(value: Any) -> bool:
+    if value is None:
+        return True
+    try:
+        if value != value:
+            return True
+    except Exception:
+        pass
+    return str(value).strip().lower() in {"", "nan", "nat", "none"}

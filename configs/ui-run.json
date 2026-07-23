@@ -1,0 +1,47 @@
+{
+  "data_cache": {
+    "directory": ".cache\\fastf1",
+    "fixture_path": null,
+    "mode": "cache-or-fetch"
+  },
+  "driver_selection": {
+    "drivers": [
+      "*"
+    ]
+  },
+  "exports": {
+    "formats": [
+      "png",
+      "json"
+    ]
+  },
+  "output_dir": "runs",
+  "plugins": {
+    "enabled": false,
+    "entry_points_enabled": false,
+    "local_paths": []
+  },
+  "project_id": "ui-run",
+  "recipes": [
+    {
+      "enabled": true,
+      "recipe_id": "lap_time_delta",
+      "title": null
+    }
+  ],
+  "schema_version": 1,
+  "session": {
+    "event": "Bahrain Grand Prix",
+    "season": 2023,
+    "session": "Race"
+  },
+  "theme": {
+    "background_color": "#ffffff",
+    "dpi": 300,
+    "figure_height": 9.0,
+    "figure_width": 16.0,
+    "foreground_color": "#1f2933",
+    "grid": true,
+    "name": "technical_editorial"
+  }
+}

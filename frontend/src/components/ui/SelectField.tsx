@@ -10,16 +10,18 @@ type SelectFieldProps = {
   description?: string;
   error?: string;
   className?: string;
+  disabled?: boolean;
 };
 
-export function SelectField({ label, value, options, onValueChange, description, error, className }: SelectFieldProps) {
+export function SelectField({ label, value, options, onValueChange, description, error, className, disabled }: SelectFieldProps) {
   return (
     <label className={cn("grid gap-1.5 text-sm", className)}>
       <span className="font-medium text-ink">{label}</span>
-      <Select.Root value={value} onValueChange={onValueChange}>
+      <Select.Root value={value} onValueChange={onValueChange} disabled={disabled}>
         <Select.Trigger
           className={cn(
             "inline-flex h-10 items-center justify-between gap-2 rounded-md border border-line bg-panel px-3 text-left text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-blue-100",
+            disabled && "cursor-not-allowed opacity-60",
             error && "border-danger focus:border-danger focus:ring-red-100"
           )}
         >
