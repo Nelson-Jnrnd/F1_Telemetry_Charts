@@ -10,13 +10,16 @@ from f1_telemetry_charts.recipes.parameters import (
     filter_telemetry,
     effective_configuration_metadata,
     effective_lap_range,
+    first_diagnostic_error,
     missing_series_policy,
     numeric_range_contains,
     parameter_value,
+    resolve_driver_style,
+    section,
     selected_driver_codes,
     series_policy_action,
-    series_color,
     telemetry_gap_policy,
+    validate_coverage_bounds,
 )
 
 
@@ -43,10 +46,18 @@ class TelemetryTraceRecipe:
         gap_policy = telemetry_gap_policy(config, metric)
         y_label, attribute = METRIC_LABELS[metric]
         distance_range = parameter_value(config, "distance_range_m", section_name="analysis")
+        track_segment = section(config, "selection").get("track_segment")
         driver_codes = selected_driver_codes(dataset, config)
         lap_result = apply_lap_filters(dataset.laps, config)
+        coverage = validate_coverage_bounds(
+            dataset,
+            config,
+            selected_drivers=driver_codes,
+            diagnostics=lap_result.diagnostics,
+            include_distance_range=True,
+        )
         if lap_result.diagnostics.errors:
-            raise ValueError(lap_result.diagnostics.errors[0]["message"])
+            raise ValueError(first_diagnostic_error(lap_result.diagnostics))
         diagnostics = lap_result.diagnostics
         policy = missing_series_policy(config)
         allowed_laps = {
@@ -60,7 +71,10 @@ class TelemetryTraceRecipe:
             if (sample.driver, sample.lap_number) in allowed_laps
         ]
         series: list[SeriesSpec] = []
+        style_sources: dict[str, dict[str, object]] = {"drivers": {}}
         for driver_code in driver_codes:
+            resolved_style = resolve_driver_style(dataset, config, driver_code, diagnostics)
+            style_sources["drivers"][driver_code] = resolved_style.as_metadata()
             samples = sorted(
                 [
                     sample
@@ -88,7 +102,7 @@ class TelemetryTraceRecipe:
                         label=driver_code,
                         x=x_values,
                         y=y_values,
-                        color=series_color(config, driver_code),
+                        color=resolved_style.color,
                     )
                 )
             else:
@@ -100,7 +114,7 @@ class TelemetryTraceRecipe:
                 )
 
         if diagnostics.errors:
-            raise ValueError(diagnostics.errors[0]["message"])
+            raise ValueError(first_diagnostic_error(diagnostics))
         if not series:
             raise ValueError(f"telemetry_trace could not build any {metric} series")
 
@@ -124,17 +138,23 @@ class TelemetryTraceRecipe:
                 "metric": metric,
                 "lap_range": effective_lap_range(config),
                 "distance_range_m": distance_range,
+                "track_segment": track_segment if isinstance(track_segment, dict) else None,
                 **effective_configuration_metadata(
                     dataset,
                     config,
                     selected_drivers=driver_codes,
                     diagnostics=diagnostics,
                     filters=lap_result.effective,
+                    coverage=coverage,
+                    style_sources=style_sources,
                     extra_effective={
                         "analysis": {
                             "metric": metric,
                             "telemetry_gap_policy": gap_policy,
                             "missing_series_policy": policy,
+                            "track_segment": track_segment
+                            if isinstance(track_segment, dict)
+                            else None,
                         }
                     },
                 ),

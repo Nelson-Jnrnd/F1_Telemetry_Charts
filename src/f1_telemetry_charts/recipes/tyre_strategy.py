@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from f1_telemetry_charts.charts.models import (
     ChartSpec,
     HorizontalBarSpec,
@@ -14,11 +16,14 @@ from f1_telemetry_charts.recipes.parameters import (
     apply_lap_filters,
     effective_configuration_metadata,
     effective_lap_range,
+    first_diagnostic_error,
     missing_series_policy,
     parameter_value,
+    resolve_compound_style,
+    resolve_driver_style,
     selected_driver_codes,
     series_policy_action,
-    series_color,
+    validate_coverage_bounds,
 )
 
 
@@ -64,19 +69,27 @@ class TyreStrategyRecipe:
         warnings: list[str] = []
         pit_marker_laps: dict[str, list[int]] = {}
         lap_result = apply_lap_filters(dataset.laps, config)
+        coverage = validate_coverage_bounds(
+            dataset,
+            config,
+            selected_drivers=driver_codes,
+            diagnostics=lap_result.diagnostics,
+        )
         if lap_result.diagnostics.errors:
-            raise ValueError(lap_result.diagnostics.errors[0]["message"])
+            raise ValueError(first_diagnostic_error(lap_result.diagnostics))
         diagnostics = lap_result.diagnostics
         policy = missing_series_policy(config)
+        style_sources: dict[str, dict[str, Any]] = {"drivers": {}, "compounds": {}}
 
         for driver_index, driver_code in enumerate(driver_codes, start=1):
+            driver_style = resolve_driver_style(dataset, config, driver_code, diagnostics)
+            style_sources["drivers"][driver_code] = driver_style.as_metadata()
             laps = sorted(
                 [lap for lap in lap_result.laps if lap.driver == driver_code],
                 key=lambda lap: lap.lap_number,
             )
             x_values: list[float] = []
             y_values: list[float] = []
-            driver_color = series_color(config, driver_code)
             stint_start: int | None = None
             stint_compound: str | None = None
             for lap in laps:
@@ -85,7 +98,7 @@ class TyreStrategyRecipe:
                     vertical_markers.append(
                         VerticalMarkerSpec(
                             x=float(lap.lap_number),
-                            color=driver_color,
+                            color=driver_style.color,
                             alpha=0.25,
                         )
                     )
@@ -103,6 +116,17 @@ class TyreStrategyRecipe:
                         policy=unknown_policy,
                     )
                     continue
+                compound_key = lap.compound.upper()
+                if compound_key not in style_sources["compounds"]:
+                    compound_style = resolve_compound_style(
+                        dataset,
+                        config,
+                        compound_key,
+                        diagnostics,
+                    )
+                    style_sources["compounds"][compound_key] = (
+                        compound_style.as_metadata()
+                    )
                 x_values.append(float(lap.lap_number))
                 y_values.append(compound_value)
                 if layout == "stint_bars":
@@ -118,7 +142,7 @@ class TyreStrategyRecipe:
                                     start=stint_start,
                                     end=lap.lap_number - 1,
                                     compound=stint_compound,
-                                    color=driver_color,
+                                    color=str(style_sources["compounds"][stint_compound]["color"]),
                                 )
                             )
                         stint_start = lap.lap_number
@@ -131,7 +155,7 @@ class TyreStrategyRecipe:
                         start=stint_start,
                         end=laps[-1].lap_number,
                         compound=stint_compound,
-                        color=driver_color,
+                        color=str(style_sources["compounds"][stint_compound]["color"]),
                     )
                 )
             if x_values:
@@ -141,7 +165,7 @@ class TyreStrategyRecipe:
                             label=driver_code,
                             x=x_values,
                             y=y_values,
-                            color=driver_color,
+                            color=driver_style.color,
                             render_mode="step",
                         )
                     )
@@ -154,7 +178,7 @@ class TyreStrategyRecipe:
                 )
 
         if diagnostics.errors:
-            raise ValueError(diagnostics.errors[0]["message"])
+            raise ValueError(first_diagnostic_error(diagnostics))
         if not series and not horizontal_bars:
             raise ValueError("tyre_strategy requires lap compound data")
         warnings.extend(warning["message"] for warning in diagnostics.warnings)
@@ -193,6 +217,8 @@ class TyreStrategyRecipe:
                     selected_drivers=driver_codes,
                     diagnostics=diagnostics,
                     filters=lap_result.effective,
+                    coverage=coverage,
+                    style_sources=style_sources,
                     extra_effective={
                         "analysis": {
                             "layout": layout,

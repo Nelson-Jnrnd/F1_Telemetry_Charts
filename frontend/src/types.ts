@@ -156,6 +156,63 @@ export type ParameterDiagnostics = {
   active_filter_summary: string[];
   exclusion_counts: Record<string, number>;
   effective_configuration: Record<string, unknown>;
+  coverage_bounds: Record<string, unknown>;
+  style_sources: Record<string, unknown>;
+};
+
+export type TrackMapPoint = {
+  distance_m: number;
+  x: number;
+  y: number;
+  display_x: number;
+  display_y: number;
+};
+
+export type TrackMapMarker = {
+  distance_m: number;
+  display_x: number;
+  display_y: number;
+};
+
+export type TrackMapSegment = {
+  start_distance_m: number;
+  end_distance_m: number;
+  source: string;
+  start_marker: TrackMapMarker;
+  end_marker: TrackMapMarker;
+  corner?: Record<string, unknown> | null;
+};
+
+export type TrackMapCorner = {
+  label: string;
+  number: number;
+  letter?: string | null;
+  distance_m?: number | null;
+  display_x?: number | null;
+  display_y?: number | null;
+  source_x: number;
+  source_y: number;
+  source_distance_m?: number | null;
+  projection_status: "fastf1_distance" | "nearest_geometry" | "unavailable";
+  projection_error?: number | null;
+};
+
+export type TrackMapPayload = {
+  status: "available" | "unavailable" | "invalid";
+  recipe_id: string;
+  session_id?: string | null;
+  selected_drivers: string[];
+  source_driver?: string | null;
+  source_lap?: number | null;
+  points: TrackMapPoint[];
+  corners: TrackMapCorner[];
+  segment?: TrackMapSegment | null;
+  bounds: Record<string, unknown>;
+  point_count: number;
+  original_sample_count: number;
+  max_points: number;
+  downsampled: boolean;
+  diagnostics: Array<{ field: string; message: string }>;
 };
 
 export type ParameterPreset = {

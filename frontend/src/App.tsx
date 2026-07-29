@@ -22,6 +22,7 @@ export function App() {
   const [overlayAssetBase, setOverlayAssetBase] = useState("/api/package/assets");
   const [plugins, setPlugins] = useState<PluginStatus[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [toasts, setToasts] = useState<AppToast[]>([]);
   const [workbenchSidebar, setWorkbenchSidebar] = useState<SidebarRenderer | null>(null);
 
@@ -34,10 +35,13 @@ export function App() {
   }
 
   async function refreshHistory() {
+    setHistoryLoading(true);
     try {
       setHistory(await api.getHistory());
     } catch {
       setHistory([]);
+    } finally {
+      setHistoryLoading(false);
     }
   }
 
@@ -82,7 +86,7 @@ export function App() {
           <AnalysisWorkbenchPage notify={notify} openArtifact={openOverlayArtifact} refreshHistory={refreshHistory} setSidebarContent={registerWorkbenchSidebar} />
         )}
         {page === "plugins" && <PluginsPage plugins={plugins} validatePlugins={validatePlugins} setSelected={setSelected} />}
-        {page === "history" && <RunHistoryPage history={history} clearHistory={clearHistory} setSelected={setSelected} />}
+        {page === "history" && <RunHistoryPage history={history} historyLoading={historyLoading} clearHistory={clearHistory} setSelected={setSelected} />}
       </AppShell>
       <ChartLightbox artifact={overlayArtifact} assetBase={overlayAssetBase} onOpenChange={(open) => !open && setOverlayArtifact(null)} />
       <ToastRegion toasts={toasts} dismiss={(id) => setToasts((current) => current.filter((toast) => toast.id !== id))} />

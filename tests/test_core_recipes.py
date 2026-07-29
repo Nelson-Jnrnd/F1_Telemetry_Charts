@@ -13,9 +13,11 @@ from f1_telemetry_charts.data import (
     DriverMetadata,
     LapRecord,
     SessionDataset,
+    SessionStyleMetadata,
     SessionMetadata,
     SessionQuery,
     SourceProvenance,
+    StyleColor,
     TelemetrySample,
 )
 from f1_telemetry_charts.data.gateways import FixtureSessionGateway
@@ -51,6 +53,35 @@ class CoreRecipeTests(unittest.TestCase):
             [recipe["status"] for recipe in manifest["recipes"]],
             ["produced", "produced", "produced", "produced"],
         )
+
+    def test_batch_generation_reports_bounded_range_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = _config(Path(temp_dir))
+            config = config.model_copy(
+                update={
+                    "recipes": [
+                        ChartRecipeConfig(
+                            recipe_id="telemetry_trace",
+                            parameters={
+                                "selection": {
+                                    "driver_selection_mode": "selected",
+                                    "drivers": ["VER"],
+                                },
+                                "analysis": {
+                                    "distance_range_m": {"start": 0, "end": 9999}
+                                },
+                            },
+                        )
+                    ]
+                },
+                deep=True,
+            )
+
+            result = run_analysis(config)
+
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.manifest.recipes[0].status, "failed")
+        self.assertIn("distance_range_m end must be at most 250 m", result.manifest.errors[0])
 
     def test_builtin_template_schemas_expose_behavior_parameters(self) -> None:
         expected = {
@@ -98,6 +129,10 @@ class CoreRecipeTests(unittest.TestCase):
         self.assertEqual(telemetry.selected_drivers, ["PER"])
         self.assertEqual(telemetry.series[0].color, "#123456")
         self.assertEqual(
+            telemetry.metadata["style_sources"]["drivers"]["PER"]["source"],
+            "user_override",
+        )
+        self.assertEqual(
             telemetry.metadata["effective_configuration"]["selection"]["drivers"],
             ["PER"],
         )
@@ -143,6 +178,102 @@ class CoreRecipeTests(unittest.TestCase):
         self.assertFalse(position.metadata["invert_position_axis"])
         self.assertFalse(position.y_axis_inverted)
         self.assertEqual(position.series[0].render_mode, "step")
+
+    def test_builtin_recipes_use_session_and_deterministic_style_colors(self) -> None:
+        dataset = FixtureSessionGateway(Path("tests/fixtures/2023_bahrain_race_dataset.json")).load_session(
+            SessionQuery(
+                season=2023,
+                event="Bahrain Grand Prix",
+                session="Race",
+                drivers=["VER", "PER", "ALO"],
+            )
+        )
+        styled_dataset = dataset.model_copy(
+            update={
+                "style": SessionStyleMetadata(
+                    driver_colors={
+                        "VER": StyleColor(
+                            color="#112233",
+                            source="fastf1_driver_color",
+                            label="Red Bull Racing",
+                        )
+                    },
+                    compound_colors={
+                        "SOFT": StyleColor(
+                            color="#DA291C",
+                            source="fastf1_compound_mapping",
+                            label="SOFT",
+                        )
+                    },
+                )
+            },
+            deep=True,
+        )
+
+        delta = LapTimeDeltaRecipe().build_spec(
+            styled_dataset,
+            ChartRecipeConfig(
+                recipe_id="lap_time_delta",
+                parameters={"selection": {"drivers": ["VER"]}},
+            ),
+        )
+        self.assertEqual(delta.series[0].color, "#112233")
+        self.assertEqual(
+            delta.metadata["style_sources"]["drivers"]["VER"]["source"],
+            "fastf1_driver_color",
+        )
+
+        position = PositionProgressionRecipe().build_spec(
+            dataset,
+            ChartRecipeConfig(
+                recipe_id="position_progression",
+                parameters={"selection": {"drivers": ["ALO"]}},
+            ),
+        )
+        self.assertEqual(position.series[0].color, "#358C75")
+        self.assertEqual(
+            position.metadata["style_sources"]["drivers"]["ALO"]["source"],
+            "session_team_color",
+        )
+
+        no_style_dataset = dataset.model_copy(
+            update={
+                "drivers": [
+                    driver.model_copy(update={"team_color": None})
+                    for driver in dataset.drivers
+                ],
+                "style": SessionStyleMetadata(),
+            },
+            deep=True,
+        )
+        fallback = PositionProgressionRecipe().build_spec(
+            no_style_dataset,
+            ChartRecipeConfig(
+                recipe_id="position_progression",
+                parameters={"selection": {"drivers": ["VER"]}},
+            ),
+        )
+        self.assertEqual(
+            fallback.metadata["style_sources"]["drivers"]["VER"]["source"],
+            "deterministic_fallback",
+        )
+        self.assertTrue(fallback.metadata["style_sources"]["drivers"]["VER"]["fallback"])
+        self.assertTrue(
+            any("deterministic fallback color" in warning for warning in fallback.warnings)
+        )
+
+        tyre = TyreStrategyRecipe().build_spec(
+            styled_dataset,
+            ChartRecipeConfig(
+                recipe_id="tyre_strategy",
+                parameters={"selection": {"drivers": ["VER"]}},
+            ),
+        )
+        self.assertEqual(tyre.horizontal_bars[0].color, "#DA291C")
+        self.assertEqual(
+            tyre.metadata["style_sources"]["compounds"]["SOFT"]["source"],
+            "fastf1_compound_mapping",
+        )
 
     def test_lap_validity_track_status_and_active_filter_diagnostics(self) -> None:
         dataset = _diagnostic_dataset()

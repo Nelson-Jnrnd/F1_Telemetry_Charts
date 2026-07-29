@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from f1_telemetry_charts.analysis import workspace
 from f1_telemetry_charts.analysis.workspace import AnalysisService, list_global_presets, recipe_parameter_schema
 from f1_telemetry_charts.config.models import DataCacheConfig, SessionConfig
+from f1_telemetry_charts.preview import read_package_view
 from f1_telemetry_charts.ui.server import create_app
 
 
@@ -73,7 +74,238 @@ class AnalysisWorkspaceTests(unittest.TestCase):
 
             analysis = service.export_package(analysis)
             self.assertFalse(analysis.review_stale)
-            self.assertTrue((root / "package" / "manifest.json").exists())
+            package_root = root / "package"
+            self.assertTrue((package_root / "manifest.json").exists())
+            manifest = json.loads((package_root / "manifest.json").read_text(encoding="utf-8"))
+            self.assertGreaterEqual(len(manifest["artifacts"]), 1)
+            for artifact in manifest["artifacts"]:
+                self.assertTrue((package_root / artifact["image_path"]).exists())
+                self.assertTrue((package_root / artifact["metadata_path"]).exists())
+            self.assertEqual(read_package_view(package_root).health.status, "healthy")
+
+    def test_workspace_save_preserves_artifact_and_generate_uses_edited_lap_range(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "analysis"
+            service = AnalysisService(root)
+            analysis = service.create("Telemetry Save")
+            analysis = service.add_session(
+                analysis,
+                session=SessionConfig(
+                    season=2023,
+                    event="Bahrain Grand Prix",
+                    session="Race",
+                ),
+                drivers=["VER"],
+                data_cache=DataCacheConfig(
+                    fixture_path=Path("tests/fixtures/2023_bahrain_race_dataset.json")
+                ),
+            )
+            session = analysis.sessions[0]
+            analysis = service.add_chart(
+                analysis,
+                recipe_id="telemetry_trace",
+                target_session_ids=[session.session_id],
+                parameters={
+                    "title": "Telemetry",
+                    "lap_range": {"start": 2, "end": 2},
+                    "selection": {
+                        "driver_selection_mode": "selected",
+                        "drivers": ["VER"],
+                    },
+                    "analysis": {
+                        "metric": "speed_kph",
+                        "distance_range_m": {"start": 0, "end": 250},
+                    },
+                },
+            )
+            chart = analysis.charts[0]
+            analysis = service.generate_charts(analysis, [chart.chart_instance_id])
+            chart = analysis.charts[0]
+            self.assertEqual(chart.generation_state, "generated")
+            original_artifact_id = chart.artifact_id
+            original_image_path = chart.image_path
+            original_metadata_path = chart.metadata_path
+
+            edited_parameters = {
+                **chart.parameters,
+                "selection": {
+                    **chart.parameters["selection"],
+                    "laps": {"range": {"start": 1, "end": 1}},
+                },
+                "lap_range": {"start": 2, "end": 2},
+            }
+            analysis = service.update_chart(
+                analysis,
+                chart.chart_instance_id,
+                parameters=edited_parameters,
+            )
+            chart = analysis.charts[0]
+            self.assertEqual(chart.generation_state, "stale")
+            self.assertTrue(chart.stale)
+            self.assertEqual(chart.artifact_id, original_artifact_id)
+            self.assertEqual(chart.image_path, original_image_path)
+            self.assertEqual(chart.metadata_path, original_metadata_path)
+            self.assertEqual(
+                chart.parameters["selection"]["laps"]["range"],
+                {"start": 2, "end": 2},
+            )
+
+            analysis = service.generate_charts(analysis, [chart.chart_instance_id])
+            chart = analysis.charts[0]
+            self.assertEqual(chart.generation_state, "generated")
+            metadata = json.loads((root / chart.metadata_path).read_text(encoding="utf-8"))
+            self.assertEqual(metadata["lap_range"], {"start": 2, "end": 2})
+
+    def test_workspace_remove_chart_does_not_render_or_export(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "analysis"
+            service = AnalysisService(root)
+            analysis = service.create("Remove")
+            analysis = service.add_session(
+                analysis,
+                session=SessionConfig(
+                    season=2023,
+                    event="Bahrain Grand Prix",
+                    session="Race",
+                ),
+                drivers=["VER"],
+                data_cache=DataCacheConfig(
+                    fixture_path=Path("tests/fixtures/2023_bahrain_race_dataset.json")
+                ),
+            )
+            session = analysis.sessions[0]
+            analysis = service.add_chart(
+                analysis,
+                recipe_id="lap_time_delta",
+                target_session_ids=[session.session_id],
+                parameters={"title": "Remove me"},
+            )
+            chart_id = analysis.charts[0].chart_instance_id
+
+            with patch.object(workspace.MatplotlibRenderer, "render") as render:
+                analysis = service.remove_chart(analysis, chart_id)
+
+            render.assert_not_called()
+            self.assertEqual(analysis.charts, [])
+            self.assertTrue(analysis.review_stale)
+            self.assertFalse((root / "package").exists())
+
+    def test_telemetry_basic_lap_number_normalizes_to_single_lap_range(self) -> None:
+        schema = recipe_parameter_schema("telemetry_trace")
+        fields = {field.name: field for field in schema.fields}
+
+        self.assertIn("lap_number", fields)
+        self.assertEqual(fields["lap_number"].mode, "basic")
+        self.assertEqual(fields["lap_number"].field_type, "number")
+        self.assertEqual(fields["lap_range"].mode, "advanced")
+
+        normalized = workspace.normalize_chart_parameters(
+            "telemetry_trace",
+            {
+                "title": "Telemetry",
+                "lap_number": 2,
+                "selection": {
+                    "driver_selection_mode": "selected",
+                    "drivers": ["VER"],
+                },
+                "analysis": {
+                    "metric": "speed_kph",
+                    "distance_range_m": {"start": 0, "end": 250},
+                },
+            },
+        )
+
+        self.assertEqual(
+            normalized["selection"]["laps"]["range"],
+            {"start": 2, "end": 2},
+        )
+        self.assertNotIn("lap_number", normalized)
+
+    def test_workspace_rejects_empty_selected_driver_list(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "analysis"
+            service = AnalysisService(root)
+            analysis = service.create("Driver Clear")
+            analysis = service.add_session(
+                analysis,
+                session=SessionConfig(
+                    season=2023,
+                    event="Bahrain Grand Prix",
+                    session="Race",
+                ),
+                drivers=["VER", "PER"],
+                data_cache=DataCacheConfig(
+                    fixture_path=Path("tests/fixtures/2023_bahrain_race_dataset.json")
+                ),
+            )
+            session = analysis.sessions[0]
+
+            diagnostics = service.resolve_chart_diagnostics(
+                analysis,
+                recipe_id="telemetry_trace",
+                target_session_ids=[session.session_id],
+                parameters={
+                    "selection": {
+                        "driver_selection_mode": "selected",
+                        "drivers": [],
+                    },
+                    "analysis": {
+                        "metric": "speed_kph",
+                        "distance_range_m": {"start": 0, "end": 250},
+                    },
+                    "lap_number": 2,
+                },
+            )
+
+        self.assertEqual(diagnostics.status, "invalid")
+        self.assertEqual(diagnostics.errors[0]["field"], "drivers")
+
+    def test_workspace_generates_telemetry_from_basic_lap_number(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "analysis"
+            service = AnalysisService(root)
+            analysis = service.create("Basic Telemetry")
+            analysis = service.add_session(
+                analysis,
+                session=SessionConfig(
+                    season=2023,
+                    event="Bahrain Grand Prix",
+                    session="Race",
+                ),
+                drivers=["VER"],
+                data_cache=DataCacheConfig(
+                    fixture_path=Path("tests/fixtures/2023_bahrain_race_dataset.json")
+                ),
+            )
+            session = analysis.sessions[0]
+            analysis = service.add_chart(
+                analysis,
+                recipe_id="telemetry_trace",
+                target_session_ids=[session.session_id],
+                parameters={
+                    "title": "Basic telemetry",
+                    "lap_number": 2,
+                    "selection": {
+                        "driver_selection_mode": "selected",
+                        "drivers": ["VER"],
+                    },
+                    "analysis": {
+                        "metric": "speed_kph",
+                        "distance_range_m": {"start": 0, "end": 250},
+                    },
+                },
+            )
+            chart = analysis.charts[0]
+            self.assertEqual(
+                chart.parameters["selection"]["laps"]["range"],
+                {"start": 2, "end": 2},
+            )
+
+            analysis = service.generate_charts(analysis, [chart.chart_instance_id])
+            chart = analysis.charts[0]
+            self.assertEqual(chart.generation_state, "generated")
+            metadata = json.loads((root / chart.metadata_path).read_text(encoding="utf-8"))
+            self.assertEqual(metadata["lap_range"], {"start": 2, "end": 2})
 
     def test_session_removal_requires_confirmation_and_removes_dependent_charts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -155,6 +387,46 @@ class AnalysisWorkspaceTests(unittest.TestCase):
             self.assertEqual(len(analysis.sessions[0].drivers), 20)
             self.assertEqual(len(analysis.sessions[0].available_teams), 10)
 
+    def test_workspace_generation_marks_invalid_data_ranges_failed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "analysis"
+            service = AnalysisService(root)
+            analysis = service.create("Bounds")
+            analysis = service.add_session(
+                analysis,
+                session=SessionConfig(
+                    season=2023,
+                    event="Bahrain Grand Prix",
+                    session="Race",
+                ),
+                drivers=["VER"],
+                data_cache=DataCacheConfig(
+                    fixture_path=Path("tests/fixtures/2023_bahrain_race_dataset.json")
+                ),
+            )
+            analysis = service.add_chart(
+                analysis,
+                recipe_id="telemetry_trace",
+                target_session_ids=[analysis.sessions[0].session_id],
+            )
+            chart = analysis.charts[0].model_copy(
+                update={
+                    "parameters": {
+                        "analysis": {
+                            "distance_range_m": {"start": 0, "end": 9999}
+                        }
+                    }
+                },
+                deep=True,
+            )
+            analysis = analysis.model_copy(update={"charts": [chart]}, deep=True)
+
+            analysis = service.generate_charts(analysis, [chart.chart_instance_id])
+
+            self.assertEqual(analysis.charts[0].generation_state, "failed")
+            self.assertIn("distance_range_m", analysis.charts[0].errors[0])
+            self.assertIn("at most 250 m", analysis.charts[0].errors[0])
+
     def test_schema_exposes_modes_dependencies_and_builtin_presets(self) -> None:
         schema = recipe_parameter_schema("lap_time_delta")
         fields = {field.name: field for field in schema.fields}
@@ -198,6 +470,54 @@ class AnalysisApiTests(unittest.TestCase):
         self.assertIn("parameter_schema", recipes[0])
         self.assertFalse(Path(".analysis").exists())
 
+    def test_analysis_directory_picker_endpoint_reports_selected_cancelled_and_unavailable(self) -> None:
+        client = TestClient(create_app())
+        with tempfile.TemporaryDirectory() as temp_dir:
+            selected_path = Path(temp_dir).resolve()
+
+            with patch(
+                "f1_telemetry_charts.ui.server._pick_analysis_directory",
+                return_value=selected_path,
+            ):
+                selected = client.post(
+                    "/api/analysis/pick-directory",
+                    json={"initial_path": str(selected_path)},
+                )
+            self.assertEqual(selected.status_code, 200, selected.text)
+            self.assertEqual(
+                selected.json(),
+                {
+                    "status": "selected",
+                    "path": str(selected_path),
+                    "message": None,
+                },
+            )
+
+            with patch(
+                "f1_telemetry_charts.ui.server._pick_analysis_directory",
+                return_value=None,
+            ):
+                cancelled = client.post("/api/analysis/pick-directory", json={})
+            self.assertEqual(cancelled.status_code, 200, cancelled.text)
+            self.assertEqual(
+                cancelled.json(),
+                {
+                    "status": "cancelled",
+                    "path": None,
+                    "message": None,
+                },
+            )
+
+            with patch(
+                "f1_telemetry_charts.ui.server._pick_analysis_directory",
+                side_effect=RuntimeError("Native folder picker is unavailable."),
+            ):
+                unavailable = client.post("/api/analysis/pick-directory", json={})
+            self.assertEqual(unavailable.status_code, 200, unavailable.text)
+            self.assertEqual(unavailable.json()["status"], "unavailable")
+            self.assertIsNone(unavailable.json()["path"])
+            self.assertIn("unavailable", unavailable.json()["message"])
+
     def test_analysis_api_flow(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir) / "analysis"
@@ -219,7 +539,7 @@ class AnalysisApiTests(unittest.TestCase):
                         "event": "Bahrain Grand Prix",
                         "session": "Race",
                     },
-                    "drivers": ["VER", "PER"],
+                    "drivers": ["PER"],
                     "data_cache": {
                         "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
                     },
@@ -327,10 +647,26 @@ class AnalysisApiTests(unittest.TestCase):
                 self.assertEqual(deleted.json()["analysis"]["presets"], [])
                 self.assertIsNone(deleted.json()["analysis"]["charts"][0]["preset_id"])
 
+                regenerated = client.post(
+                    "/api/analysis/charts/generate",
+                    json={"chart_ids": [chart_id]},
+                )
+                self.assertEqual(regenerated.status_code, 200, regenerated.text)
+                self.assertEqual(
+                    regenerated.json()["analysis"]["charts"][0]["generation_state"],
+                    "generated",
+                )
+
             export_response = client.post("/api/analysis/export")
             self.assertEqual(export_response.status_code, 200, export_response.text)
             package_path = Path(export_response.json()["analysis"]["exported_package_path"])
             self.assertTrue((package_path / "manifest.json").exists())
+            package_view = read_package_view(package_path)
+            self.assertEqual(package_view.health.status, "healthy")
+            self.assertIsNotNone(package_view.manifest)
+            asset_path = package_view.manifest.artifacts[0].image_path
+            asset = client.get(f"/api/package/assets/{asset_path}")
+            self.assertEqual(asset.status_code, 200, asset.text)
 
             opened = client.post("/api/analysis/open", json={"path": str(root / "analysis.json")})
             self.assertEqual(opened.status_code, 200, opened.text)
@@ -472,6 +808,526 @@ class AnalysisApiTests(unittest.TestCase):
             self.assertEqual(payload["status"], "valid")
             self.assertIn("effective_configuration", payload)
             self.assertIn("active_filter_summary", payload)
+
+    def test_analysis_api_rejects_out_of_bounds_lap_range_with_diagnostics(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={"path": str(Path(temp_dir) / "analysis"), "name": "API Bounds"},
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["VER", "PER"],
+                    "data_cache": {
+                        "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
+                    },
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+            parameters = {
+                "selection": {
+                    "driver_selection_mode": "selected",
+                    "drivers": ["VER"],
+                    "lap_range": {"start": 1, "end": 99},
+                }
+            }
+
+            diagnostics = client.post(
+                "/api/analysis/charts/diagnostics",
+                json={
+                    "template_id": "lap_time_delta",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                },
+            )
+            self.assertEqual(diagnostics.status_code, 200, diagnostics.text)
+            payload = diagnostics.json()
+            self.assertEqual(payload["status"], "invalid")
+            self.assertEqual(payload["errors"][0]["field"], "lap_range")
+            self.assertEqual(payload["coverage_bounds"]["laps"]["maximum"], 2)
+            self.assertFalse(payload["coverage_bounds"]["session_time"]["available"])
+            self.assertTrue(payload["coverage_bounds"]["track_map"]["available"])
+
+            response = client.post(
+                "/api/analysis/charts",
+                json={
+                    "template_id": "lap_time_delta",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                },
+            )
+
+            self.assertEqual(response.status_code, 400, response.text)
+            self.assertIn("lap_range", response.text)
+
+    def test_analysis_api_rejects_out_of_bounds_distance_range_with_diagnostics(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={"path": str(Path(temp_dir) / "analysis"), "name": "API Distance"},
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["VER"],
+                    "data_cache": {
+                        "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
+                    },
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+            chart_response = client.post(
+                "/api/analysis/charts",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": {
+                        "selection": {
+                            "driver_selection_mode": "selected",
+                            "drivers": ["VER"],
+                        }
+                    },
+                },
+            )
+            self.assertEqual(chart_response.status_code, 200, chart_response.text)
+            chart_id = chart_response.json()["analysis"]["charts"][0]["chart_instance_id"]
+            parameters = {
+                "selection": {
+                    "driver_selection_mode": "selected",
+                    "drivers": ["VER"],
+                },
+                "analysis": {"distance_range_m": {"start": 0, "end": 9999}},
+            }
+
+            diagnostics = client.post(
+                "/api/analysis/charts/diagnostics",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                },
+            )
+            self.assertEqual(diagnostics.status_code, 200, diagnostics.text)
+            payload = diagnostics.json()
+            self.assertEqual(payload["status"], "invalid")
+            self.assertEqual(payload["errors"][0]["field"], "distance_range_m")
+            self.assertEqual(
+                payload["coverage_bounds"]["telemetry_distance_m"]["maximum"],
+                250,
+            )
+
+            response = client.put(
+                f"/api/analysis/charts/{chart_id}",
+                json={"parameters": parameters},
+            )
+
+            self.assertEqual(response.status_code, 400, response.text)
+            self.assertIn("distance_range_m", response.text)
+
+    def test_analysis_api_track_map_selector_payload_and_saved_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "analysis"
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={"path": str(root), "name": "API Track Map"},
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["VER"],
+                    "data_cache": {
+                        "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
+                    },
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+            parameters = {
+                "selection": {
+                    "driver_selection_mode": "selected",
+                    "drivers": ["VER"],
+                },
+                "analysis": {"metric": "speed_kph"},
+            }
+            chart_response = client.post(
+                "/api/analysis/charts",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                },
+            )
+            self.assertEqual(chart_response.status_code, 200, chart_response.text)
+            chart_id = chart_response.json()["analysis"]["charts"][0]["chart_instance_id"]
+
+            payload_response = client.post(
+                "/api/analysis/track-map",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                    "max_points": 2,
+                },
+            )
+            self.assertEqual(payload_response.status_code, 200, payload_response.text)
+            payload = payload_response.json()
+            self.assertEqual(payload["status"], "available")
+            self.assertEqual(payload["source_driver"], "VER")
+            self.assertEqual(payload["source_lap"], 2)
+            self.assertEqual(payload["point_count"], 2)
+            self.assertEqual(payload["original_sample_count"], 3)
+            self.assertTrue(payload["downsampled"])
+            self.assertEqual(payload["segment"]["source"], "full_lap")
+            self.assertEqual(payload["segment"]["start_distance_m"], 0)
+            self.assertEqual(payload["segment"]["end_distance_m"], 250)
+            self.assertNotIn("points", payload["diagnostics"])
+
+            selected_parameters = {
+                **parameters,
+                "analysis": {
+                    "metric": "speed_kph",
+                    "distance_range_m": {"start": 50, "end": 150},
+                },
+                "selection": {
+                    "driver_selection_mode": "selected",
+                    "drivers": ["VER"],
+                    "track_segment": {
+                        "source": "manual_track_selector",
+                        "start_distance_m": 50,
+                        "end_distance_m": 150,
+                        "source_driver": "VER",
+                        "source_lap": 2,
+                    },
+                },
+            }
+            selected_payload_response = client.post(
+                "/api/analysis/track-map",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": selected_parameters,
+                },
+            )
+            self.assertEqual(selected_payload_response.status_code, 200, selected_payload_response.text)
+            selected_payload = selected_payload_response.json()
+            self.assertEqual(selected_payload["segment"]["source"], "manual_track_selector")
+            self.assertEqual(selected_payload["segment"]["start_distance_m"], 50)
+            self.assertEqual(selected_payload["segment"]["end_distance_m"], 150)
+
+            update_response = client.put(
+                f"/api/analysis/charts/{chart_id}",
+                json={"parameters": selected_parameters},
+            )
+            self.assertEqual(update_response.status_code, 200, update_response.text)
+            generated = client.post(
+                "/api/analysis/charts/generate",
+                json={"chart_ids": [chart_id]},
+            )
+            self.assertEqual(generated.status_code, 200, generated.text)
+            chart = generated.json()["analysis"]["charts"][0]
+            self.assertEqual(chart["generation_state"], "generated")
+            metadata = json.loads((root / chart["metadata_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(metadata["distance_range_m"], {"start": 50, "end": 150})
+            self.assertEqual(
+                metadata["track_segment"]["source"],
+                "manual_track_selector",
+            )
+            self.assertEqual(
+                metadata["track_segment"]["source_driver"],
+                "VER",
+            )
+
+    def test_analysis_track_map_uses_session_geometry_when_selected_driver_lacks_trace(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "analysis"
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={
+                    "path": str(root),
+                    "name": "Session Geometry",
+                },
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["PER"],
+                    "data_cache": {
+                        "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
+                    },
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+            parameters = {
+                "selection": {
+                    "driver_selection_mode": "selected",
+                    "drivers": ["PER"],
+                },
+                "analysis": {"metric": "speed_kph"},
+            }
+
+            payload_response = client.post(
+                "/api/analysis/track-map",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                },
+            )
+
+            self.assertEqual(payload_response.status_code, 200, payload_response.text)
+            payload = payload_response.json()
+            self.assertEqual(payload["status"], "available")
+            self.assertEqual(payload["selected_drivers"], ["PER"])
+            self.assertEqual(payload["source_driver"], "VER")
+            self.assertEqual(payload["source_lap"], 2)
+            self.assertGreaterEqual(payload["point_count"], 2)
+
+            diagnostics = client.post(
+                "/api/analysis/charts/diagnostics",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                },
+            )
+            self.assertEqual(diagnostics.status_code, 200, diagnostics.text)
+            track_map = diagnostics.json()["coverage_bounds"]["track_map"]
+            self.assertTrue(track_map["available"])
+            self.assertEqual(track_map["source"], "session_track_geometry")
+            self.assertEqual(track_map["source_driver"], "VER")
+
+    def test_analysis_track_map_returns_projected_corner_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture_path = Path(temp_dir) / "with-corners.json"
+            payload = json.loads(
+                Path("tests/fixtures/2023_bahrain_race_dataset.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            payload["circuit_info"] = {
+                "source": "fastf1_circuit_info",
+                "reason": "fixture_corner_metadata",
+                "rotation_degrees": 42.0,
+                "corners": [
+                    {
+                        "number": 1,
+                        "letter": None,
+                        "label": "1",
+                        "x": 0,
+                        "y": 0,
+                        "angle_degrees": 12,
+                        "distance_m": 0,
+                    },
+                    {
+                        "number": 2,
+                        "letter": "A",
+                        "label": "2A",
+                        "x": 80,
+                        "y": 45,
+                        "angle_degrees": 18,
+                        "distance_m": 125,
+                    },
+                ],
+            }
+            fixture_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={"path": str(Path(temp_dir) / "analysis"), "name": "Corners"},
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["VER"],
+                    "data_cache": {"fixture_path": str(fixture_path)},
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+
+            payload_response = client.post(
+                "/api/analysis/track-map",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": {
+                        "selection": {
+                            "driver_selection_mode": "selected",
+                            "drivers": ["VER"],
+                        },
+                        "analysis": {"metric": "speed_kph"},
+                    },
+                },
+            )
+
+            self.assertEqual(payload_response.status_code, 200, payload_response.text)
+            track_map = payload_response.json()
+            self.assertEqual(track_map["status"], "available")
+            self.assertEqual(
+                [corner["label"] for corner in track_map["corners"]],
+                ["1", "2A"],
+            )
+            self.assertEqual(
+                track_map["corners"][1]["projection_status"],
+                "fastf1_distance",
+            )
+            self.assertEqual(track_map["corners"][1]["distance_m"], 125)
+            self.assertTrue(track_map["bounds"]["corners"]["available"])
+
+            corner_parameters = {
+                "selection": {
+                    "driver_selection_mode": "selected",
+                    "drivers": ["VER"],
+                    "track_segment": {
+                        "source": "corner_selector",
+                        "start_distance_m": 75,
+                        "end_distance_m": 175,
+                        "corner": {
+                            "label": "2A",
+                            "distance_m": 125,
+                            "pre_padding_m": 50,
+                            "post_padding_m": 50,
+                            "projection_status": "fastf1_distance",
+                        },
+                    },
+                },
+                "analysis": {
+                    "metric": "speed_kph",
+                    "distance_range_m": {"start": 75, "end": 175},
+                },
+            }
+            chart_response = client.post(
+                "/api/analysis/charts",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": corner_parameters,
+                },
+            )
+            self.assertEqual(chart_response.status_code, 200, chart_response.text)
+            chart = chart_response.json()["analysis"]["charts"][0]
+            generated = client.post(
+                "/api/analysis/charts/generate",
+                json={"chart_ids": [chart["chart_instance_id"]]},
+            )
+            self.assertEqual(generated.status_code, 200, generated.text)
+            chart = generated.json()["analysis"]["charts"][0]
+            metadata = json.loads(
+                (Path(temp_dir) / "analysis" / chart["metadata_path"]).read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(metadata["track_segment"]["source"], "corner_selector")
+            self.assertEqual(metadata["track_segment"]["corner"]["label"], "2A")
+            self.assertEqual(metadata["distance_range_m"], {"start": 75, "end": 175})
+
+    def test_analysis_track_map_degrades_without_position_geometry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture_path = Path(temp_dir) / "no-position.json"
+            payload = json.loads(
+                Path("tests/fixtures/2023_bahrain_race_dataset.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            for sample in payload["telemetry"]:
+                sample.pop("x", None)
+                sample.pop("y", None)
+                sample.pop("z", None)
+                sample.pop("position_status", None)
+            fixture_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={"path": str(Path(temp_dir) / "analysis"), "name": "No Geometry"},
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["VER"],
+                    "data_cache": {"fixture_path": str(fixture_path)},
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+            parameters = {
+                "selection": {
+                    "driver_selection_mode": "selected",
+                    "drivers": ["VER"],
+                },
+                "analysis": {
+                    "metric": "speed_kph",
+                    "distance_range_m": {"start": 0, "end": 125},
+                },
+            }
+
+            track_map = client.post(
+                "/api/analysis/track-map",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                },
+            )
+            self.assertEqual(track_map.status_code, 200, track_map.text)
+            payload = track_map.json()
+            self.assertEqual(payload["status"], "unavailable")
+            self.assertEqual(payload["diagnostics"][0]["field"], "track_map")
+
+            diagnostics = client.post(
+                "/api/analysis/charts/diagnostics",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                },
+            )
+            self.assertEqual(diagnostics.status_code, 200, diagnostics.text)
+            self.assertEqual(diagnostics.json()["status"], "valid")
+            self.assertFalse(diagnostics.json()["coverage_bounds"]["track_map"]["available"])
+
+            chart_response = client.post(
+                "/api/analysis/charts",
+                json={
+                    "template_id": "telemetry_trace",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": parameters,
+                },
+            )
+            self.assertEqual(chart_response.status_code, 200, chart_response.text)
 
 
 def _full_field_payload() -> dict:

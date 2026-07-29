@@ -35,6 +35,7 @@ Terminal alternatives: `Superseded`, `Archived`, `Rejected`.
 | SPEC-004 | V2 Analysis Workbench and Staged Run Pipeline | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-004-v2-analysis-workbench-pipeline.md` |
 | SPEC-005 | V2 Chart Templates and Parameter Presets | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-005-v2-chart-templates-and-presets.md` |
 | SPEC-006 | Analyst-Grade Chart Parameters and Renderer Semantics | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-006-analyst-grade-chart-parameters.md` |
+| SPEC-007 | Visual Track Map Range Selection and Race Playback Explorer | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-007-track-map-range-and-race-playback.md` |
 
 > Keep this table in sync with the frontmatter of each spec. `/spec-report` and
 > `scripts/validate_drift.py` help detect drift between this index and the

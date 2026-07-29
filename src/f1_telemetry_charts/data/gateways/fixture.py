@@ -12,6 +12,7 @@ from f1_telemetry_charts.data.models import (
     SessionQuery,
     requests_all_drivers,
 )
+from f1_telemetry_charts.data.track_geometry import ensure_track_geometry
 
 
 class FixtureSessionGateway:
@@ -25,7 +26,7 @@ class FixtureSessionGateway:
         raw = json.loads(self.fixture_path.read_text(encoding="utf-8"))
         dataset = SessionDataset.model_validate(raw)
         _assert_query_matches_fixture(query, dataset)
-        return dataset.filter_drivers(query.drivers)
+        return ensure_track_geometry(dataset).filter_drivers(query.drivers)
 
 
 def _assert_query_matches_fixture(

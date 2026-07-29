@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
 from typing import Any
 
 from f1_telemetry_charts.config.models import ChartRecipeConfig
@@ -49,6 +50,25 @@ TRACK_STATUS_CODES = {
     "red": {"5"},
     "vsc": {"6", "7"},
 }
+FALLBACK_COLORS = [
+    "#1F77B4",
+    "#FF7F0E",
+    "#2CA02C",
+    "#D62728",
+    "#9467BD",
+    "#8C564B",
+    "#E377C2",
+    "#7F7F7F",
+    "#BCBD22",
+    "#17BECF",
+]
+DEFAULT_COMPOUND_COLORS = {
+    "SOFT": "#DA291C",
+    "MEDIUM": "#FFD12E",
+    "HARD": "#F0F0EC",
+    "INTERMEDIATE": "#43B02A",
+    "WET": "#0067AD",
+}
 
 
 @dataclass
@@ -73,6 +93,22 @@ class LapFilterResult:
     laps: list[LapRecord]
     diagnostics: ParameterDiagnostics
     effective: dict[str, Any]
+
+
+@dataclass
+class ResolvedStyle:
+    color: str
+    source: str
+    label: str | None = None
+    fallback: bool = False
+
+    def as_metadata(self) -> dict[str, Any]:
+        return {
+            "color": self.color,
+            "source": self.source,
+            "label": self.label,
+            "fallback": self.fallback,
+        }
 
 
 def parameters(config: ChartRecipeConfig) -> dict[str, Any]:
@@ -136,11 +172,11 @@ def selected_driver_codes(dataset: SessionDataset, config: ChartRecipeConfig) ->
         or selection.get("driver_selection_mode")
         or params.get("driver_selection_mode")
     )
-    requested = (
-        driver_selection.get("drivers")
-        or selection.get("drivers")
-        or params.get("drivers")
-    )
+    requested = None
+    for source in (driver_selection, selection, params):
+        if "drivers" in source:
+            requested = source["drivers"]
+            break
 
     if mode is None:
         mode = "selected" if requested not in (None, []) else "all_session"
@@ -152,6 +188,8 @@ def selected_driver_codes(dataset: SessionDataset, config: ChartRecipeConfig) ->
         selected = available
     elif mode == "selected":
         selected = _requested_driver_list(requested, available)
+        if not selected:
+            raise ValueError("drivers must include at least one selected driver")
     elif mode == "teams":
         teams = driver_selection.get("teams") or selection.get("teams") or params.get("teams")
         if not isinstance(teams, list) or not teams:
@@ -272,6 +310,193 @@ def filter_telemetry(
     samples: list[TelemetrySample], config: ChartRecipeConfig
 ) -> list[TelemetrySample]:
     return [sample for sample in samples if lap_in_range(sample.lap_number, config)]
+
+
+def validate_coverage_bounds(
+    dataset: SessionDataset,
+    config: ChartRecipeConfig,
+    *,
+    selected_drivers: list[str],
+    diagnostics: ParameterDiagnostics,
+    include_distance_range: bool = False,
+) -> dict[str, Any]:
+    bounds = coverage_bounds(dataset, selected_drivers=selected_drivers, config=config)
+    _validate_lap_range_bounds(bounds, config, diagnostics, selected_drivers)
+    if include_distance_range:
+        _validate_distance_range_bounds(bounds, config, diagnostics, selected_drivers)
+    return bounds
+
+
+def coverage_bounds(
+    dataset: SessionDataset,
+    *,
+    selected_drivers: list[str] | None = None,
+    config: ChartRecipeConfig | None = None,
+) -> dict[str, Any]:
+    drivers = selected_drivers or [driver.abbreviation for driver in dataset.drivers]
+    driver_set = set(drivers)
+    laps = [lap for lap in dataset.laps if lap.driver in driver_set]
+    telemetry = [
+        sample
+        for sample in dataset.telemetry
+        if sample.driver in driver_set
+        and (config is None or lap_in_range(sample.lap_number, config))
+    ]
+    track_geometry = dataset.track_geometry
+    track_map_available = track_geometry is not None and track_geometry.point_count >= 2
+    circuit_info = dataset.circuit_info
+    corner_count = len(circuit_info.corners) if circuit_info is not None else 0
+    return {
+        "drivers": drivers,
+        "laps": _integer_bounds(
+            [lap.lap_number for lap in laps],
+            per_driver={
+                driver: [lap.lap_number for lap in laps if lap.driver == driver]
+                for driver in drivers
+            },
+        ),
+        "telemetry_distance_m": _float_bounds(
+            [sample.distance_m for sample in telemetry],
+            per_driver={
+                driver: [
+                    sample.distance_m for sample in telemetry if sample.driver == driver
+                ]
+                for driver in drivers
+            },
+        ),
+        "session_time": {
+            "available": False,
+            "minimum": None,
+            "maximum": None,
+            "reason": "session-time coverage is not available in normalized snapshots",
+        },
+        "track_map": {
+            "available": track_map_available,
+            "source": "session_track_geometry"
+            if track_map_available
+            else None,
+            "reason": None
+            if track_map_available
+            else "session track geometry is unavailable in the loaded snapshot",
+            "source_driver": track_geometry.source_driver
+            if track_geometry is not None
+            else None,
+            "source_lap": track_geometry.source_lap
+            if track_geometry is not None
+            else None,
+            "positioned_sample_count": track_geometry.original_sample_count
+            if track_geometry is not None
+            else 0,
+            "corners": {
+                "available": corner_count > 0,
+                "count": corner_count,
+                "source": circuit_info.source
+                if circuit_info is not None and corner_count > 0
+                else None,
+                "reason": None
+                if corner_count > 0
+                else "FastF1 circuit corner metadata is unavailable in the loaded snapshot",
+            },
+        },
+    }
+
+
+def resolve_driver_style(
+    dataset: SessionDataset,
+    config: ChartRecipeConfig,
+    driver_code: str,
+    diagnostics: ParameterDiagnostics,
+) -> ResolvedStyle:
+    override = series_color(config, driver_code)
+    if override is not None:
+        return ResolvedStyle(color=override, source="user_override", label=driver_code)
+
+    style = dataset.style.driver_colors.get(driver_code)
+    if style is not None:
+        return ResolvedStyle(color=style.color, source=style.source, label=style.label)
+
+    driver = next(
+        (item for item in dataset.drivers if item.abbreviation == driver_code),
+        None,
+    )
+    if driver is not None and driver.team_color:
+        color = _normalized_hex_color(driver.team_color)
+        if color is not None:
+            return ResolvedStyle(
+                color=color,
+                source="session_team_color",
+                label=driver.team_name,
+            )
+
+    color = deterministic_fallback_color(driver_code)
+    diagnostics.warn(
+        "series_colors",
+        f"{driver_code} uses deterministic fallback color because no FastF1/session style color is available",
+        series=driver_code,
+        source="deterministic_fallback",
+    )
+    return ResolvedStyle(
+        color=color,
+        source="deterministic_fallback",
+        label=driver_code,
+        fallback=True,
+    )
+
+
+def resolve_compound_style(
+    dataset: SessionDataset,
+    config: ChartRecipeConfig,
+    compound: str,
+    diagnostics: ParameterDiagnostics,
+) -> ResolvedStyle:
+    label = compound.upper()
+    override = series_color(config, label)
+    if override is not None:
+        return ResolvedStyle(color=override, source="user_override", label=label)
+
+    style = dataset.style.compound_colors.get(label)
+    if style is not None:
+        return ResolvedStyle(color=style.color, source=style.source, label=label)
+
+    default_color = DEFAULT_COMPOUND_COLORS.get(label)
+    if default_color is not None:
+        return ResolvedStyle(
+            color=default_color,
+            source="default_compound_color",
+            label=label,
+        )
+
+    color = deterministic_fallback_color(label)
+    diagnostics.warn(
+        "series_colors",
+        f"{label} uses deterministic fallback color because no FastF1 compound color is available",
+        series=label,
+        source="deterministic_fallback",
+    )
+    return ResolvedStyle(
+        color=color,
+        source="deterministic_fallback",
+        label=label,
+        fallback=True,
+    )
+
+
+def deterministic_fallback_color(label: str) -> str:
+    digest = hashlib.sha256(label.encode("utf-8")).hexdigest()
+    index = int(digest[:8], 16) % len(FALLBACK_COLORS)
+    return FALLBACK_COLORS[index]
+
+
+def first_diagnostic_error(diagnostics: ParameterDiagnostics) -> str:
+    first = next(
+        (
+            error
+            for error in diagnostics.errors
+            if error.get("field") in {"lap_range", "distance_range_m"}
+        ),
+        diagnostics.errors[0],
+    )
+    return str(first["message"])
 
 
 def lap_validity_policy(
@@ -458,6 +683,8 @@ def effective_configuration_metadata(
     box_policy: str | None = None,
     diagnostics: ParameterDiagnostics | None = None,
     filters: dict[str, Any] | None = None,
+    coverage: dict[str, Any] | None = None,
+    style_sources: dict[str, Any] | None = None,
     extra_effective: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     effective_filters: dict[str, Any] = {"lap_range": effective_lap_range(config)}
@@ -476,13 +703,19 @@ def effective_configuration_metadata(
         "filters": effective_filters,
         "presentation": {
             "series_colors": series_colors(config),
+            "style_sources": style_sources or {},
         },
+        "coverage_bounds": coverage
+        if coverage is not None
+        else coverage_bounds(dataset, selected_drivers=selected_drivers, config=config),
     }
     if extra_effective:
         effective_configuration.update(extra_effective)
     return {
         "requested_configuration": parameters(config),
         "effective_configuration": effective_configuration,
+        "coverage_bounds": effective_configuration["coverage_bounds"],
+        "style_sources": style_sources or {},
         "diagnostics": {
             "warnings": diagnostics.warnings,
             "errors": diagnostics.errors,
@@ -490,6 +723,170 @@ def effective_configuration_metadata(
             "active_filter_summary": diagnostics.active_filter_summary,
         },
     }
+
+
+def _validate_lap_range_bounds(
+    bounds: dict[str, Any],
+    config: ChartRecipeConfig,
+    diagnostics: ParameterDiagnostics,
+    selected_drivers: list[str],
+) -> None:
+    lap_range = effective_lap_range(config)
+    lap_bounds = bounds.get("laps", {})
+    if not lap_bounds.get("available"):
+        diagnostics.error("lap_range", "Loaded session has no laps for the selected drivers")
+        return
+    if lap_range in (None, {}):
+        return
+    if not isinstance(lap_range, dict):
+        diagnostics.error("lap_range", "lap_range must contain start and end values")
+        return
+    start = lap_range.get("start")
+    end = lap_range.get("end")
+    minimum = lap_bounds["minimum"]
+    maximum = lap_bounds["maximum"]
+    if start is not None and int(start) < minimum:
+        diagnostics.error("lap_range", f"lap_range start must be at least {minimum}")
+    if end is not None and int(end) > maximum:
+        diagnostics.error("lap_range", f"lap_range end must be at most {maximum}")
+    _warn_partial_lap_coverage(
+        lap_bounds.get("per_driver", {}),
+        lap_range,
+        diagnostics,
+        selected_drivers,
+    )
+
+
+def _validate_distance_range_bounds(
+    bounds: dict[str, Any],
+    config: ChartRecipeConfig,
+    diagnostics: ParameterDiagnostics,
+    selected_drivers: list[str],
+) -> None:
+    distance_range = parameter_value(
+        config,
+        "distance_range_m",
+        section_name="analysis",
+    )
+    distance_bounds = bounds.get("telemetry_distance_m", {})
+    if distance_range in (None, {}):
+        return
+    if not distance_bounds.get("available"):
+        diagnostics.error(
+            "distance_range_m",
+            "Loaded session has no telemetry distance samples for the selected drivers and laps",
+        )
+        return
+    if not isinstance(distance_range, dict):
+        diagnostics.error("distance_range_m", "distance_range_m must contain start and end values")
+        return
+    start = distance_range.get("start")
+    end = distance_range.get("end")
+    minimum = float(distance_bounds["minimum"])
+    maximum = float(distance_bounds["maximum"])
+    if start is not None and float(start) < minimum:
+        diagnostics.error(
+            "distance_range_m",
+            f"distance_range_m start must be at least {minimum:g} m",
+        )
+    if end is not None and float(end) > maximum:
+        diagnostics.error(
+            "distance_range_m",
+            f"distance_range_m end must be at most {maximum:g} m",
+        )
+    _warn_partial_distance_coverage(
+        distance_bounds.get("per_driver", {}),
+        distance_range,
+        diagnostics,
+        selected_drivers,
+    )
+
+
+def _warn_partial_lap_coverage(
+    per_driver: dict[str, Any],
+    lap_range: dict[str, Any],
+    diagnostics: ParameterDiagnostics,
+    selected_drivers: list[str],
+) -> None:
+    start = lap_range.get("start")
+    end = lap_range.get("end")
+    for driver in selected_drivers:
+        driver_bounds = per_driver.get(driver, {})
+        if not driver_bounds.get("available"):
+            diagnostics.warn("lap_range", f"{driver} has no loaded laps in this session")
+            continue
+        minimum = driver_bounds["minimum"]
+        maximum = driver_bounds["maximum"]
+        if (start is not None and int(start) < minimum) or (
+            end is not None and int(end) > maximum
+        ):
+            diagnostics.warn(
+                "lap_range",
+                f"{driver} only has loaded laps {minimum}-{maximum}",
+                driver=driver,
+            )
+
+
+def _warn_partial_distance_coverage(
+    per_driver: dict[str, Any],
+    distance_range: dict[str, Any],
+    diagnostics: ParameterDiagnostics,
+    selected_drivers: list[str],
+) -> None:
+    start = distance_range.get("start")
+    end = distance_range.get("end")
+    for driver in selected_drivers:
+        driver_bounds = per_driver.get(driver, {})
+        if not driver_bounds.get("available"):
+            diagnostics.warn(
+                "distance_range_m",
+                f"{driver} has no telemetry distance samples in the selected laps",
+                driver=driver,
+            )
+            continue
+        minimum = float(driver_bounds["minimum"])
+        maximum = float(driver_bounds["maximum"])
+        if (start is not None and float(start) < minimum) or (
+            end is not None and float(end) > maximum
+        ):
+            diagnostics.warn(
+                "distance_range_m",
+                f"{driver} telemetry distance coverage is {minimum:g}-{maximum:g} m",
+                driver=driver,
+            )
+
+
+def _integer_bounds(values: list[int], *, per_driver: dict[str, list[int]]) -> dict[str, Any]:
+    return {
+        **_bounds(values),
+        "per_driver": {driver: _bounds(driver_values) for driver, driver_values in per_driver.items()},
+    }
+
+
+def _float_bounds(values: list[float], *, per_driver: dict[str, list[float]]) -> dict[str, Any]:
+    return {
+        **_bounds(values),
+        "per_driver": {driver: _bounds(driver_values) for driver, driver_values in per_driver.items()},
+    }
+
+
+def _bounds(values: list[int] | list[float]) -> dict[str, Any]:
+    if not values:
+        return {"available": False, "minimum": None, "maximum": None}
+    return {
+        "available": True,
+        "minimum": min(values),
+        "maximum": max(values),
+    }
+
+
+def _normalized_hex_color(value: str) -> str | None:
+    text = value.strip()
+    if text.startswith("#"):
+        text = text[1:]
+    if len(text) != 6 or any(character not in "0123456789abcdefABCDEF" for character in text):
+        return None
+    return f"#{text.upper()}"
 
 
 def series_policy_action(
@@ -518,8 +915,10 @@ def _driver_selection_object(selection: dict[str, Any]) -> dict[str, Any]:
 
 
 def _requested_driver_list(requested: Any, available: list[str]) -> list[str]:
-    if requested in (None, []):
+    if requested is None:
         return available
+    if requested == []:
+        return []
     if not isinstance(requested, list) or not all(isinstance(item, str) for item in requested):
         raise ValueError("drivers must be a list of driver codes")
     unknown = sorted(set(requested) - set(available))

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -20,6 +21,11 @@ from f1_telemetry_charts.analysis.manifest import (
 )
 from f1_telemetry_charts.analysis.observations import Observation
 from f1_telemetry_charts.analysis.report import write_report_package
+from f1_telemetry_charts.analysis.track_map import (
+    DEFAULT_TRACK_MAP_POINT_LIMIT,
+    TrackMapPayload,
+    build_track_map_payload,
+)
 from f1_telemetry_charts.charts.renderers import MatplotlibRenderer
 from f1_telemetry_charts.config.models import (
     ChartRecipeConfig,
@@ -30,7 +36,14 @@ from f1_telemetry_charts.config.models import (
 )
 from f1_telemetry_charts.data import SessionDataset, SessionQuery
 from f1_telemetry_charts.data.gateways import FastF1SessionGateway, FixtureSessionGateway
+from f1_telemetry_charts.data.track_geometry import ensure_track_geometry
 from f1_telemetry_charts.plugins import build_recipe_registry
+from f1_telemetry_charts.recipes.parameters import (
+    ParameterDiagnostics,
+    coverage_bounds,
+    selected_driver_codes,
+    validate_coverage_bounds,
+)
 from f1_telemetry_charts.recipes.registry import RecipeMetadata, RecipeRegistry
 
 
@@ -199,6 +212,8 @@ class ParameterDiagnosticsView(BaseModel):
     active_filter_summary: list[str] = Field(default_factory=list)
     exclusion_counts: dict[str, int] = Field(default_factory=dict)
     effective_configuration: dict[str, Any] = Field(default_factory=dict)
+    coverage_bounds: dict[str, Any] = Field(default_factory=dict)
+    style_sources: dict[str, Any] = Field(default_factory=dict)
 
 
 class AnalysisService:
@@ -240,6 +255,86 @@ class AnalysisService:
             recipe_schemas=list_recipe_parameter_schemas(registry),
             recipes=[_metadata_payload(item) for item in registry.list_metadata()],
             global_presets=list_global_presets(),
+        )
+
+    def coverage_bounds(self, analysis: AnalysisWorkspace | None = None) -> dict[str, Any]:
+        current = analysis or self.open()
+        sessions: dict[str, Any] = {}
+        for session in current.sessions:
+            if session.snapshot is None or session.load_state != "loaded":
+                sessions[session.session_id] = {
+                    "available": False,
+                    "reason": "session_not_loaded",
+                }
+                continue
+            dataset = _read_snapshot_dataset(self.root, session.snapshot)
+            sessions[session.session_id] = {
+                "available": True,
+                "name": session.name,
+                **coverage_bounds(dataset, selected_drivers=session.drivers),
+            }
+        return {"sessions": sessions}
+
+    def track_map(
+        self,
+        analysis: AnalysisWorkspace,
+        *,
+        recipe_id: str,
+        target_session_ids: list[str],
+        parameters: dict[str, Any] | None = None,
+        max_points: int = DEFAULT_TRACK_MAP_POINT_LIMIT,
+    ) -> TrackMapPayload:
+        registry = build_recipe_registry(analysis.plugins)
+        if not registry.has_recipe(recipe_id):
+            raise ValueError(f"Unknown chart template: {recipe_id}")
+        if recipe_id != "telemetry_trace":
+            raise ValueError("Track map selection is available for telemetry charts only.")
+        if not target_session_ids:
+            raise ValueError("Target session is required.")
+        session = next(
+            (item for item in analysis.sessions if item.session_id == target_session_ids[0]),
+            None,
+        )
+        if session is None:
+            raise ValueError("Unknown target session.")
+        if session.snapshot is None or session.load_state != "loaded":
+            return TrackMapPayload(
+                status="unavailable",
+                recipe_id=recipe_id,
+                session_id=session.session_id,
+                max_points=max_points,
+                diagnostics=[
+                    {
+                        "field": "target_session_ids",
+                        "message": "Target session is not loaded",
+                    }
+                ],
+            )
+
+        normalized = normalize_chart_parameters(recipe_id, parameters or {})
+        schema = recipe_parameter_schema(recipe_id)
+        _validate_parameters(schema, parameters or {})
+        _validate_parameters(schema, normalized)
+        _validate_chart_data_bounds_or_raise(
+            analysis,
+            recipe_id,
+            target_session_ids,
+            normalized,
+        )
+        dataset = _read_snapshot_dataset(self.root, session.snapshot)
+        return build_track_map_payload(
+            dataset,
+            ChartRecipeConfig(
+                recipe_id=recipe_id,
+                title=_parameter_value(
+                    normalized,
+                    "title",
+                    registry.get(recipe_id).display_name,
+                ),
+                parameters=normalized,
+            ),
+            session_id=session.session_id,
+            max_points=max_points,
         )
 
     def add_session(
@@ -379,6 +474,12 @@ class AnalysisService:
         params = normalize_chart_parameters(recipe_id, parameters or {})
         _validate_parameters(schema, params)
         _validate_preset_reference(analysis, recipe_id, preset_id)
+        _validate_chart_data_bounds_or_raise(
+            analysis,
+            recipe_id,
+            target_session_ids,
+            params,
+        )
         chart_id = _chart_id(recipe_id, target_session_ids, params, len(analysis.charts))
         display_name = name or registry.get(recipe_id).display_name
         chart = ChartInstance(
@@ -420,18 +521,27 @@ class AnalysisService:
                 if parameters is not None
                 else chart.parameters
             )
+            next_target_session_ids = (
+                target_session_ids
+                if target_session_ids is not None
+                else chart.target_session_ids
+            )
             if parameters is not None:
                 _validate_parameters(recipe_parameter_schema(chart.recipe_id), parameters)
             _validate_parameters(recipe_parameter_schema(chart.recipe_id), next_parameters)
             next_preset_id = chart.preset_id if preset_id is _KEEP_PRESET else preset_id
             _validate_preset_reference(analysis, chart.recipe_id, next_preset_id)
+            _validate_chart_data_bounds_or_raise(
+                analysis,
+                chart.recipe_id,
+                next_target_session_ids,
+                next_parameters,
+            )
             charts.append(
                 chart.model_copy(
                     update={
                         "name": name if name is not None else chart.name,
-                        "target_session_ids": target_session_ids
-                        if target_session_ids is not None
-                        else chart.target_session_ids,
+                        "target_session_ids": next_target_session_ids,
                         "parameters": next_parameters,
                         "parameter_hash": _hash_payload(next_parameters),
                         "preset_id": next_preset_id,
@@ -510,6 +620,23 @@ class AnalysisService:
                 ],
             )
 
+        bound_diagnostics, bound_coverage = _chart_data_bounds_diagnostics(
+            analysis,
+            recipe_id,
+            target_session_ids,
+            normalized,
+        )
+        if bound_diagnostics.errors:
+            return ParameterDiagnosticsView(
+                status="invalid",
+                recipe_id=recipe_id,
+                schema_version=schema.schema_version,
+                parameters=normalized,
+                errors=bound_diagnostics.errors,
+                warnings=bound_diagnostics.warnings,
+                coverage_bounds=bound_coverage,
+            )
+
         try:
             dataset = _read_snapshot_dataset(self.root, session.snapshot)
             spec = registry.create(recipe_id).build_spec(
@@ -526,7 +653,7 @@ class AnalysisService:
                 recipe_id=recipe_id,
                 schema_version=schema.schema_version,
                 parameters=normalized,
-                errors=[_parameter_diagnostic_error(schema, str(exc))],
+            errors=[_parameter_diagnostic_error(schema, str(exc))],
             )
 
         diagnostics = spec.metadata.get("diagnostics", {})
@@ -539,6 +666,8 @@ class AnalysisService:
             active_filter_summary=list(diagnostics.get("active_filter_summary", [])),
             exclusion_counts=dict(diagnostics.get("exclusion_counts", {})),
             effective_configuration=dict(spec.metadata.get("effective_configuration", {})),
+            coverage_bounds=dict(spec.metadata.get("coverage_bounds", bound_coverage)),
+            style_sources=dict(spec.metadata.get("style_sources", {})),
         )
 
     def generate_charts(
@@ -568,6 +697,12 @@ class AnalysisService:
                     title=chart.parameters.get("title") or chart.name,
                     parameters=chart.parameters,
                     preset_id=chart.preset_id,
+                )
+                _validate_chart_data_bounds_or_raise(
+                    analysis,
+                    chart.recipe_id,
+                    chart.target_session_ids,
+                    chart.parameters,
                 )
                 artifact_id = _artifact_id(chart, session)
                 artifact = renderer.render(
@@ -612,6 +747,7 @@ class AnalysisService:
         package_dir = self.root / "package"
         package_dir.mkdir(parents=True, exist_ok=True)
         manifest = _analysis_manifest(self.root, analysis, status="succeeded")
+        _materialize_package_artifacts(self.root, package_dir, manifest)
         report_paths = write_report_package(package_dir, manifest, observations)
         manifest = manifest.model_copy(
             update={
@@ -802,8 +938,13 @@ def normalize_chart_parameters(
         "custom_driver_order",
     ]:
         _move(parameters, selection, key)
-    if "lap_range" in parameters and "laps" not in selection:
-        selection["laps"] = {"range": parameters["lap_range"]}
+    if "lap_number" in parameters and parameters["lap_number"] is not None:
+        lap = parameters["lap_number"]
+        selection["laps"] = {"range": {"start": lap, "end": lap}}
+    if "lap_range" in parameters:
+        laps = dict(selection.get("laps") or {})
+        laps["range"] = parameters["lap_range"]
+        selection["laps"] = laps
     for key in ["box_lap_policy", "lap_validity", "track_status_filter", "missing_series_policy"]:
         _move(parameters, filters, key)
     if "series_colors" in parameters:
@@ -1035,6 +1176,16 @@ def recipe_parameter_schema(recipe_id: str) -> RecipeParameterSchema:
     specific_fields: dict[str, list[ParameterField]] = {
         "telemetry_trace": [
             ParameterField(
+                name="lap_number",
+                label="Lap",
+                field_type="number",
+                default=None,
+                minimum=1,
+                group="General",
+                order=29,
+                reset_group="filters",
+            ),
+            ParameterField(
                 name="metric",
                 label="Metric",
                 field_type="select",
@@ -1199,6 +1350,13 @@ def recipe_parameter_schema(recipe_id: str) -> RecipeParameterSchema:
         ],
     }
     fields = common_fields + specific_fields.get(recipe_id, [])
+    if recipe_id == "telemetry_trace":
+        fields = [
+            field.model_copy(update={"mode": "advanced"})
+            if field.name == "lap_range"
+            else field
+            for field in fields
+        ]
     return RecipeParameterSchema(
         recipe_id=recipe_id,
         schema_version=1,
@@ -1373,6 +1531,71 @@ def _diagnostics_error(
     )
 
 
+def _validate_chart_data_bounds_or_raise(
+    analysis: AnalysisWorkspace,
+    recipe_id: str,
+    target_session_ids: list[str],
+    parameters: dict[str, Any],
+) -> None:
+    diagnostics, _ = _chart_data_bounds_diagnostics(
+        analysis,
+        recipe_id,
+        target_session_ids,
+        parameters,
+    )
+    if diagnostics.errors:
+        first = diagnostics.errors[0]
+        raise ValueError(f"{first['field']}: {first['message']}")
+
+
+def _chart_data_bounds_diagnostics(
+    analysis: AnalysisWorkspace,
+    recipe_id: str,
+    target_session_ids: list[str],
+    parameters: dict[str, Any],
+) -> tuple[ParameterDiagnostics, dict[str, Any]]:
+    diagnostics = ParameterDiagnostics()
+    if not target_session_ids:
+        diagnostics.error("target_session_ids", "Target session is required")
+        return diagnostics, {}
+    session = next(
+        (item for item in analysis.sessions if item.session_id == target_session_ids[0]),
+        None,
+    )
+    if session is None:
+        diagnostics.error("target_session_ids", "Unknown target session")
+        return diagnostics, {}
+    if session.snapshot is None or session.load_state != "loaded":
+        diagnostics.error("target_session_ids", "Target session is not loaded")
+        return diagnostics, {}
+
+    dataset = _read_snapshot_dataset(analysis.root_path, session.snapshot)
+    config = ChartRecipeConfig(
+        recipe_id=recipe_id,
+        title=_parameter_value(
+            parameters,
+            "title",
+            build_recipe_registry(analysis.plugins).get(recipe_id).display_name,
+        ),
+        parameters=parameters,
+    )
+    try:
+        selected_drivers = selected_driver_codes(dataset, config)
+    except ValueError as exc:
+        diagnostics.errors.append(
+            _parameter_diagnostic_error(recipe_parameter_schema(recipe_id), str(exc))
+        )
+        return diagnostics, coverage_bounds(dataset)
+    bounds = validate_coverage_bounds(
+        dataset,
+        config,
+        selected_drivers=selected_drivers,
+        diagnostics=diagnostics,
+        include_distance_range=recipe_id == "telemetry_trace",
+    )
+    return diagnostics, bounds
+
+
 def _parameter_diagnostic_error(
     schema: RecipeParameterSchema,
     message: str,
@@ -1482,7 +1705,9 @@ def _write_snapshot(
 
 def _read_snapshot_dataset(analysis_root: Path, snapshot: DatasetSnapshot) -> SessionDataset:
     path = analysis_root / snapshot.dataset_path
-    return SessionDataset.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    return ensure_track_geometry(
+        SessionDataset.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    )
 
 
 def _write_json(path: Path, payload: Any) -> None:
@@ -1662,6 +1887,15 @@ def _parameter_value(parameters: dict[str, Any], name: str, default: Any) -> Any
         laps = selection.get("laps")
         if isinstance(laps, dict) and "range" in laps:
             return laps["range"]
+    if name == "lap_number":
+        laps = selection.get("laps")
+        if isinstance(laps, dict) and isinstance(laps.get("range"), dict):
+            lap_range = laps["range"]
+            start = lap_range.get("start")
+            end = lap_range.get("end")
+            if start == end:
+                return start
+            return start if start is not None else default
     if name == "series_colors":
         colors = presentation.get("colors")
         if isinstance(colors, dict) and "overrides" in colors:
@@ -1766,6 +2000,43 @@ def _analysis_manifest(
         sessions=[session.model_dump(mode="json") for session in analysis.sessions],
         chart_instances=[chart.model_dump(mode="json") for chart in analysis.charts],
     )
+
+
+def _materialize_package_artifacts(
+    analysis_root: Path,
+    package_dir: Path,
+    manifest: ArtifactManifest,
+) -> None:
+    charts_dir = _resolve_relative_child(package_dir, "charts")
+    if charts_dir.exists():
+        if not charts_dir.is_dir():
+            raise ValueError(f"Package charts path is not a directory: {charts_dir}")
+        shutil.rmtree(charts_dir)
+    charts_dir.mkdir(parents=True, exist_ok=True)
+
+    for artifact in manifest.artifacts:
+        for relative_path in (artifact.image_path, artifact.metadata_path):
+            if not relative_path:
+                continue
+            source = _resolve_relative_child(analysis_root, relative_path)
+            if not source.exists() or not source.is_file():
+                raise ValueError(f"Generated chart asset is missing: {relative_path}")
+            destination = _resolve_relative_child(package_dir, relative_path)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+
+
+def _resolve_relative_child(root: Path, relative_path: str) -> Path:
+    path = Path(relative_path)
+    if path.is_absolute():
+        raise ValueError(f"Expected a relative package path: {relative_path}")
+    root_resolved = root.resolve()
+    candidate = (root_resolved / path).resolve()
+    try:
+        candidate.relative_to(root_resolved)
+    except ValueError as exc:
+        raise ValueError(f"Path escapes root: {relative_path}") from exc
+    return candidate
 
 
 def _global_preset_root() -> Path:

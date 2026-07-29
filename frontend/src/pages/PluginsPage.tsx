@@ -18,37 +18,47 @@ export function PluginsPage({ plugins, validatePlugins, setSelected }: PluginsPa
   const [enabled, setEnabled] = useState(false);
   const [entryPointsEnabled, setEntryPointsEnabled] = useState(false);
   const [pluginPaths, setPluginPaths] = useState("");
+  const [validationPending, setValidationPending] = useState(false);
   const localPaths = useMemo(() => pluginPaths.split(/\r?\n/).map((path) => path.trim()).filter(Boolean), [pluginPaths]);
   const recipes = plugins.flatMap((plugin) => plugin.recipes.map((recipe) => ({ ...recipe, plugin_id: plugin.plugin_id, source: plugin.display_name ?? plugin.plugin_id, available: plugin.status === "valid" })));
+
+  async function runValidation() {
+    setValidationPending(true);
+    try {
+      await validatePlugins(enabled, localPaths, entryPointsEnabled);
+    } finally {
+      setValidationPending(false);
+    }
+  }
 
   return (
     <div className="grid gap-4">
       <Panel
-        title="Plugin Sources"
+        title="Extension Sources"
         actions={
-          <Button variant="primary" icon={<RefreshCw className="h-4 w-4" />} onClick={() => validatePlugins(enabled, localPaths, entryPointsEnabled)}>
-            Validate Plugins
+          <Button variant="primary" icon={<RefreshCw className="h-4 w-4" />} onClick={runValidation} loading={validationPending}>
+            Validate Extensions
           </Button>
         }
       >
         <div className="grid gap-3 lg:grid-cols-[320px_minmax(0,1fr)]">
           <div className="grid gap-3">
-            <CheckboxField label="Enable plugins" checked={enabled} onCheckedChange={setEnabled} />
+            <CheckboxField label="Enable extensions" checked={enabled} onCheckedChange={setEnabled} />
             <CheckboxField label="Discover entry points" checked={entryPointsEnabled} onCheckedChange={setEntryPointsEnabled} />
           </div>
-          <TextAreaField label="Local plugin paths" value={pluginPaths} onChange={(event) => setPluginPaths(event.target.value)} placeholder="C:\\path\\to\\plugin" />
+          <TextAreaField label="Local extension paths" value={pluginPaths} onChange={(event) => setPluginPaths(event.target.value)} placeholder="C:\\path\\to\\extension" />
         </div>
       </Panel>
 
-      <Panel title="Plugin Status">
+      <Panel title="Extension Status">
         {plugins.length === 0 ? (
-          <div className="rounded-md border border-dashed border-line bg-slate-50 p-8 text-center text-sm text-muted">No plugin validation results yet.</div>
+          <div className="rounded-md border border-dashed border-line bg-slate-50 p-8 text-center text-sm text-muted">No optional extensions configured. Built-in chart templates are available.</div>
         ) : (
           <DataTable>
             <thead>
               <tr>
                 <Th>Status</Th>
-                <Th>Plugin</Th>
+                <Th>Extension</Th>
                 <Th>Source</Th>
                 <Th>Recipes</Th>
                 <Th>Errors</Th>
@@ -69,9 +79,9 @@ export function PluginsPage({ plugins, validatePlugins, setSelected }: PluginsPa
         )}
       </Panel>
 
-      <Panel title="Plugin Recipes">
+      <Panel title="Available Chart Templates">
         {recipes.length === 0 ? (
-          <p className="text-sm text-muted">No recipes</p>
+          <p className="text-sm text-muted">No optional extension templates</p>
         ) : (
           <DataTable>
             <thead>
@@ -79,7 +89,7 @@ export function PluginsPage({ plugins, validatePlugins, setSelected }: PluginsPa
                 <Th>Availability</Th>
                 <Th>Recipe ID</Th>
                 <Th>Name</Th>
-                <Th>Plugin</Th>
+                <Th>Extension</Th>
                 <Th>Required Data</Th>
               </tr>
             </thead>

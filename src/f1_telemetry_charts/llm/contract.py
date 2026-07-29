@@ -141,7 +141,10 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
         return _invalid_request("analysis_path is required.")
     try:
         service = AnalysisService(analysis_path)
-        view = service.view(service.open())
+        analysis = service.open()
+        view = service.view(analysis)
+        coverage = service.coverage_bounds(analysis)
+        track_map_summaries = _track_map_summaries(service, analysis)
     except Exception as exc:
         return {
             "contract_version": CONTRACT_VERSION,
@@ -169,6 +172,8 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
         "global_presets": [
             preset.model_dump(mode="json") for preset in view.global_presets
         ],
+        "coverage_bounds": coverage,
+        "track_map_summaries": track_map_summaries,
     }
 
 
@@ -234,6 +239,38 @@ def _invalid_request(message: str) -> dict[str, Any]:
         "status": "invalid_request",
         "error": {"code": "missing_required_field", "message": message},
     }
+
+
+def _track_map_summaries(service: AnalysisService, analysis: Any) -> list[dict[str, Any]]:
+    summaries: list[dict[str, Any]] = []
+    for chart in analysis.charts:
+        if chart.recipe_id != "telemetry_trace":
+            continue
+        try:
+            payload = service.track_map(
+                analysis,
+                recipe_id=chart.recipe_id,
+                target_session_ids=chart.target_session_ids,
+                parameters=chart.parameters,
+                max_points=2,
+            ).model_dump(mode="json")
+        except Exception as exc:
+            payload = {
+                "status": "invalid",
+                "recipe_id": chart.recipe_id,
+                "session_id": chart.target_session_ids[0]
+                if chart.target_session_ids
+                else None,
+                "diagnostics": [{"field": "track_map", "message": str(exc)}],
+            }
+        payload.pop("points", None)
+        summaries.append(
+            {
+                "chart_instance_id": chart.chart_instance_id,
+                **payload,
+            }
+        )
+    return summaries
 
 
 def _load_request_config(request_json: dict[str, Any]):

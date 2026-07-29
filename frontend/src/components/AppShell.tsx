@@ -4,7 +4,7 @@ import type { Page } from "../types";
 import { cn } from "../lib/utils";
 
 const navItems: { page: Page; label: string; icon: ReactNode }[] = [
-  { page: "plugins", label: "Plugins", icon: <Plug className="h-4 w-4" /> },
+  { page: "plugins", label: "Extensions", icon: <Plug className="h-4 w-4" /> },
   { page: "history", label: "Run History", icon: <History className="h-4 w-4" /> }
 ];
 

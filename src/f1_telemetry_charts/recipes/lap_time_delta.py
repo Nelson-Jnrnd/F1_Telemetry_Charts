@@ -13,11 +13,13 @@ from f1_telemetry_charts.recipes.parameters import (
     box_lap_policy,
     effective_configuration_metadata,
     effective_lap_range,
+    first_diagnostic_error,
     missing_series_policy,
     parameter_value,
+    resolve_driver_style,
     selected_driver_codes,
     series_policy_action,
-    series_color,
+    validate_coverage_bounds,
 )
 
 
@@ -53,8 +55,14 @@ class LapTimeDeltaRecipe:
             require_lap_time=True,
             box_policy=box_policy,
         )
+        coverage = validate_coverage_bounds(
+            dataset,
+            config,
+            selected_drivers=driver_codes,
+            diagnostics=lap_result.diagnostics,
+        )
         if lap_result.diagnostics.errors:
-            raise ValueError(lap_result.diagnostics.errors[0]["message"])
+            raise ValueError(first_diagnostic_error(lap_result.diagnostics))
         diagnostics = lap_result.diagnostics
         policy = missing_series_policy(config)
         laps = [
@@ -92,7 +100,10 @@ class LapTimeDeltaRecipe:
             }
 
         series: list[SeriesSpec] = []
+        style_sources: dict[str, dict[str, object]] = {"drivers": {}}
         for driver_code in driver_codes:
+            resolved_style = resolve_driver_style(dataset, config, driver_code, diagnostics)
+            style_sources["drivers"][driver_code] = resolved_style.as_metadata()
             driver_laps = [
                 lap
                 for lap in laps
@@ -128,12 +139,12 @@ class LapTimeDeltaRecipe:
                         label=driver_code,
                         x=x_values,
                         y=y_values,
-                        color=series_color(config, driver_code),
+                        color=resolved_style.color,
                     )
                 )
 
         if diagnostics.errors:
-            raise ValueError(diagnostics.errors[0]["message"])
+            raise ValueError(first_diagnostic_error(diagnostics))
         if not series:
             raise ValueError("lap_time_delta could not build any driver series")
 
@@ -172,6 +183,8 @@ class LapTimeDeltaRecipe:
                     box_policy=box_policy,
                     diagnostics=diagnostics,
                     filters=lap_result.effective,
+                    coverage=coverage,
+                    style_sources=style_sources,
                     extra_effective={
                         "analysis": {
                             "baseline_mode": baseline_mode,

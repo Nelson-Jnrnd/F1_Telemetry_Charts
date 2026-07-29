@@ -57,14 +57,14 @@ export function DetailPanel({ selected }: { selected: SelectedDetail | null }) {
   if (selected.kind === "plugin") {
     const plugin = selected.value;
     return (
-      <Panel title="Plugin Detail" actions={<StatusBadge value={plugin.status} />}>
+      <Panel title="Extension Detail" actions={<StatusBadge value={plugin.status} />}>
         <dl>
-          <Field label="Plugin ID" value={plugin.plugin_id} />
+          <Field label="Extension ID" value={plugin.plugin_id} />
           <Field label="Name" value={plugin.display_name} />
           <Field label="Version" value={plugin.version} />
           <Field label="Provider" value={plugin.provider} />
           <Field label="Source" value={`${plugin.source_type}: ${compactPath(plugin.source_location)}`} />
-          <Field label="Recipes" value={plugin.recipes.map((recipe) => recipe.recipe_id)} />
+          <Field label="Templates" value={plugin.recipes.map((recipe) => recipe.recipe_id)} />
           <Field label="Errors" value={plugin.errors} />
           <Field label="Warnings" value={plugin.warnings} />
         </dl>
@@ -75,11 +75,11 @@ export function DetailPanel({ selected }: { selected: SelectedDetail | null }) {
   if (selected.kind === "recipe") {
     const recipe = selected.value;
     return (
-      <Panel title="Recipe Detail">
+      <Panel title="Chart Template Detail">
         <dl>
-          <Field label="Recipe ID" value={recipe.recipe_id} />
+          <Field label="Template ID" value={recipe.recipe_id} />
           <Field label="Name" value={recipe.display_name} />
-          <Field label="Plugin" value={recipe.plugin_id ?? recipe.source ?? "core"} />
+          <Field label="Extension" value={recipe.plugin_id ?? recipe.source ?? "core"} />
           <Field label="Required Data" value={recipe.required_dataset_fields ?? []} />
           <Field label="Outputs" value={recipe.output_artifact_types ?? []} />
           <Field label="Factory" value={recipe.factory ?? "core"} />

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse, HTMLResponse
@@ -22,6 +23,7 @@ from f1_telemetry_charts.analysis.workspace import (
     AnalysisView,
     ParameterDiagnosticsView,
     PresetScope,
+    TrackMapPayload,
     list_recipe_metadata_payloads,
 )
 from f1_telemetry_charts.config.loader import load_config
@@ -89,6 +91,20 @@ class AnalysisCreateRequest(AnalysisPathRequest):
     name: str = "Untitled Analysis"
 
 
+class AnalysisDirectoryPickRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    initial_path: Path | None = None
+
+
+class AnalysisDirectoryPickResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["selected", "cancelled", "unavailable"]
+    path: str | None = None
+    message: str | None = None
+
+
 class AnalysisSessionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -132,6 +148,16 @@ class AnalysisChartDiagnosticsRequest(BaseModel):
     template_id: str | None = None
     target_session_ids: list[str] = Field(min_length=1)
     parameters: dict = Field(default_factory=dict)
+
+
+class AnalysisTrackMapRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    recipe_id: str | None = None
+    template_id: str | None = None
+    target_session_ids: list[str] = Field(min_length=1)
+    parameters: dict = Field(default_factory=dict)
+    max_points: int = Field(default=500, ge=2, le=1200)
 
 
 class PresetSaveRequest(BaseModel):
@@ -323,6 +349,11 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
         service = _require_analysis_service(state["analysis_path"])
         return service.view()
 
+    @app.get("/api/analysis/coverage")
+    def get_analysis_coverage() -> dict:
+        service = _require_analysis_service(state["analysis_path"])
+        return service.coverage_bounds(service.open())
+
     @app.post("/api/analysis/create", response_model=AnalysisView)
     def create_analysis_endpoint(request: AnalysisCreateRequest) -> AnalysisView:
         service = AnalysisService(request.path)
@@ -336,6 +367,24 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
         analysis = service.open()
         state["analysis_path"] = analysis.root_path
         return service.view(analysis)
+
+    @app.post("/api/analysis/pick-directory", response_model=AnalysisDirectoryPickResponse)
+    def pick_analysis_directory_endpoint(
+        request: AnalysisDirectoryPickRequest,
+    ) -> AnalysisDirectoryPickResponse:
+        try:
+            selected_path = _pick_analysis_directory(request.initial_path)
+        except RuntimeError as exc:
+            return AnalysisDirectoryPickResponse(
+                status="unavailable",
+                message=str(exc),
+            )
+        if selected_path is None:
+            return AnalysisDirectoryPickResponse(status="cancelled")
+        return AnalysisDirectoryPickResponse(
+            status="selected",
+            path=str(selected_path),
+        )
 
     @app.post("/api/analysis/save", response_model=AnalysisView)
     def save_analysis_endpoint() -> AnalysisView:
@@ -459,6 +508,21 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
             parameters=request.parameters,
         )
 
+    @app.post("/api/analysis/track-map", response_model=TrackMapPayload)
+    def get_analysis_track_map(request: AnalysisTrackMapRequest) -> TrackMapPayload:
+        service = _require_analysis_service(state["analysis_path"])
+        recipe_id = _request_template_id(request.recipe_id, request.template_id)
+        try:
+            return service.track_map(
+                service.open(),
+                recipe_id=recipe_id,
+                target_session_ids=request.target_session_ids,
+                parameters=request.parameters,
+                max_points=request.max_points,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     @app.post("/api/analysis/review/refresh", response_model=AnalysisView)
     def refresh_analysis_review() -> AnalysisView:
         service = _require_analysis_service(state["analysis_path"])
@@ -559,6 +623,57 @@ def _optional_analysis_service(analysis_path: Path | None) -> AnalysisService | 
     if analysis_path is None:
         return None
     return AnalysisService(analysis_path)
+
+
+def _pick_analysis_directory(initial_path: Path | None = None) -> Path | None:
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception as exc:  # pragma: no cover - depends on local Python build.
+        raise RuntimeError("Native folder picker is unavailable.") from exc
+
+    try:
+        root = tk.Tk()
+        root.withdraw()
+    except Exception as exc:
+        raise RuntimeError("Native folder picker is unavailable.") from exc
+
+    try:
+        root.attributes("-topmost", True)
+    except tk.TclError:
+        pass
+
+    options = {
+        "title": "Open Analysis",
+        "mustexist": True,
+        "parent": root,
+    }
+    initial_directory = _existing_picker_directory(initial_path)
+    if initial_directory is not None:
+        options["initialdir"] = str(initial_directory)
+
+    try:
+        selected = filedialog.askdirectory(**options)
+    except Exception as exc:
+        raise RuntimeError("Native folder picker failed.") from exc
+    finally:
+        root.destroy()
+
+    return Path(selected).resolve() if selected else None
+
+
+def _existing_picker_directory(path: Path | None) -> Path | None:
+    if path is None:
+        return None
+    candidate = path.expanduser()
+    if candidate.is_file():
+        return candidate.parent.resolve()
+    if candidate.is_dir():
+        return candidate.resolve()
+    for parent in candidate.parents:
+        if parent.is_dir():
+            return parent.resolve()
+    return None
 
 
 def _request_template_id(recipe_id: str | None, template_id: str | None) -> str:

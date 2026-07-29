@@ -8,11 +8,13 @@ from collections import defaultdict
 from pathlib import Path
 from unittest.mock import patch
 
-from f1_telemetry_charts.data import DataGatewayError, SessionQuery
+from f1_telemetry_charts.data import DataGatewayError, SessionQuery, TelemetrySample
 from f1_telemetry_charts.data.gateways import FastF1SessionGateway
 from f1_telemetry_charts.data.gateways.fastf1 import (
     _lap_records_from_laps,
+    _merge_position_columns,
     _percentage_or_none,
+    _session_to_dataset,
     _telemetry_samples_from_lap_methods,
     _telemetry_samples_from_laps,
 )
@@ -39,8 +41,24 @@ class FastF1GatewayTests(unittest.TestCase):
         self.assertEqual(dataset.metadata.event, "Bahrain Grand Prix")
         self.assertEqual(dataset.provenance.provider, "FastF1")
         self.assertEqual(dataset.drivers[0].abbreviation, "VER")
+        self.assertEqual(dataset.style.driver_colors["VER"].color, "#112233")
+        self.assertEqual(
+            dataset.style.driver_colors["VER"].source,
+            "fastf1_driver_color",
+        )
+        self.assertEqual(dataset.style.compound_colors["SOFT"].color, "#DA291C")
+        self.assertEqual(
+            dataset.style.compound_colors["SOFT"].source,
+            "fastf1_compound_mapping",
+        )
         self.assertEqual(dataset.laps[0].lap_time_seconds, 96.0)
         self.assertEqual(dataset.weather[0].air_temp_c, 26.0)
+        self.assertIsNotNone(dataset.circuit_info)
+        assert dataset.circuit_info is not None
+        self.assertEqual(dataset.circuit_info.source, "fastf1_circuit_info")
+        self.assertEqual(dataset.circuit_info.rotation_degrees, 42.0)
+        self.assertEqual([corner.label for corner in dataset.circuit_info.corners], ["1", "2A"])
+        self.assertEqual(dataset.circuit_info.corners[1].distance_m, 125.0)
         self.assertEqual(dataset.missing_data[0].field, "telemetry")
 
     def test_fastf1_gateway_records_cache_only_provenance(self) -> None:
@@ -70,6 +88,51 @@ class FastF1GatewayTests(unittest.TestCase):
 
         self.assertEqual([driver.abbreviation for driver in dataset.drivers], ["VER", "PER"])
         self.assertEqual({lap.driver for lap in dataset.laps}, {"VER", "PER"})
+
+    def test_fastf1_canonical_geometry_uses_unfiltered_loaded_session(self) -> None:
+        session = _FakeSession()
+        query = SessionQuery(
+            season=2023,
+            event="Bahrain Grand Prix",
+            session="Race",
+            drivers=["PER"],
+        )
+
+        def telemetry_for_laps(laps, *, session):
+            drivers = {row["Driver"] for row in laps._rows}
+            if drivers == {"PER"}:
+                return [
+                    TelemetrySample(
+                        driver="PER",
+                        lap_number=1,
+                        distance_m=0,
+                        speed_kph=200,
+                    )
+                ]
+            return [
+                TelemetrySample(driver="VER", lap_number=1, distance_m=0, x=0, y=0),
+                TelemetrySample(driver="VER", lap_number=1, distance_m=100, x=10, y=5),
+                TelemetrySample(driver="VER", lap_number=1, distance_m=200, x=20, y=0),
+                TelemetrySample(driver="PER", lap_number=1, distance_m=0, speed_kph=200),
+            ]
+
+        with patch(
+            "f1_telemetry_charts.data.gateways.fastf1._telemetry_samples_from_laps",
+            side_effect=telemetry_for_laps,
+        ):
+            dataset = _session_to_dataset(
+                session=session,
+                query=query,
+                cache_only=False,
+                fastf1_module=_fake_fastf1_module(),
+            )
+
+        self.assertEqual([driver.abbreviation for driver in dataset.drivers], ["PER"])
+        self.assertEqual({sample.driver for sample in dataset.telemetry}, {"PER"})
+        self.assertIsNotNone(dataset.track_geometry)
+        assert dataset.track_geometry is not None
+        self.assertEqual(dataset.track_geometry.source_driver, "VER")
+        self.assertEqual(dataset.track_geometry.source_lap, 1)
 
     def test_fastf1_percentage_channels_are_clamped_to_model_range(self) -> None:
         self.assertEqual(_percentage_or_none(104.0), 100.0)
@@ -107,6 +170,43 @@ class FastF1GatewayTests(unittest.TestCase):
         self.assertFalse(records[0].is_generated)
         self.assertIsNone(records[0].is_accurate)
         self.assertIsNone(records[0].sector_1_time_seconds)
+
+    def test_fastf1_position_columns_merge_into_telemetry(self) -> None:
+        try:
+            import pandas as pd
+        except ImportError:
+            self.skipTest("pandas is not installed")
+
+        telemetry = pd.DataFrame(
+            {
+                "SessionTime": [
+                    pd.Timedelta(seconds=0),
+                    pd.Timedelta(seconds=1),
+                ],
+                "Speed": [200, 210],
+                "Throttle": [80, 90],
+                "Brake": [False, False],
+                "nGear": [6, 7],
+            }
+        )
+        position = pd.DataFrame(
+            {
+                "SessionTime": [
+                    pd.Timedelta(seconds=0),
+                    pd.Timedelta(seconds=1),
+                ],
+                "X": [10.0, 20.0],
+                "Y": [30.0, 40.0],
+                "Z": [1.0, 2.0],
+                "Status": ["OnTrack", "OnTrack"],
+            }
+        )
+
+        merged = _merge_position_columns(telemetry, position, pd_module=pd)
+
+        self.assertEqual(merged["X"].tolist(), [10.0, 20.0])
+        self.assertEqual(merged["Y"].tolist(), [30.0, 40.0])
+        self.assertEqual(merged["PositionStatus"].tolist(), ["OnTrack", "OnTrack"])
 
     def test_grouped_telemetry_matches_fastf1_lap_methods_for_cached_smoke(self) -> None:
         cache_dir = Path(".cache/fastf1-smoke")
@@ -171,8 +271,19 @@ def _fake_fastf1_module():
         enable_cache=lambda _: None,
         offline_mode=lambda enabled: module._offline_modes.append(enabled),
     )
+    module.plotting = types.SimpleNamespace(
+        get_driver_color=_fake_driver_color,
+        get_team_color=lambda *_args, **_kwargs: "#445566",
+        get_compound_mapping=lambda **_kwargs: {"SOFT": "#DA291C"},
+    )
     module.get_session = lambda *_: _FakeSession()
     return module
+
+
+def _fake_driver_color(identifier: str, **_: object) -> str:
+    if identifier == "VER":
+        return "112233"
+    raise KeyError(identifier)
 
 
 def _samples_by_lap(samples):
@@ -243,6 +354,35 @@ class _FakeSession:
 
     def load(self, **_: object) -> None:
         return None
+
+    def get_circuit_info(self):
+        return _FakeCircuitInfo()
+
+
+class _FakeCircuitInfo:
+    rotation = 42.0
+
+    def __init__(self) -> None:
+        self.corners = _FakeRows(
+            [
+                {
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Number": 1,
+                    "Letter": "",
+                    "Angle": 10.0,
+                    "Distance": 0.0,
+                },
+                {
+                    "X": 80.0,
+                    "Y": 45.0,
+                    "Number": 2,
+                    "Letter": "A",
+                    "Angle": 20.0,
+                    "Distance": 125.0,
+                },
+            ]
+        )
 
 
 class _FakeRows:

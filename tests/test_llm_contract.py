@@ -92,7 +92,24 @@ class LlmContractTests(unittest.TestCase):
                 target_session_ids=[analysis.sessions[0].session_id],
                 parameters={"title": "Initial"},
             )
+            analysis = service.add_chart(
+                analysis,
+                recipe_id="telemetry_trace",
+                target_session_ids=[analysis.sessions[0].session_id],
+                parameters={
+                    "selection": {
+                        "driver_selection_mode": "selected",
+                        "drivers": ["VER"],
+                    },
+                    "analysis": {
+                        "metric": "speed_kph",
+                        "distance_range_m": {"start": 50, "end": 150},
+                    },
+                    "chart": {"title": "Telemetry"},
+                },
+            )
             chart_id = analysis.charts[0].chart_instance_id
+            telemetry_chart_id = analysis.charts[1].chart_instance_id
 
             inspected = inspect_analysis(
                 {"contract_version": "1.0", "analysis_path": str(root)}
@@ -102,7 +119,21 @@ class LlmContractTests(unittest.TestCase):
             self.assertTrue(inspected["templates"])
             self.assertIn("parameter_schema", inspected["templates"][0])
             self.assertTrue(inspected["recipe_schemas"])
+            self.assertEqual(
+                inspected["coverage_bounds"]["sessions"][analysis.sessions[0].session_id]["laps"]["maximum"],
+                2,
+            )
+            self.assertTrue(
+                inspected["coverage_bounds"]["sessions"][analysis.sessions[0].session_id]["track_map"]["available"]
+            )
             self.assertEqual(inspected["chart_instances"][0]["chart_instance_id"], chart_id)
+            self.assertEqual(len(inspected["track_map_summaries"]), 1)
+            track_map_summary = inspected["track_map_summaries"][0]
+            self.assertEqual(track_map_summary["chart_instance_id"], telemetry_chart_id)
+            self.assertEqual(track_map_summary["status"], "available")
+            self.assertEqual(track_map_summary["source_driver"], "VER")
+            self.assertEqual(track_map_summary["segment"]["start_distance_m"], 50)
+            self.assertNotIn("points", track_map_summary)
 
             updated = update_analysis_chart_parameters(
                 {
@@ -116,6 +147,24 @@ class LlmContractTests(unittest.TestCase):
             chart = updated["analysis"]["charts"][0]
             self.assertEqual(chart["parameters"]["chart"]["title"], "Updated")
             self.assertTrue(chart["stale"])
+
+            rejected = update_analysis_chart_parameters(
+                {
+                    "contract_version": "1.0",
+                    "analysis_path": str(root / "analysis.json"),
+                    "chart_instance_id": chart_id,
+                    "parameters": {
+                        "selection": {
+                            "driver_selection_mode": "selected",
+                            "drivers": ["VER"],
+                            "lap_range": {"start": 1, "end": 99},
+                        }
+                    },
+                }
+            )
+            self.assertEqual(rejected["status"], "failed")
+            self.assertEqual(rejected["error"]["code"], "analysis_update_failed")
+            self.assertIn("lap_range", rejected["error"]["message"])
 
 
 def _config_payload(output_root: Path) -> dict:

@@ -1,18 +1,27 @@
 from f1_telemetry_charts.data.gateways.base import DataGatewayError, SessionDataGateway
 from f1_telemetry_charts.data.models import (
+    CircuitCorner,
+    CircuitInfo,
     DriverMetadata,
     LapRecord,
     MissingDataField,
     SessionDataset,
     SessionMetadata,
     SessionQuery,
+    SessionStyleMetadata,
     SourceProvenance,
+    StyleColor,
     TelemetrySample,
+    TrackGeometry,
+    TrackGeometryBounds,
+    TrackGeometryPoint,
     WeatherSample,
 )
 
 __all__ = [
     "DataGatewayError",
+    "CircuitCorner",
+    "CircuitInfo",
     "DriverMetadata",
     "LapRecord",
     "MissingDataField",
@@ -20,7 +29,12 @@ __all__ = [
     "SessionDataset",
     "SessionMetadata",
     "SessionQuery",
+    "SessionStyleMetadata",
     "SourceProvenance",
+    "StyleColor",
     "TelemetrySample",
+    "TrackGeometry",
+    "TrackGeometryBounds",
+    "TrackGeometryPoint",
     "WeatherSample",
 ]

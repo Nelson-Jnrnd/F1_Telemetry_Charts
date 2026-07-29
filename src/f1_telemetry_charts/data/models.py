@@ -44,6 +44,23 @@ class DriverMetadata(BaseModel):
     team_color: str | None = None
 
 
+class StyleColor(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    color: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+    label: str | None = None
+    fallback: bool = False
+
+
+class SessionStyleMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    driver_colors: dict[str, StyleColor] = Field(default_factory=dict)
+    team_colors: dict[str, StyleColor] = Field(default_factory=dict)
+    compound_colors: dict[str, StyleColor] = Field(default_factory=dict)
+
+
 class LapRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -70,10 +87,66 @@ class TelemetrySample(BaseModel):
     driver: str = Field(min_length=1)
     lap_number: int = Field(ge=1)
     distance_m: float = Field(ge=0)
+    x: float | None = None
+    y: float | None = None
+    z: float | None = None
+    position_status: str | None = None
     speed_kph: float | None = None
     throttle_percent: float | None = Field(default=None, ge=0, le=100)
     brake: bool | None = None
     gear: int | None = None
+
+
+class TrackGeometryPoint(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    distance_m: float = Field(ge=0)
+    x: float
+    y: float
+
+
+class TrackGeometryBounds(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    minimum: float
+    maximum: float
+
+
+class TrackGeometry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    source_driver: str = Field(min_length=1)
+    source_lap: int = Field(ge=1)
+    points: list[TrackGeometryPoint] = Field(min_length=2)
+    original_sample_count: int = Field(ge=2)
+    point_count: int = Field(ge=2)
+    downsampled: bool = False
+    distance_bounds: TrackGeometryBounds
+    x_bounds: TrackGeometryBounds
+    y_bounds: TrackGeometryBounds
+
+
+class CircuitCorner(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    number: int = Field(ge=1)
+    letter: str | None = None
+    label: str = Field(min_length=1)
+    x: float
+    y: float
+    angle_degrees: float | None = None
+    distance_m: float | None = Field(default=None, ge=0)
+
+
+class CircuitInfo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    rotation_degrees: float | None = None
+    corners: list[CircuitCorner] = Field(default_factory=list)
 
 
 class WeatherSample(BaseModel):
@@ -110,6 +183,9 @@ class SessionDataset(BaseModel):
     laps: list[LapRecord]
     telemetry: list[TelemetrySample] = Field(default_factory=list)
     weather: list[WeatherSample] = Field(default_factory=list)
+    style: SessionStyleMetadata = Field(default_factory=SessionStyleMetadata)
+    track_geometry: TrackGeometry | None = None
+    circuit_info: CircuitInfo | None = None
     provenance: SourceProvenance
     missing_data: list[MissingDataField] = Field(default_factory=list)
 

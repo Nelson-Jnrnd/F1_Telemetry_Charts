@@ -6,6 +6,7 @@ import type {
   PluginStatus,
   ProjectConfigForm,
   ReviewStatus,
+  TrackMapPayload,
   ValidationResponse
 } from "./types";
 
@@ -99,6 +100,10 @@ export function getAnalysis() {
   return request<AnalysisView>("/api/analysis");
 }
 
+export function getAnalysisCoverage() {
+  return request<Record<string, unknown>>("/api/analysis/coverage");
+}
+
 export function createAnalysis(path: string, name: string) {
   return request<AnalysisView>("/api/analysis/create", {
     method: "POST",
@@ -112,6 +117,14 @@ export function openAnalysis(path: string) {
     method: "POST",
     headers: jsonHeaders,
     body: JSON.stringify({ path })
+  });
+}
+
+export function pickAnalysisDirectory(initialPath?: string | null) {
+  return request<{ status: "selected" | "cancelled" | "unavailable"; path?: string | null; message?: string | null }>("/api/analysis/pick-directory", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ initial_path: initialPath ?? null })
   });
 }
 
@@ -171,6 +184,14 @@ export function generateAnalysisCharts(chartIds?: string[]) {
 
 export function resolveAnalysisChartDiagnostics(payload: { template_id: string; recipe_id?: string; target_session_ids: string[]; parameters?: Record<string, unknown> }) {
   return request<ParameterDiagnostics>("/api/analysis/charts/diagnostics", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
+export function getAnalysisTrackMap(payload: { template_id: string; recipe_id?: string; target_session_ids: string[]; parameters?: Record<string, unknown>; max_points?: number }) {
+  return request<TrackMapPayload>("/api/analysis/track-map", {
     method: "POST",
     headers: jsonHeaders,
     body: JSON.stringify(payload)
