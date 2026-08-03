@@ -269,6 +269,12 @@ def build_playback_payload(
             "track_geometry_source": {
                 "source_driver": dataset.track_geometry.source_driver,
                 "source_lap": dataset.track_geometry.source_lap,
+                "algorithm_version": dataset.track_geometry.algorithm_version,
+                "aggregation_method": dataset.track_geometry.aggregation_method,
+                "contributing_driver_count": dataset.track_geometry.contributing_driver_count,
+                "contributing_lap_count": dataset.track_geometry.contributing_lap_count,
+                "original_closure_gap": dataset.track_geometry.original_closure_gap,
+                "closure_adjusted": dataset.track_geometry.closure_adjusted,
                 "original_sample_count": dataset.track_geometry.original_sample_count,
                 "point_count": len(points),
                 "downsampled": dataset.track_geometry.downsampled or len(points) < len(source_points),

@@ -387,6 +387,16 @@ def coverage_bounds(
             "positioned_sample_count": track_geometry.original_sample_count
             if track_geometry is not None
             else 0,
+            "geometry": {
+                "algorithm_version": track_geometry.algorithm_version,
+                "aggregation_method": track_geometry.aggregation_method,
+                "contributing_driver_count": track_geometry.contributing_driver_count,
+                "contributing_lap_count": track_geometry.contributing_lap_count,
+                "original_closure_gap": track_geometry.original_closure_gap,
+                "closure_adjusted": track_geometry.closure_adjusted,
+            }
+            if track_geometry is not None
+            else None,
             "corners": {
                 "available": corner_count > 0,
                 "count": corner_count,

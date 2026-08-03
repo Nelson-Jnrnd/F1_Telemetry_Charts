@@ -131,7 +131,11 @@ class LlmContractTests(unittest.TestCase):
             track_map_summary = inspected["track_map_summaries"][0]
             self.assertEqual(track_map_summary["chart_instance_id"], telemetry_chart_id)
             self.assertEqual(track_map_summary["status"], "available")
-            self.assertEqual(track_map_summary["source_driver"], "VER")
+            self.assertIsNone(track_map_summary["source_driver"])
+            self.assertEqual(
+                track_map_summary["geometry_metadata"]["aggregation_method"],
+                "per_driver_then_session_coordinate_median",
+            )
             self.assertEqual(track_map_summary["segment"]["start_distance_m"], 50)
             self.assertNotIn("points", track_map_summary)
             self.assertEqual(len(inspected["playback_summaries"]), 1)

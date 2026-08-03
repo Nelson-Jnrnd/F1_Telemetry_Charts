@@ -1020,7 +1020,7 @@ without changing plugin trust boundaries or allowing code authoring.
 | REQ-003 | Session coverage bounds | Snapshot-derived lap/distance/time/map availability bounds | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented for Slice 1 bounds |
 | REQ-004 | Bounded lap range controls | Backend bounds validation plus frontend min/max and diagnostics | `src/f1_telemetry_charts/analysis/workspace.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented in Slice 1 |
 | REQ-005 | Bounded telemetry distance controls | Telemetry distance bounds validation plus frontend min/max and diagnostics | `src/f1_telemetry_charts/recipes/telemetry_trace.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_core_recipes.py`; `tests/test_analysis_workspace.py` | Implemented in Slice 1 |
-| REQ-006 | Track geometry extraction | FastF1 position X/Y/Z capture, persisted session-level canonical track geometry, and downsampled projected map payload builder | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/track_geometry.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `tests/test_track_geometry.py`; `tests/test_fastf1_gateway.py`; `tests/test_analysis_workspace.py` | Implemented in Slice 2 |
+| REQ-006 | Track geometry extraction | FastF1 position X/Y/Z capture, versioned equal-driver session median geometry with normalized-progress resampling and smooth seam closure, legacy snapshot rebuild, and downsampled projected map payload builder | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/track_geometry.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `tests/test_track_geometry.py`; `tests/test_fastf1_gateway.py`; `tests/test_analysis_workspace.py` | Implemented through AMEND-024 |
 | REQ-007 | Visual telemetry range selector | Workbench telemetry Track Selector dialog is available during Add Chart draft creation and existing chart editing, with SVG trace, highlighted segment, start/end markers, sliders, numeric fields, reset/apply/cancel | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `frontend/src/api.ts`; `frontend/src/types.ts`; browser smoke check | Implemented in Slice 2 |
 | REQ-008 | Automatic corner selector | FastF1 circuit info capture, projected corner markers, corner list, fixed-meter padding controls, and `corner_selector` selection metadata | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_fastf1_gateway.py`; `tests/test_track_geometry.py`; `tests/test_analysis_workspace.py` | Implemented in Slice 3 |
 | REQ-009 | Corner fallback behavior | Missing or unprojectable circuit metadata reports corner diagnostics while preserving manual visual distance selection | `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/recipes/parameters.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_track_geometry.py`; `tests/test_analysis_workspace.py` | Implemented in Slice 3 |
@@ -1042,7 +1042,7 @@ without changing plugin trust boundaries or allowing code authoring.
 | SEC-002 | No code authoring surface | Structured style, bounds, range, and LLM parameter APIs only | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/llm/contract.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx` | Implemented for Slice 1 |
 | DATA-001 | Style source metadata | `StyleColor` and `SessionStyleMetadata` plus chart metadata `style_sources` | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_core_recipes.py`; `tests/test_fastf1_gateway.py` | Implemented in Slice 1 |
 | DATA-002 | Coverage bounds model | Structured lap, distance, session-time, and track-map availability bounds | `src/f1_telemetry_charts/recipes/parameters.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented for Slice 1 |
-| DATA-003 | Track geometry model | Pydantic session geometry plus track map point, marker, segment, and payload models with deterministic projection and unavailable/invalid states | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/track_geometry.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/types.ts`; `tests/test_track_geometry.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented in Slice 2 |
+| DATA-003 | Track geometry model | Backward-compatible Pydantic geometry with algorithm/aggregation/closure metadata plus bounded track map point, marker, segment, and payload models with deterministic projection and unavailable/invalid states | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/track_geometry.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/types.ts`; `tests/test_track_geometry.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented through AMEND-024 |
 | DATA-004 | Corner marker model | Pydantic circuit corner/session circuit info plus projected track-map corner payload model | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/types.ts`; `tests/test_track_geometry.py`; `tests/test_fastf1_gateway.py` | Implemented in Slice 3 |
 | DATA-005 | Playback frame model | Pydantic playback payload/frame/marker/context models plus persisted timing stream, explicit official lap relations, sparse timing-app records with deterministic current-stint tyre-age fallback, and track-length-derived minisector groups/states with official lap-boundary anchoring for normally sparse telemetry endpoints and matching frontend TypeScript types | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/analysis/playback.py`; `frontend/src/types.ts`; `tests/test_fastf1_gateway.py`; `tests/test_analysis_workspace.py` | Implemented through AMEND-019 |
 | API-001 | Coverage endpoint | `GET /api/analysis/coverage` and LLM inspection coverage payload | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/llm/contract.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented for Slice 1 |
@@ -1122,6 +1122,18 @@ without changing plugin trust boundaries or allowing code authoring.
   track-map and coverage payloads, rendered as selectable markers in the Track
   Selector, and saved as `corner_selector` track segment metadata with editable
   fixed-meter before/after padding.
+- 2026-08-03: AMEND-024 implementation replaces single-best-lap geometry with
+  a two-stage coordinate median across clean full-coverage laps and equally
+  weighted drivers. Geometry version 2 records aggregation and seam metadata,
+  rebuilds legacy snapshots from stored telemetry, and applies a cubic
+  smoothstep correction over the first/last 5% of the lap. Cached 2023 Bahrain
+  Race verification used 889 laps from 20 drivers, produced a 200-point
+  5,339.651 m trace, closed a 207.241-coordinate-unit raw endpoint gap exactly,
+  and retained a 0.401-degree direction change at the seam. Both Track Selector
+  and Race Playback rendered identical first/last coordinates; playback showed
+  20 car markers with no browser console warnings or errors. Full unittest
+  discovery passed with 101 tests, frontend typecheck passed, and governance,
+  specification, and drift validation passed.
 
 ## First slice implementation plan
 
@@ -1803,6 +1815,37 @@ artifact metadata, and tests.
   browser visual/console verification.
 - **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
   2026-08-03 through the explicit instruction to change yellow to `#ddcd35`.
+
+### AMEND-024
+
+- **Date:** 2026-08-03
+- **Reason:** Human review found that canonical geometry derived from one GPS
+  lap leaves a visible start/finish offset and preserves one driver's racing
+  line as the session map. The requested map favors a stable neutral circuit
+  trace over exact reproduction of one positioned lap.
+- **Changed requirements:** Refines REQ-006 and DATA-003. Canonical session
+  geometry must prefer a deterministic two-stage coordinate median built from
+  clean, full-coverage positioned laps: first across each driver's accepted
+  laps and then across drivers with equal driver weight. Accepted laps are
+  resampled by normalized lap progress before aggregation. The resulting trace
+  must use median accepted lap span for distance and must close its
+  start/finish seam with a local smooth correction. Geometry metadata must
+  identify its algorithm version, aggregation method, contributing
+  driver/lap counts, original closure gap, and closure-correction status.
+  Legacy single-lap geometry must be rebuilt from telemetry already present in
+  a loaded snapshot when possible, without fetching FastF1 data.
+- **Behavioral impact:** Track Selector and Race Playback share a smoother,
+  driver-neutral, closed circuit trace. Position samples and analytical
+  telemetry distances remain unchanged; only derived canonical map geometry
+  and its source metadata change.
+- **Test impact:** Add deterministic model coverage for input filtering,
+  normalized resampling, per-driver/session medians, equal driver weighting,
+  seam closure, fallback behavior, metadata, and legacy rebuild. Re-run track
+  map, playback, FastF1 gateway, full repository, governance, specification,
+  drift, and cached Bahrain browser verification.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-08-03 through the explicit request to implement the Median Session
+  Track Geometry plan.
 
 ## Review checklist
 

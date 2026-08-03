@@ -204,6 +204,14 @@ export type TrackMapPayload = {
   selected_drivers: string[];
   source_driver?: string | null;
   source_lap?: number | null;
+  geometry_metadata: {
+    algorithm_version?: number;
+    aggregation_method?: string;
+    contributing_driver_count?: number;
+    contributing_lap_count?: number;
+    original_closure_gap?: number;
+    closure_adjusted?: boolean;
+  };
   points: TrackMapPoint[];
   corners: TrackMapCorner[];
   segment?: TrackMapSegment | null;

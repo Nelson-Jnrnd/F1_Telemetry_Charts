@@ -151,8 +151,17 @@ class TrackGeometry(BaseModel):
 
     source: str = Field(min_length=1)
     reason: str = Field(min_length=1)
-    source_driver: str = Field(min_length=1)
-    source_lap: int = Field(ge=1)
+    algorithm_version: int = Field(default=1, ge=1)
+    aggregation_method: Literal[
+        "single_best_lap",
+        "per_driver_then_session_coordinate_median",
+    ] = "single_best_lap"
+    source_driver: str | None = Field(default=None, min_length=1)
+    source_lap: int | None = Field(default=None, ge=1)
+    contributing_driver_count: int = Field(default=1, ge=1)
+    contributing_lap_count: int = Field(default=1, ge=1)
+    original_closure_gap: float = Field(default=0.0, ge=0)
+    closure_adjusted: bool = False
     points: list[TrackGeometryPoint] = Field(min_length=2)
     original_sample_count: int = Field(ge=2)
     point_count: int = Field(ge=2)

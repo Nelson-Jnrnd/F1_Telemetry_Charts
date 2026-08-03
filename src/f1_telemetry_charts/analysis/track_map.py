@@ -79,6 +79,7 @@ class TrackMapPayload(BaseModel):
     selected_drivers: list[str] = Field(default_factory=list)
     source_driver: str | None = None
     source_lap: int | None = None
+    geometry_metadata: dict[str, Any] = Field(default_factory=dict)
     points: list[TrackMapPoint] = Field(default_factory=list)
     corners: list[TrackMapCorner] = Field(default_factory=list)
     segment: TrackMapSegment | None = None
@@ -169,6 +170,14 @@ def build_track_map_payload(
         selected_drivers=selected_drivers,
         source_driver=track_geometry.source_driver,
         source_lap=track_geometry.source_lap,
+        geometry_metadata={
+            "algorithm_version": track_geometry.algorithm_version,
+            "aggregation_method": track_geometry.aggregation_method,
+            "contributing_driver_count": track_geometry.contributing_driver_count,
+            "contributing_lap_count": track_geometry.contributing_lap_count,
+            "original_closure_gap": track_geometry.original_closure_gap,
+            "closure_adjusted": track_geometry.closure_adjusted,
+        },
         points=projected,
         corners=corners,
         segment=segment,

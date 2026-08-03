@@ -1244,14 +1244,21 @@ class AnalysisApiTests(unittest.TestCase):
             self.assertEqual(payload_response.status_code, 200, payload_response.text)
             payload = payload_response.json()
             self.assertEqual(payload["status"], "available")
-            self.assertEqual(payload["source_driver"], "VER")
-            self.assertEqual(payload["source_lap"], 2)
+            self.assertIsNone(payload["source_driver"])
+            self.assertIsNone(payload["source_lap"])
+            self.assertEqual(payload["geometry_metadata"]["algorithm_version"], 2)
+            self.assertEqual(
+                payload["geometry_metadata"]["aggregation_method"],
+                "per_driver_then_session_coordinate_median",
+            )
+            self.assertEqual(payload["geometry_metadata"]["contributing_driver_count"], 3)
+            self.assertEqual(payload["geometry_metadata"]["contributing_lap_count"], 4)
             self.assertEqual(payload["point_count"], 2)
-            self.assertEqual(payload["original_sample_count"], 3)
+            self.assertEqual(payload["original_sample_count"], 12)
             self.assertTrue(payload["downsampled"])
             self.assertEqual(payload["segment"]["source"], "full_lap")
             self.assertEqual(payload["segment"]["start_distance_m"], 0)
-            self.assertEqual(payload["segment"]["end_distance_m"], 250)
+            self.assertEqual(payload["segment"]["end_distance_m"], 249)
             self.assertNotIn("points", payload["diagnostics"])
 
             selected_parameters = {
@@ -1356,8 +1363,9 @@ class AnalysisApiTests(unittest.TestCase):
             payload = payload_response.json()
             self.assertEqual(payload["status"], "available")
             self.assertEqual(payload["selected_drivers"], ["PER"])
-            self.assertEqual(payload["source_driver"], "VER")
-            self.assertEqual(payload["source_lap"], 2)
+            self.assertIsNone(payload["source_driver"])
+            self.assertIsNone(payload["source_lap"])
+            self.assertEqual(payload["geometry_metadata"]["contributing_driver_count"], 3)
             self.assertGreaterEqual(payload["point_count"], 2)
 
             diagnostics = client.post(
@@ -1372,7 +1380,8 @@ class AnalysisApiTests(unittest.TestCase):
             track_map = diagnostics.json()["coverage_bounds"]["track_map"]
             self.assertTrue(track_map["available"])
             self.assertEqual(track_map["source"], "session_track_geometry")
-            self.assertEqual(track_map["source_driver"], "VER")
+            self.assertIsNone(track_map["source_driver"])
+            self.assertEqual(track_map["geometry"]["algorithm_version"], 2)
 
     def test_analysis_track_map_returns_projected_corner_markers(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
