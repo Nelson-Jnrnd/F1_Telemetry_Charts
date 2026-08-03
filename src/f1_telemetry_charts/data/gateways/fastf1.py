@@ -24,6 +24,8 @@ from f1_telemetry_charts.data.models import (
     SourceProvenance,
     StyleColor,
     TelemetrySample,
+    TimingAppRecord,
+    TimingStreamRecord,
     WeatherSample,
     requests_all_drivers,
 )
@@ -93,6 +95,16 @@ def _session_to_dataset(
     drivers = _drivers_from_results(driver_rows, selected_driver_codes)
     lap_records = _lap_records_from_laps(laps)
     telemetry = _telemetry_samples_from_laps(laps, session=session)
+    timing = _timing_stream_records_from_session(
+        session,
+        drivers,
+        fastf1_module=fastf1_module,
+    )
+    timing_app = _timing_app_records_from_session(
+        session,
+        drivers,
+        fastf1_module=fastf1_module,
+    )
     geometry_telemetry = (
         telemetry
         if requests_all_drivers(query.drivers)
@@ -129,6 +141,8 @@ def _session_to_dataset(
         drivers=drivers,
         laps=lap_records,
         telemetry=telemetry,
+        timing=timing,
+        timing_app=timing_app,
         weather=weather,
         style=style,
         circuit_info=circuit_info,
@@ -372,12 +386,16 @@ def _lap_records_from_laps(laps: Any) -> list[LapRecord]:
             LapRecord(
                 driver=str(row.get("Driver")),
                 lap_number=int(row.get("LapNumber")),
+                lap_start_time_seconds=_duration_seconds_or_none(row.get("LapStartTime")),
+                lap_end_time_seconds=_duration_seconds_or_none(row.get("Time")),
                 lap_time_seconds=lap_time_seconds,
                 compound=_string_or_none(row.get("Compound")),
                 stint=_int_or_none(row.get("Stint")),
                 position=_int_or_none(row.get("Position")),
                 is_pit_in_lap=_has_value(row.get("PitInTime")),
                 is_pit_out_lap=_has_value(row.get("PitOutTime")),
+                pit_in_time_seconds=_duration_seconds_or_none(row.get("PitInTime")),
+                pit_out_time_seconds=_duration_seconds_or_none(row.get("PitOutTime")),
                 is_deleted=_bool_or_false(row.get("Deleted")),
                 is_generated=_bool_or_false(row.get("IsGenerated")),
                 is_accurate=_bool_or_none(row.get("IsAccurate")),
@@ -411,6 +429,160 @@ def _weather_samples_from_session(session: Any) -> list[WeatherSample]:
             )
         )
     return samples
+
+
+def _timing_stream_records_from_session(
+    session: Any,
+    drivers: list[DriverMetadata],
+    *,
+    fastf1_module: Any | None = None,
+) -> list[TimingStreamRecord]:
+    api_module = getattr(fastf1_module, "api", None)
+    if api_module is None:
+        if fastf1_module is not None and getattr(fastf1_module, "__name__", None) != "fastf1":
+            return []
+        try:
+            import fastf1.api as api_module
+        except Exception:
+            return []
+
+    timing_data = getattr(api_module, "timing_data", None)
+    api_path = getattr(session, "api_path", None)
+    if timing_data is None or not api_path:
+        return []
+
+    try:
+        _, stream_data = timing_data(api_path)
+    except Exception:
+        return []
+    if stream_data is None or getattr(stream_data, "empty", True):
+        return []
+
+    columns = set(getattr(stream_data, "columns", []))
+    required = {"Time", "Driver"}
+    if not required.issubset(columns):
+        return []
+
+    number_to_driver = {
+        str(driver.driver_number): driver.abbreviation
+        for driver in drivers
+        if driver.driver_number is not None
+    }
+    selected_drivers = {driver.abbreviation for driver in drivers}
+
+    records: list[TimingStreamRecord] = []
+    for _, row in stream_data.iterrows():
+        driver_key = _string_or_none(row.get("Driver"))
+        if driver_key is None:
+            continue
+        driver = number_to_driver.get(driver_key, driver_key)
+        if selected_drivers and driver not in selected_drivers:
+            continue
+        time_seconds = _duration_seconds_or_none(row.get("Time"))
+        if time_seconds is None:
+            continue
+        position = _int_or_none(row.get("Position"))
+        gap_value = row.get("GapToLeader")
+        interval_value = row.get("IntervalToPositionAhead")
+        gap_seconds, gap_status = _timing_delta_seconds(gap_value)
+        gap_laps = _timing_lap_delta(gap_value)
+        if position == 1 and gap_seconds is None and gap_status in {"missing", "unparseable"}:
+            gap_seconds = 0.0
+            gap_status = "leader"
+        interval_seconds, interval_status = _timing_delta_seconds(
+            interval_value,
+        )
+        interval_laps = _timing_lap_delta(interval_value)
+        if position == 1 and interval_seconds is None and interval_status in {"missing", "unparseable"}:
+            interval_status = "leader"
+        records.append(
+            TimingStreamRecord(
+                driver=driver,
+                session_time_seconds=time_seconds,
+                position=position,
+                gap_to_leader_seconds=gap_seconds,
+                interval_to_ahead_seconds=interval_seconds,
+                gap_to_leader_laps=gap_laps,
+                interval_to_ahead_laps=interval_laps,
+                gap_parse_status=gap_status,
+                interval_parse_status=interval_status,
+            )
+        )
+
+    return sorted(
+        records,
+        key=lambda record: (
+            record.session_time_seconds,
+            record.position if record.position is not None else 999,
+            record.driver,
+        ),
+    )
+
+
+def _timing_app_records_from_session(
+    session: Any,
+    drivers: list[DriverMetadata],
+    *,
+    fastf1_module: Any | None = None,
+) -> list[TimingAppRecord]:
+    api_module = getattr(fastf1_module, "api", None)
+    if api_module is None:
+        if fastf1_module is not None and getattr(fastf1_module, "__name__", None) != "fastf1":
+            return []
+        try:
+            import fastf1.api as api_module
+        except Exception:
+            return []
+
+    timing_app_data = getattr(api_module, "timing_app_data", None)
+    api_path = getattr(session, "api_path", None)
+    if timing_app_data is None or not api_path:
+        return []
+
+    try:
+        rows = timing_app_data(api_path)
+    except Exception:
+        return []
+    if rows is None or getattr(rows, "empty", True):
+        return []
+
+    columns = set(getattr(rows, "columns", []))
+    if not {"Time", "Driver"}.issubset(columns):
+        return []
+
+    number_to_driver = {
+        str(driver.driver_number): driver.abbreviation
+        for driver in drivers
+        if driver.driver_number is not None
+    }
+    selected_drivers = {driver.abbreviation for driver in drivers}
+    records: list[TimingAppRecord] = []
+    for _, row in rows.iterrows():
+        driver_key = _string_or_none(row.get("Driver"))
+        if driver_key is None:
+            continue
+        driver = number_to_driver.get(driver_key, driver_key)
+        if selected_drivers and driver not in selected_drivers:
+            continue
+        time_seconds = _duration_seconds_or_none(row.get("Time"))
+        if time_seconds is None:
+            continue
+        records.append(
+            TimingAppRecord(
+                driver=driver,
+                session_time_seconds=time_seconds,
+                lap_number=_int_or_none(row.get("LapNumber")),
+                lap_time_seconds=_duration_seconds_or_none(row.get("LapTime")),
+                stint=_int_or_none(row.get("Stint")),
+                total_laps=_float_or_none(row.get("TotalLaps")),
+                compound=_string_or_none(row.get("Compound")),
+                start_laps=_float_or_none(row.get("StartLaps")),
+            )
+        )
+    return sorted(
+        records,
+        key=lambda record: (record.session_time_seconds, record.driver),
+    )
 
 
 def _telemetry_samples_from_laps(
@@ -551,6 +723,9 @@ def _telemetry_samples_from_session_car_data(
                         driver=str(driver),
                         lap_number=int(lap_number),
                         distance_m=float(row.Distance),
+                        session_time_seconds=_duration_seconds_or_none(
+                            getattr(row, "SessionTime", None)
+                        ),
                         x=_float_or_none(getattr(row, "X", None)),
                         y=_float_or_none(getattr(row, "Y", None)),
                         z=_float_or_none(getattr(row, "Z", None)),
@@ -598,6 +773,7 @@ def _telemetry_samples_from_lap_methods(laps: Any) -> list[TelemetrySample]:
                     driver=str(lap.get("Driver")),
                     lap_number=int(lap.get("LapNumber")),
                     distance_m=distance if distance is not None else fallback_distance,
+                    session_time_seconds=_duration_seconds_or_none(row.get("SessionTime")),
                     x=_float_or_none(row.get("X")),
                     y=_float_or_none(row.get("Y")),
                     z=_float_or_none(row.get("Z")),
@@ -694,6 +870,38 @@ def _string_or_none(value: Any) -> str | None:
     return text if text else None
 
 
+def _timing_delta_seconds(value: Any) -> tuple[float | None, str]:
+    if _is_missing(value):
+        return None, "missing"
+    seconds = _duration_seconds_or_none(value)
+    if seconds is not None:
+        return seconds, "parsed"
+
+    text = str(value).strip().upper().replace("+", "")
+    if text in {"", "PIT", "STOP"}:
+        return None, "missing"
+    if "LAP" in text:
+        return None, "unparseable"
+    try:
+        return float(text), "parsed"
+    except ValueError:
+        return None, "unparseable"
+
+
+def _timing_lap_delta(value: Any) -> int | None:
+    if _is_missing(value):
+        return None
+    text = str(value).strip().upper().replace("+", "")
+    if "LAP" not in text:
+        return None
+    token = text.split("LAP", 1)[0].strip()
+    try:
+        laps = int(token)
+    except ValueError:
+        return None
+    return laps if laps > 0 else None
+
+
 def _int_or_none(value: Any) -> int | None:
     if _is_missing(value):
         return None
@@ -722,7 +930,7 @@ def _percentage_or_none(value: Any) -> float | None:
 
 def _duration_seconds_or_none(value: Any) -> float | None:
     if hasattr(value, "total_seconds"):
-        return float(value.total_seconds())
+        return _float_or_none(value.total_seconds())
     return _float_or_none(value)
 
 

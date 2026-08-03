@@ -134,6 +134,14 @@ class LlmContractTests(unittest.TestCase):
             self.assertEqual(track_map_summary["source_driver"], "VER")
             self.assertEqual(track_map_summary["segment"]["start_distance_m"], 50)
             self.assertNotIn("points", track_map_summary)
+            self.assertEqual(len(inspected["playback_summaries"]), 1)
+            playback_summary = inspected["playback_summaries"][0]
+            self.assertEqual(playback_summary["status"], "available")
+            self.assertEqual(playback_summary["default_mode"], "lap")
+            self.assertTrue(playback_summary["available_modes"]["time"]["available"])
+            self.assertTrue(playback_summary["available_modes"]["lap"]["available"])
+            self.assertNotIn("points", playback_summary)
+            self.assertNotIn("frames", playback_summary)
 
             updated = update_analysis_chart_parameters(
                 {

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
-import { BarChart3, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Edit3, FilePlus2, FolderOpen, Image, LineChart, Loader2, Map as MapIcon, Play, Plus, RefreshCw, RotateCcw, Save, Trash2, XCircle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type ReactNode, type WheelEvent } from "react";
+import { BarChart3, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Edit3, FilePlus2, FolderOpen, Image, LineChart, Loader2, Map as MapIcon, Maximize2, Play, Plus, RefreshCw, RotateCcw, RotateCw, Save, Trash2, XCircle, ZoomIn, ZoomOut } from "lucide-react";
 import * as api from "../api";
-import type { AnalysisSession, AnalysisView, Artifact, ChartInstance, Observation, PackageView, ParameterDiagnostics, ParameterField, ParameterPreset, ReviewStatus, TrackMapCorner, TrackMapPayload, TrackMapPoint } from "../types";
+import type { AnalysisSession, AnalysisView, Artifact, ChartInstance, Observation, PackageView, ParameterDiagnostics, ParameterField, ParameterPreset, PlaybackMarker, PlaybackMode, PlaybackPayload, ReviewStatus, TrackMapCorner, TrackMapPayload, TrackMapPoint } from "../types";
 import { compactPath, cn } from "../lib/utils";
 import type { SidebarRenderer } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
@@ -19,6 +19,7 @@ type AnalysisSelection =
   | { kind: "session"; id: string }
   | { kind: "new-chart" }
   | { kind: "chart"; id: string }
+  | { kind: "playback" }
   | { kind: "review" }
   | { kind: "export" };
 
@@ -570,6 +571,11 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
             presetPendingAction={pendingPresetActions[selectedChart.chart_instance_id] ?? null}
           />
         )}
+        {selection.kind === "playback" && analysis && (
+          <PlaybackExplorer
+            sessions={analysis.sessions}
+          />
+        )}
         {selection.kind === "review" && <ReviewEditor analysis={analysis} packageView={exportedPackage} refreshReview={refreshReview} updateObservation={updateObservation} pending={reviewPending} observationPendingActions={pendingObservationActions} />}
         {selection.kind === "export" && <ExportEditor analysis={analysis} packageView={exportedPackage} exportAnalysis={exportAnalysis} openArtifact={openArtifact} pending={exportPending} packageLoading={packageLoading} />}
       </div>
@@ -746,6 +752,14 @@ function AnalysisSidebar({
       </div>
 
       <div className="mt-2 grid gap-1">
+        <OutlineButton
+          active={selection.kind === "playback"}
+          label="Race Playback"
+          icon={<MapIcon className="h-4 w-4" />}
+          onClick={() => setSelection({ kind: "playback" })}
+          disabled={!analysis || !analysis.sessions.some((session) => session.load_state === "loaded")}
+          collapsed={collapsed}
+        />
         <OutlineButton
           active={selection.kind === "review"}
           label="Review"
@@ -1060,7 +1074,7 @@ function ChartEditor({
   sessions: AnalysisSession[];
   schemaFields: ParameterField[];
   presets: AnalysisView["analysis"]["presets"];
-  updateChart: (chart: ChartInstance, parameters: Record<string, unknown>, presetId?: string | null) => void;
+  updateChart: (chart: ChartInstance, parameters: Record<string, unknown>, presetId?: string | null) => Promise<void>;
   generateChart: (chart: ChartInstance, parameters?: Record<string, unknown>, presetId?: string | null) => void;
   removeChart: (chart: ChartInstance) => void;
   savePreset: (chart: ChartInstance, parameters: Record<string, unknown>, global: boolean, replaceExisting?: boolean) => Promise<void>;
@@ -1637,12 +1651,14 @@ function TrackDistanceSlider({
   value,
   minimum,
   maximum,
+  unit = "m",
   onChange
 }: {
   label: string;
   value: number;
   minimum: number;
   maximum: number;
+  unit?: string;
   onChange: (value: number) => void;
 }) {
   return (
@@ -1657,9 +1673,1219 @@ function TrackDistanceSlider({
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
       />
-      <span className="text-xs text-muted">{Math.round(value)} m</span>
+      <span className="text-xs text-muted">{Math.round(value)}{unit ? ` ${unit}` : ""}</span>
     </label>
   );
+}
+
+function PlaybackExplorer({
+  sessions
+}: {
+  sessions: AnalysisSession[];
+}) {
+  const loadedSessions = sessions.filter((session) => session.load_state === "loaded");
+  const [sessionId, setSessionId] = useState(loadedSessions[0]?.session_id ?? "");
+  const [mode, setMode] = useState<PlaybackMode>("lap");
+  const [cursorLap, setCursorLap] = useState<number | null>(null);
+  const [cursorTime, setCursorTime] = useState<number | null>(null);
+  const [timelineSpanSeconds, setTimelineSpanSeconds] = useState<number | null>(null);
+  const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
+  const [payload, setPayload] = useState<PlaybackPayload | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const debug = playbackDebugEnabled();
+  const frame = payload?.frames[0] ?? null;
+  const lapBounds = payload ? playbackLapBounds(payload) : null;
+  const timeBounds = payload ? playbackTimeBounds(payload) : null;
+  const lapMinimum = lapBounds?.minimum ?? 1;
+  const lapMaximum = lapBounds?.maximum ?? lapMinimum;
+  const lapCursor = clampNumber(cursorLap ?? lapMinimum, lapMinimum, lapMaximum);
+  const timeCursor = timeBounds
+    ? clampNumber(cursorTime ?? frame?.session_time_seconds ?? timeBounds.minimum, timeBounds.minimum, timeBounds.maximum)
+    : 0;
+  const timeView = timeBounds ? playbackTimeView(timeBounds, timeCursor, timelineSpanSeconds) : null;
+  const markers = frame?.markers ?? [];
+  const timeAvailability = payload?.available_modes.time;
+
+  useEffect(() => {
+    if (!sessionId && loadedSessions[0]) setSessionId(loadedSessions[0].session_id);
+  }, [sessionId, loadedSessions]);
+
+  useEffect(() => {
+    setCursorLap(null);
+    setCursorTime(null);
+    setTimelineSpanSeconds(null);
+    setSelectedDrivers([]);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      api
+        .getAnalysisPlayback({
+          session_id: sessionId,
+          mode,
+          cursor: mode === "lap" ? cursorLap : cursorTime,
+          max_frames: 1,
+          max_markers: 60,
+          max_points: 500,
+          maximum_sample_gap_seconds: 5,
+          maximum_timing_sample_age_seconds: 10
+        })
+        .then((nextPayload) => {
+          if (cancelled) return;
+          setPayload(nextPayload);
+          const bounds = playbackLapBounds(nextPayload);
+          if (bounds) {
+            const defaultLap = Math.round(nextPayload.frames[0]?.cursor?.leader_lap_number ?? nextPayload.frames[0]?.lap_number ?? nextPayload.available_modes.lap?.default ?? bounds.minimum);
+            setCursorLap((current) => clampNumber(current ?? defaultLap, bounds.minimum, bounds.maximum));
+          }
+          const nextTimeBounds = playbackTimeBounds(nextPayload);
+          if (nextTimeBounds) {
+            const defaultTime = nextPayload.frames[0]?.session_time_seconds ?? nextPayload.available_modes.time?.default ?? nextTimeBounds.minimum;
+            setCursorTime((current) => clampNumber(current ?? defaultTime, nextTimeBounds.minimum, nextTimeBounds.maximum));
+            setTimelineSpanSeconds((current) => {
+              const fullSpan = nextTimeBounds.maximum - nextTimeBounds.minimum;
+              if (!Number.isFinite(fullSpan) || fullSpan <= 0) return null;
+              return current === null ? fullSpan : clampNumber(current, Math.min(fullSpan, 10), fullSpan);
+            });
+          }
+        })
+        .catch((requestError) => {
+          if (cancelled) return;
+          setPayload(null);
+          setError(message(requestError));
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 150);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [sessionId, mode, cursorLap, cursorTime]);
+
+  function zoomTimeline(factor: number) {
+    if (!timeBounds) return;
+    const fullSpan = timeBounds.maximum - timeBounds.minimum;
+    if (!Number.isFinite(fullSpan) || fullSpan <= 0) return;
+    setTimelineSpanSeconds((current) => clampNumber((current ?? fullSpan) * factor, Math.min(fullSpan, 10), fullSpan));
+  }
+
+  function fitTimeline() {
+    if (!timeBounds) return;
+    setTimelineSpanSeconds(timeBounds.maximum - timeBounds.minimum);
+  }
+
+  function toggleSelectedDriver(driver: string) {
+    setSelectedDrivers((current) => current.includes(driver) ? current.filter((item) => item !== driver) : [...current, driver]);
+  }
+
+  if (loadedSessions.length === 0) {
+    return (
+      <Panel title="Race Playback">
+        <div className="rounded-md border border-dashed border-line bg-slate-50 p-6 text-sm text-muted">No loaded sessions</div>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel
+      title="Race Playback"
+      actions={
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {frame && (
+            <div
+              className="inline-flex w-fit items-center rounded-full border border-line bg-slate-50 px-3 py-1 text-xs font-semibold tabular-nums text-ink"
+              data-testid="playback-cursor-chip"
+            >
+              Lap {frame.cursor.leader_lap_number ?? frame.lap_number ?? "—"} · {formatSessionTime(frame.session_time_seconds)} · {markers.filter((marker) => marker.status !== "missing").length} cars
+            </div>
+          )}
+          <SelectField
+            label="Session"
+            className="flex min-w-[240px] items-center gap-2"
+            value={sessionId}
+            onValueChange={setSessionId}
+            options={loadedSessions.map((session) => ({ value: session.session_id, label: session.name }))}
+          />
+        </div>
+      }
+    >
+      <div className="grid gap-4">
+        <div className="grid gap-3">
+          {error && <ErrorList errors={[error]} />}
+          {payload?.status === "available" && frame && lapBounds ? (
+            <>
+              <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_112px] xl:items-stretch">
+                <div className="relative min-w-0">
+                  <PlaybackMap
+                    points={payload.points}
+                    markers={markers}
+                    selectedDrivers={selectedDrivers}
+                    onToggleDriver={toggleSelectedDriver}
+                  />
+                  <div className="mt-3 min-w-0 xl:absolute xl:bottom-2 xl:right-3 xl:top-2 xl:mt-0 xl:w-[min(430px,55%)]">
+                    <PlaybackTimingTower
+                      markers={markers}
+                      selectedDrivers={selectedDrivers}
+                      onToggleDriver={toggleSelectedDriver}
+                      debug={debug}
+                    />
+                  </div>
+                </div>
+                <PlaybackTimeline
+                  mode={mode}
+                  payload={payload}
+                  lapBounds={lapBounds}
+                  timeBounds={timeBounds}
+                  timeView={timeView}
+                  lapValue={lapCursor}
+                  timeValue={timeCursor}
+                  loading={loading}
+                  timeAvailable={payload !== null && timeAvailability?.available === true}
+                  onModeChange={setMode}
+                  onLapChange={(value) => setCursorLap(Math.round(value))}
+                  onTimeChange={setCursorTime}
+                  onZoomIn={() => zoomTimeline(0.5)}
+                  onZoomOut={() => zoomTimeline(2)}
+                  onFit={fitTimeline}
+                />
+              </div>
+            </>
+          ) : loading ? (
+            <LoadingBlock label="Loading playback" />
+          ) : (
+            <div className="rounded-md border border-line bg-slate-50 p-4">
+              <StatusBadge value={payload?.status ?? "unavailable"} />
+              <div className="mt-3 grid gap-2">
+                {(payload?.diagnostics.length ? payload.diagnostics : [{ field: "playback", message: "Playback position data is unavailable" }]).map((item) => (
+                  <div key={`${item.field}-${item.message}`} className="text-sm text-muted">{item.message}</div>
+                ))}
+              </div>
+            </div>
+          )}
+          {payload?.diagnostics.length ? <WarningList warnings={payload.diagnostics.map((item) => item.message)} /> : null}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+const TIMING_PERFORMANCE_COLORS = {
+  fastest: "#bd29c1",
+  personalBest: "#31ce34",
+  slower: "#ddcd35"
+} as const;
+
+const TIMING_PERFORMANCE_TEXT = {
+  fastest: "text-[#bd29c1]",
+  personalBest: "text-[#31ce34]",
+  slower: "text-[#ddcd35]"
+} as const;
+
+const TIMING_PERFORMANCE_BACKGROUND = {
+  fastest: "bg-[#bd29c1]",
+  personalBest: "bg-[#31ce34]",
+  slower: "bg-[#ddcd35]"
+} as const;
+
+function PlaybackTimingTower({
+  markers,
+  selectedDrivers,
+  onToggleDriver,
+  debug
+}: {
+  markers: PlaybackMarker[];
+  selectedDrivers: string[];
+  onToggleDriver: (driver: string) => void;
+  debug: boolean;
+}) {
+  const [view, setView] = useState<"race" | "laps" | "sectors-last" | "sectors-best" | "mini">("race");
+  const [collapsed, setCollapsed] = useState(false);
+  const selectedDriverSet = new Set(selectedDrivers);
+  const selectedMarkers = markers.filter((marker) => selectedDriverSet.has(marker.driver));
+  const focusedMarker = selectedMarkers.length === 1 ? selectedMarkers[0] : null;
+  const relativeMode = selectedMarkers.length === 1;
+  const comparisonMode = selectedMarkers.length > 1;
+  const fastestLastLap = minimumFinite(markers.map((marker) => marker.context.last_lap_time_seconds));
+  const fastestBestLap = minimumFinite(markers.map((marker) => marker.context.best_lap_time_seconds));
+  const fastestLastSectors = [0, 1, 2].map((index) => minimumFinite(markers.map((marker) => marker.context.last_sector_times_seconds[index])));
+  const fastestBestSectors = [0, 1, 2].map((index) => minimumFinite(markers.map((marker) => marker.context.best_sector_times_seconds[index])));
+  const selectedFastestLastLap = minimumFinite(selectedMarkers.map((marker) => marker.context.last_lap_time_seconds));
+  const selectedFastestBestLap = minimumFinite(selectedMarkers.map((marker) => marker.context.best_lap_time_seconds));
+  const selectedFastestLastSectors = [0, 1, 2].map((index) => minimumFinite(selectedMarkers.map((marker) => marker.context.last_sector_times_seconds[index])));
+  const selectedFastestBestSectors = [0, 1, 2].map((index) => minimumFinite(selectedMarkers.map((marker) => marker.context.best_sector_times_seconds[index])));
+  const selectedFastestTheoreticalLap = minimumFinite(selectedMarkers.map((marker) => sumCompleteSectors(marker.context.best_sector_times_seconds)));
+  const sectorMode: "last" | "best" = view === "sectors-best" ? "best" : "last";
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        className="ml-auto flex h-10 items-center gap-2 rounded-md border border-line bg-white/90 px-3 text-xs font-semibold text-ink shadow-lg backdrop-blur"
+        onClick={() => setCollapsed(false)}
+        data-testid="playback-timing-expand"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Timing
+      </button>
+    );
+  }
+
+  return (
+    <div className="grid max-h-full min-w-0 gap-1 overflow-hidden rounded-lg border border-white/70 bg-white/90 p-1.5 shadow-xl backdrop-blur-md" data-testid="playback-timing-tower">
+      <div className="flex min-w-0 items-center gap-1 px-1">
+        <div className="flex shrink-0 items-center gap-1">
+          <div className="text-base font-semibold text-ink">Live timing</div>
+          {debug && <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted">Debug</span>}
+        </div>
+        <div className="flex min-w-0 flex-1 gap-0.5 overflow-x-auto rounded bg-slate-100 p-0.5" aria-label="Timing view">
+          {([
+            ["race", "Race"],
+            ["laps", "Laps"],
+            ["sectors-last", "Last Sec"],
+            ["sectors-best", "Best Sec"],
+            ["mini", "Minis"]
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={cn("shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold text-muted", view === value && "bg-white text-ink shadow-sm")}
+              onClick={() => setView(value)}
+              data-testid={`playback-timing-view-${value}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex shrink-0 items-center">
+          <button type="button" className="rounded p-1 text-muted hover:bg-slate-100 hover:text-ink" aria-label="Collapse timing" onClick={() => setCollapsed(true)} data-testid="playback-timing-collapse">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <div className="min-h-0 overflow-auto rounded-md border border-line bg-panel">
+        {markers.length === 0 ? (
+          <div className="px-3 py-3 text-sm text-muted">No markers</div>
+        ) : view === "race" ? (
+          <>
+            <div className="grid grid-cols-[0.15rem_1.2rem_2.2rem_2.8rem_2.7rem_3rem_3.2rem] items-center justify-center gap-x-0.5 border-b border-line bg-slate-50 pr-1 py-0.5 text-[11px] font-semibold uppercase text-muted sm:grid-cols-[0.2rem_1.5rem_2.8rem_3.6rem_3.6rem_4rem_4.1rem] sm:gap-x-1 sm:pr-2">
+              <span /><span>P</span><span>DRV</span><span className="text-right">INT</span><span className="text-right">{relativeMode ? "REL" : "GAP"}</span><span className="text-center">{relativeMode ? "TYRE Δ" : "TYRE"}</span><span className="text-right">{relativeMode ? "LAST Δ" : "LAST"}</span>
+            </div>
+            {markers.map((marker) => {
+              const selected = selectedDriverSet.has(marker.driver);
+              return (
+                <div key={marker.driver} className={cn(selected && "bg-teal-50")} data-testid={`playback-timing-row-${marker.driver}`}>
+                  <button
+                    type="button"
+                    className="grid h-[19px] w-full grid-cols-[0.15rem_1.2rem_2.2rem_2.8rem_2.7rem_3rem_3.2rem] items-center justify-center gap-x-0.5 border-b border-line pr-1 text-left text-[11px] hover:bg-slate-50/80 sm:grid-cols-[0.2rem_1.5rem_2.8rem_3.6rem_3.6rem_4rem_4.1rem] sm:gap-x-1 sm:pr-2"
+                    onClick={() => onToggleDriver(marker.driver)}
+                    aria-pressed={selected}
+                  >
+                    <span className="h-full w-full" style={{ backgroundColor: marker.color ?? "#0f766e" }} aria-hidden="true" />
+                    <span className="font-bold tabular-nums text-ink">{marker.context.timing_position ?? marker.context.position ?? "—"}</span>
+                    <span className={cn("flex min-w-0 items-center gap-1 truncate font-bold text-ink", selected && "text-brand")}>
+                      {driverAbbreviation(marker.driver)}
+                      {marker.context.pit_state !== "none" && <span className="text-[8px] font-bold text-amber-700">PIT</span>}
+                    </span>
+                    <span className="text-right tabular-nums text-muted">{relativeMode ? "—" : formatRaceGap(marker.context.interval_to_ahead_seconds, marker.context.interval_to_ahead_laps, { leaderLabel: "—" })}</span>
+                    <span className="text-right font-semibold tabular-nums text-ink">{playbackTimingGap(marker, focusedMarker)}</span>
+                    <TyreIcon compound={marker.context.compound} age={marker.context.tyre_age_laps} referenceAge={focusedMarker?.context.tyre_age_laps} relative={relativeMode} isReference={selected && relativeMode} />
+                    <span
+                      className={cn("text-right font-semibold tabular-nums", relativeMode ? relativeValueTone(marker.context.last_lap_time_seconds, focusedMarker?.context.last_lap_time_seconds, selected) : comparisonMode && selected && isTimingWinner(marker.context.last_lap_time_seconds, selectedFastestLastLap) ? comparisonWinnerClass() : lastLapToneClass(marker.context.last_lap_time_seconds, marker.context.best_lap_time_seconds, fastestBestLap))}
+                      data-comparison-winner={comparisonMode && selected && isTimingWinner(marker.context.last_lap_time_seconds, selectedFastestLastLap) ? "last-lap" : undefined}
+                    >
+                      {relativeMode ? formatRelativeValue(marker.context.last_lap_time_seconds, focusedMarker?.context.last_lap_time_seconds, selected) : formatLapTime(marker.context.last_lap_time_seconds)}
+                    </span>
+                  </button>
+                  {selected && debug && <div className="px-3 pb-2"><PlaybackDebugDetails marker={marker} /></div>}
+                </div>
+              );
+            })}
+          </>
+        ) : view === "laps" ? (
+          <>
+            <div className="grid grid-cols-[0.15rem_1.2rem_2.2rem_3.8rem_3.8rem] items-center justify-center gap-x-0.5 border-b border-line bg-slate-50 pr-1 py-0.5 text-[11px] font-semibold uppercase text-muted sm:grid-cols-[0.2rem_1.5rem_2.8rem_4.6rem_4.6rem] sm:gap-x-1 sm:pr-2">
+              <span /><span>P</span><span>DRV</span><span className="text-right">{relativeMode ? "LAST Δ" : "LAST"}</span><span className="text-right">{relativeMode ? "BEST Δ" : "BEST"}</span>
+            </div>
+            {markers.map((marker) => {
+              const selected = selectedDriverSet.has(marker.driver);
+              return (
+                <button key={marker.driver} type="button" className={cn(
+                  "grid h-[19px] w-full grid-cols-[0.15rem_1.2rem_2.2rem_3.8rem_3.8rem] items-center justify-center gap-x-0.5 border-b border-line pr-1 text-left text-[11px] hover:bg-slate-50 sm:grid-cols-[0.2rem_1.5rem_2.8rem_4.6rem_4.6rem] sm:gap-x-1 sm:pr-2",
+                  selected && "bg-teal-50"
+                )} onClick={() => onToggleDriver(marker.driver)} data-testid={`playback-timing-row-${marker.driver}`} aria-pressed={selected}>
+                  <span className="h-full" style={{ backgroundColor: marker.color ?? "#0f766e" }} />
+                  <span className="font-bold">{marker.context.timing_position ?? marker.context.position ?? "—"}</span>
+                  <span className={cn("font-bold", selected && "text-brand")}>{driverAbbreviation(marker.driver)}</span>
+                  <span className={cn("text-right font-semibold tabular-nums", relativeMode ? relativeValueTone(marker.context.last_lap_time_seconds, focusedMarker?.context.last_lap_time_seconds, selected) : comparisonMode && selected && isTimingWinner(marker.context.last_lap_time_seconds, selectedFastestLastLap) ? comparisonWinnerClass() : lastLapToneClass(marker.context.last_lap_time_seconds, marker.context.best_lap_time_seconds, fastestBestLap))} data-comparison-winner={comparisonMode && selected && isTimingWinner(marker.context.last_lap_time_seconds, selectedFastestLastLap) ? "last-lap" : undefined}>{relativeMode ? formatRelativeValue(marker.context.last_lap_time_seconds, focusedMarker?.context.last_lap_time_seconds, selected) : formatLapTime(marker.context.last_lap_time_seconds)}</span>
+                  <span className={cn("text-right font-semibold tabular-nums", relativeMode ? relativeValueTone(marker.context.best_lap_time_seconds, focusedMarker?.context.best_lap_time_seconds, selected) : comparisonMode && selected && isTimingWinner(marker.context.best_lap_time_seconds, selectedFastestBestLap) && comparisonWinnerClass())} data-comparison-winner={comparisonMode && selected && isTimingWinner(marker.context.best_lap_time_seconds, selectedFastestBestLap) ? "best-lap" : undefined}>{relativeMode ? formatRelativeValue(marker.context.best_lap_time_seconds, focusedMarker?.context.best_lap_time_seconds, selected) : formatLapTime(marker.context.best_lap_time_seconds)}</span>
+                </button>
+              );
+            })}
+          </>
+        ) : view === "sectors-last" || view === "sectors-best" ? (
+          <>
+            <div className="grid grid-cols-[0.15rem_1.2rem_2.2rem_repeat(3,2.7rem)_3.2rem] items-center justify-center gap-x-0.5 border-b border-line bg-slate-50 pr-1 py-0.5 text-[11px] font-semibold uppercase text-muted sm:grid-cols-[0.2rem_1.5rem_2.8rem_repeat(3,3.3rem)_4rem] sm:gap-x-1 sm:pr-2">
+              <span /><span>P</span><span>DRV</span><span className="text-right">S1{relativeMode ? " Δ" : ""}</span><span className="text-right">S2{relativeMode ? " Δ" : ""}</span><span className="text-right">S3{relativeMode ? " Δ" : ""}</span><span className="text-right">{sectorMode === "best" ? (relativeMode ? "THEO Δ" : "THEO") : (relativeMode ? "LAP Δ" : "LAP")}</span>
+            </div>
+            {markers.map((marker) => {
+              const selected = selectedDriverSet.has(marker.driver);
+              const values = sectorMode === "best" ? marker.context.best_sector_times_seconds : marker.context.last_sector_times_seconds;
+              const fastest = sectorMode === "best" ? fastestBestSectors : fastestLastSectors;
+              const total = values.length === 3 && values.every((value) => value !== null) ? values.reduce<number>((sum, value) => sum + Number(value), 0) : null;
+              const referenceValues = sectorMode === "best" ? focusedMarker?.context.best_sector_times_seconds : focusedMarker?.context.last_sector_times_seconds;
+              const referenceTotal = sectorMode === "best"
+                ? referenceValues?.length === 3 && referenceValues.every((value) => value !== null)
+                  ? referenceValues.reduce<number>((sum, value) => sum + Number(value), 0)
+                  : null
+                : focusedMarker?.context.last_lap_time_seconds;
+              return (
+                <button key={marker.driver} type="button" className={cn("grid h-[19px] w-full grid-cols-[0.15rem_1.2rem_2.2rem_repeat(3,2.7rem)_3.2rem] items-center justify-center gap-x-0.5 border-b border-line pr-1 text-left text-[11px] hover:bg-slate-50 sm:grid-cols-[0.2rem_1.5rem_2.8rem_repeat(3,3.3rem)_4rem] sm:gap-x-1 sm:pr-2", selected && "bg-teal-50")} onClick={() => onToggleDriver(marker.driver)} data-testid={`playback-timing-row-${marker.driver}`} aria-pressed={selected}>
+                  <span className="h-full" style={{ backgroundColor: marker.color ?? "#0f766e" }} />
+                  <span className="font-bold">{marker.context.timing_position ?? marker.context.position ?? "—"}</span>
+                  <span className={cn("font-bold", selected && "text-brand")}>{driverAbbreviation(marker.driver)}</span>
+                  {values.map((value, index) => <SectorComparison key={index} value={value} fastest={fastest[index]} mode={sectorMode} reference={relativeMode ? referenceValues?.[index] : undefined} relative={relativeMode} isReference={selected && relativeMode} comparisonWinner={comparisonMode && selected && isTimingWinner(value, (sectorMode === "best" ? selectedFastestBestSectors : selectedFastestLastSectors)[index])} comparisonLabel={`S${index + 1}`} />)}
+                  <span
+                    className={cn("text-right font-semibold tabular-nums", relativeMode ? relativeValueTone(sectorMode === "best" ? total : marker.context.last_lap_time_seconds, referenceTotal, selected) : comparisonMode && selected && isTimingWinner(sectorMode === "best" ? total : marker.context.last_lap_time_seconds, sectorMode === "best" ? selectedFastestTheoreticalLap : selectedFastestLastLap) ? comparisonWinnerClass() : sectorMode === "last" && lastLapToneClass(marker.context.last_lap_time_seconds, marker.context.best_lap_time_seconds, fastestBestLap))}
+                    data-comparison-winner={comparisonMode && selected && isTimingWinner(sectorMode === "best" ? total : marker.context.last_lap_time_seconds, sectorMode === "best" ? selectedFastestTheoreticalLap : selectedFastestLastLap) ? (sectorMode === "best" ? "theoretical-lap" : "last-lap") : undefined}
+                  >
+                    {relativeMode ? formatRelativeValue(sectorMode === "best" ? total : marker.context.last_lap_time_seconds, referenceTotal, selected) : sectorMode === "best" ? formatLapTime(total) : formatLapTime(marker.context.last_lap_time_seconds)}
+                  </span>
+                </button>
+              );
+            })}
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-[0.15rem_1.2rem_2.2rem_minmax(0,1fr)] items-center gap-x-0.5 border-b border-line bg-slate-50 pr-1 py-0.5 text-[11px] font-semibold uppercase text-muted sm:grid-cols-[0.2rem_1.5rem_2.8rem_minmax(0,1fr)] sm:gap-x-1 sm:pr-2">
+              <span /><span>P</span><span>DRV</span><span>LAST LAP</span>
+            </div>
+            {markers.map((marker) => {
+              const selected = selectedDriverSet.has(marker.driver);
+              return (
+                <button key={marker.driver} type="button" className={cn("grid h-[19px] w-full grid-cols-[0.15rem_1.2rem_2.2rem_minmax(0,1fr)] items-center gap-x-0.5 border-b border-line pr-1 text-left text-[11px] hover:bg-slate-50 sm:grid-cols-[0.2rem_1.5rem_2.8rem_minmax(0,1fr)] sm:gap-x-1 sm:pr-2", selected && "bg-teal-50")} onClick={() => onToggleDriver(marker.driver)} data-testid={`playback-timing-row-${marker.driver}`} aria-pressed={selected}>
+                  <span className="h-full" style={{ backgroundColor: marker.color ?? "#0f766e" }} />
+                  <span className="font-bold">{marker.context.timing_position ?? marker.context.position ?? "—"}</span>
+                  <span className={cn("font-bold", selected && "text-brand")}>{driverAbbreviation(marker.driver)}</span>
+                  <MiniSectorStrip states={marker.context.mini_sector_states} groups={marker.context.mini_sector_groups} />
+                </button>
+              );
+            })}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function playbackTimingGap(marker: PlaybackMarker, focusedMarker: PlaybackMarker | null): string {
+  if (focusedMarker === null) {
+    return formatRaceGap(marker.context.gap_to_leader_seconds, marker.context.gap_to_leader_laps, { leaderLabel: "Leader" });
+  }
+  if (marker.driver === focusedMarker.driver) return "REF";
+  const markerLaps = comparableLapDeficit(marker);
+  const focusedLaps = comparableLapDeficit(focusedMarker);
+  if (markerLaps !== null && focusedLaps !== null && markerLaps !== focusedLaps) {
+    const delta = markerLaps - focusedLaps;
+    return `${delta > 0 ? "+" : "−"}${Math.abs(delta)} LAP${Math.abs(delta) === 1 ? "" : "S"}`;
+  }
+  const markerGap = freshTimingGap(marker);
+  const focusedGap = freshTimingGap(focusedMarker);
+  if (markerGap === null || focusedGap === null) return "—";
+  return formatGapSeconds(markerGap - focusedGap, { signed: true, leaderLabel: "0.000s" });
+}
+
+function comparableLapDeficit(marker: PlaybackMarker): number | null {
+  if (marker.context.timing_status !== "fresh") return null;
+  const laps = marker.context.gap_to_leader_laps;
+  if (laps !== null && laps !== undefined && Number.isFinite(laps)) return laps;
+  const seconds = marker.context.gap_to_leader_seconds;
+  return seconds !== null && seconds !== undefined && Number.isFinite(seconds) ? 0 : null;
+}
+
+function freshTimingGap(marker: PlaybackMarker): number | null {
+  const gap = marker.context.gap_to_leader_seconds;
+  if (marker.context.timing_status !== "fresh" || gap === null || gap === undefined || !Number.isFinite(gap)) return null;
+  return gap;
+}
+
+function MiniSectorStrip({
+  states,
+  groups
+}: {
+  states: PlaybackMarker["context"]["mini_sector_states"];
+  groups: PlaybackMarker["context"]["mini_sector_groups"];
+}) {
+  if (!states.length) return <span className="text-xs text-muted">—</span>;
+  const summary = [
+    `${states.filter((state) => state === "fastest").length} session best`,
+    `${states.filter((state) => state === "faster").length} personal best`,
+    `${states.filter((state) => state === "slower").length} slower`,
+    `${states.filter((state) => state === "unavailable").length} unavailable`
+  ].join(", ");
+  return (
+    <span className="flex min-w-0 items-center gap-[2px]" aria-label={`Mini sectors: ${summary}`} data-testid="mini-sector-strip">
+      {states.map((state, index) => (
+        <span
+          key={index}
+          data-mini-sector-group={groups[index] ?? 0}
+          data-mini-sector-state={state}
+          className={cn(
+            "h-3.5 min-w-[3px] flex-1 rounded-[1px]",
+            index > 0 && groups[index] !== groups[index - 1] && "ml-1.5",
+            state === "fastest" && TIMING_PERFORMANCE_BACKGROUND.fastest,
+            state === "faster" && TIMING_PERFORMANCE_BACKGROUND.personalBest,
+            state === "slower" && TIMING_PERFORMANCE_BACKGROUND.slower,
+            state === "unavailable" && "bg-slate-300"
+          )}
+          title={`${groups[index] ? `Sector ${groups[index]} · ` : ""}${state === "fastest" ? "Session best" : state === "faster" ? "Personal best" : state === "slower" ? "Slower" : "Unavailable"}`}
+        />
+      ))}
+    </span>
+  );
+}
+
+function TyreIcon({
+  compound,
+  age,
+  referenceAge,
+  relative = false,
+  isReference = false
+}: {
+  compound: string | null | undefined;
+  age: number | null | undefined;
+  referenceAge?: number | null;
+  relative?: boolean;
+  isReference?: boolean;
+}) {
+  const code = compoundCode(compound);
+  const iconByCode: Record<string, string> = {
+    S: "/tyres/tire_S_red.svg",
+    M: "/tyres/tire_M_yellow.svg",
+    H: "/tyres/tire_H_white.svg",
+    I: "/tyres/tire_I_green.svg",
+    W: "/tyres/tire_W_blue.svg"
+  };
+  const label = compound?.trim() || "Unknown compound";
+  return (
+    <span className="flex items-center justify-center gap-1" title={label}>
+      {iconByCode[code] ? <img src={iconByCode[code]} alt={label} className="h-4 w-4 shrink-0" /> : <span className="font-bold">{code}</span>}
+      <span className={cn("text-[10px] font-semibold", relative ? relativeLapTone(age, referenceAge, isReference) : "text-muted")}>
+        {relative ? formatRelativeLaps(age, referenceAge, isReference) : formatTyreAge(age)}
+      </span>
+    </span>
+  );
+}
+
+function formatRelativeValue(
+  value: number | null | undefined,
+  reference: number | null | undefined,
+  isReference: boolean
+): string {
+  if (isReference) return "REF";
+  if (value === null || value === undefined || !Number.isFinite(value) || reference === null || reference === undefined || !Number.isFinite(reference)) return "—";
+  const delta = value - reference;
+  if (Math.abs(delta) <= 0.0005) return "0.000";
+  return `${delta > 0 ? "+" : "−"}${Math.abs(delta).toFixed(3)}`;
+}
+
+function formatRelativeLaps(
+  value: number | null | undefined,
+  reference: number | null | undefined,
+  isReference: boolean
+): string {
+  if (isReference) return "REF";
+  if (value === null || value === undefined || !Number.isFinite(value) || reference === null || reference === undefined || !Number.isFinite(reference)) return "—";
+  const delta = Math.round(value - reference);
+  if (delta === 0) return "0L";
+  return `${delta > 0 ? "+" : "−"}${Math.abs(delta)}L`;
+}
+
+function relativeValueTone(
+  value: number | null | undefined,
+  reference: number | null | undefined,
+  isReference: boolean
+): string {
+  if (isReference) return "text-brand";
+  if (value === null || value === undefined || !Number.isFinite(value) || reference === null || reference === undefined || !Number.isFinite(reference)) return "text-muted";
+  const delta = value - reference;
+  if (Math.abs(delta) <= 0.0005) return "text-purple-700";
+  return delta < 0 ? "text-emerald-700" : "text-amber-700";
+}
+
+function relativeLapTone(
+  value: number | null | undefined,
+  reference: number | null | undefined,
+  isReference: boolean
+): string {
+  if (isReference) return "text-brand";
+  if (value === null || value === undefined || !Number.isFinite(value) || reference === null || reference === undefined || !Number.isFinite(reference)) return "text-muted";
+  const delta = Math.round(value - reference);
+  if (delta === 0) return "text-muted";
+  return delta < 0 ? "text-emerald-700" : "text-amber-700";
+}
+
+function lastLapToneClass(
+  lastLap: number | null | undefined,
+  personalBest: number | null | undefined,
+  sessionBest: number | null
+): string {
+  if (lastLap === null || lastLap === undefined || !Number.isFinite(lastLap)) return "text-muted";
+  if (sessionBest !== null && Math.abs(lastLap - sessionBest) <= 0.0005) return TIMING_PERFORMANCE_TEXT.fastest;
+  if (personalBest !== null && personalBest !== undefined && Number.isFinite(personalBest) && Math.abs(lastLap - personalBest) <= 0.0005) return TIMING_PERFORMANCE_TEXT.personalBest;
+  return TIMING_PERFORMANCE_TEXT.slower;
+}
+
+function SectorComparison({
+  value,
+  fastest,
+  mode,
+  reference,
+  relative = false,
+  isReference = false,
+  comparisonWinner = false,
+  comparisonLabel
+}: {
+  value: number | null;
+  fastest: number | null;
+  mode: "last" | "best";
+  reference?: number | null;
+  relative?: boolean;
+  isReference?: boolean;
+  comparisonWinner?: boolean;
+  comparisonLabel?: string;
+}) {
+  const delta = timingDelta(value, fastest);
+  if (relative) {
+    return (
+      <span className={cn("text-right font-semibold tabular-nums", relativeValueTone(value, reference, isReference))}>
+        {formatRelativeValue(value, reference, isReference)}
+      </span>
+    );
+  }
+  if (value === null || delta === null) return <span className="text-right text-muted">—</span>;
+  const isFastest = Math.abs(delta) <= 0.0005;
+  return (
+    <span
+      className={cn("text-right font-semibold tabular-nums", comparisonWinner ? comparisonWinnerClass() : isFastest ? TIMING_PERFORMANCE_TEXT.fastest : mode === "best" ? TIMING_PERFORMANCE_TEXT.personalBest : TIMING_PERFORMANCE_TEXT.slower)}
+      title={comparisonWinner ? `Fastest selected ${comparisonLabel ?? "sector"}` : isFastest ? "Fastest visible sector" : `+${delta.toFixed(3)}s to fastest visible sector`}
+      data-comparison-winner={comparisonWinner ? comparisonLabel : undefined}
+    >
+      {value.toFixed(3)}
+    </span>
+  );
+}
+
+function minimumFinite(values: Array<number | null | undefined>): number | null {
+  const finite = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  return finite.length ? Math.min(...finite) : null;
+}
+
+function timingDelta(value: number | null | undefined, reference: number | null): number | null {
+  if (value === null || value === undefined || !Number.isFinite(value) || reference === null) return null;
+  return Math.max(0, value - reference);
+}
+
+function isTimingWinner(value: number | null | undefined, fastestSelected: number | null) {
+  return value !== null && value !== undefined && Number.isFinite(value) && fastestSelected !== null && Math.abs(value - fastestSelected) <= 0.0005;
+}
+
+function comparisonWinnerClass() {
+  return cn(TIMING_PERFORMANCE_TEXT.fastest, "rounded-sm bg-[#bd29c1]/10");
+}
+
+function sumCompleteSectors(values: Array<number | null>) {
+  return values.length === 3 && values.every((value) => value !== null) ? values.reduce<number>((sum, value) => sum + Number(value), 0) : null;
+}
+
+function PlaybackDebugDetails({ marker }: { marker: PlaybackMarker }) {
+  return (
+    <div className="grid grid-cols-2 gap-x-3 gap-y-1 rounded bg-slate-100 p-2 font-mono text-[9px] text-muted" data-testid={`playback-debug-${marker.driver}`}>
+      <span>map {marker.status}</span>
+      <span>timing {marker.context.timing_status}</span>
+      <span>interp {marker.interpolation_method}</span>
+      <span>age {marker.context.timing_sample_age_seconds ?? "—"}s</span>
+      <span className="col-span-2 truncate">source {marker.context.gap_source ?? "—"} / {marker.context.timing_app_source ?? "—"}</span>
+    </div>
+  );
+}
+
+function driverAbbreviation(driver: string): string {
+  return driver.trim().toUpperCase().slice(0, 3) || "—";
+}
+
+function compoundCode(compound: string | null | undefined): string {
+  const normalized = compound?.trim().toUpperCase();
+  const codes: Record<string, string> = {
+    SOFT: "S",
+    MEDIUM: "M",
+    HARD: "H",
+    INTERMEDIATE: "I",
+    WET: "W"
+  };
+  return normalized ? codes[normalized] ?? normalized.slice(0, 1) : "—";
+}
+
+function formatTyreAge(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return `${Math.max(0, Math.round(value))}L`;
+}
+
+function formatLapTime(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const minutes = Math.floor(value / 60);
+  const seconds = value - minutes * 60;
+  return minutes > 0 ? `${minutes}:${seconds.toFixed(3).padStart(6, "0")}` : seconds.toFixed(3);
+}
+
+function formatSectors(values: Array<number | null>): string {
+  if (!values.length || values.every((value) => value === null)) return "—";
+  return values.map((value, index) => `S${index + 1} ${value === null ? "—" : value.toFixed(3)}`).join(" · ");
+}
+
+function playbackDebugEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  const value = new URLSearchParams(window.location.search).get("debug");
+  return value === "" || value === "1" || value?.toLowerCase() === "true";
+}
+
+function formatGapSeconds(
+  value: number | null | undefined,
+  options: { signed?: boolean; leaderLabel?: string } = {}
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  if (Math.abs(value) < 0.0005) return options.leaderLabel ?? "0.000s";
+  const prefix = options.signed && value > 0 ? "+" : "";
+  return `${prefix}${value.toFixed(3)}s`;
+}
+
+function formatRaceGap(
+  seconds: number | null | undefined,
+  laps: number | null | undefined,
+  options: { leaderLabel?: string } = {}
+): string {
+  if (laps !== null && laps !== undefined && Number.isFinite(laps)) {
+    return `+${laps} LAP${laps === 1 ? "" : "S"}`;
+  }
+  return formatGapSeconds(seconds, options);
+}
+
+type PlaybackMapView = {
+  scale: number;
+  panX: number;
+  panY: number;
+  rotationDeg: number;
+};
+
+type PlaybackMapDrag = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  panX: number;
+  panY: number;
+  moved: boolean;
+};
+
+function PlaybackMap({
+  points,
+  markers,
+  selectedDrivers,
+  onToggleDriver
+}: {
+  points: TrackMapPoint[];
+  markers: PlaybackMarker[];
+  selectedDrivers: string[];
+  onToggleDriver: (driver: string) => void;
+}) {
+  const [view, setView] = useState<PlaybackMapView>(() => fitPlaybackMapView(points));
+  const [drag, setDrag] = useState<PlaybackMapDrag | null>(null);
+  const mapLayerRef = useRef<SVGGElement | null>(null);
+  const boundsKey = points.map((point) => `${point.display_x}:${point.display_y}`).join("|");
+
+  useEffect(() => {
+    setView(fitPlaybackMapView(points));
+  }, [boundsKey]);
+
+  const bounds = playbackDisplayBounds(points);
+  const centerX = (bounds.minimumX + bounds.maximumX) / 2;
+  const centerY = (bounds.minimumY + bounds.maximumY) / 2;
+  const transform = `translate(${view.panX} ${view.panY}) translate(50 50) rotate(${view.rotationDeg}) scale(${view.scale}) translate(${-centerX} ${-centerY})`;
+  const visualSizeScale = 1 / Math.max(view.scale, 0.75);
+  const hitSizeScale = 1 / Math.max(view.scale, 0.55);
+  const selectedDriverSet = new Set(selectedDrivers);
+  const selectedMarkers = markers.filter((marker) => selectedDriverSet.has(marker.driver));
+  const focusedMarker = selectedMarkers.length === 1 ? selectedMarkers[0] : null;
+  const focusedMiniSectorStates = focusedMarker?.context.mini_sector_states ?? [];
+  const focusedMiniSectorGroups = focusedMarker?.context.mini_sector_groups ?? [];
+  const miniSectorTrackSegments = useMemo(
+    () => playbackMiniSectorTrackSegments(points, focusedMiniSectorStates, focusedMiniSectorGroups),
+    [points, focusedMiniSectorStates, focusedMiniSectorGroups]
+  );
+  const officialSectorTrackSegments = useMemo(
+    () => playbackOfficialSectorTrackSegments(points, selectedMarkers),
+    [points, markers, selectedDrivers]
+  );
+  const renderedMarkers = markers.flatMap((marker, markerIndex) => {
+    if (marker.display_x === null || marker.display_x === undefined || marker.display_y === null || marker.display_y === undefined) return [];
+    const displayX = marker.display_x;
+    const displayY = marker.display_y;
+    const selected = selectedDriverSet.has(marker.driver);
+    const dimmed = selectedDrivers.length > 0 && !selected;
+    const labelOffset = ((markerIndex % 5) - 2) * 3.1 * visualSizeScale;
+    const markerOpacity = marker.status === "stale" ? 0.55 : 1;
+    const radius = (selected ? 4.2 : 3.2) * visualSizeScale;
+    const selectedRingRadius = 5.7 * visualSizeScale;
+    const hitRadius = Math.max(8.6 * hitSizeScale, selectedRingRadius + 1.8 * visualSizeScale);
+    return [
+      {
+        marker,
+        displayX,
+        displayY,
+        selected,
+        dimmed,
+        labelOffset,
+        markerOpacity,
+        radius,
+        selectedRingRadius,
+        hitRadius
+      }
+    ];
+  });
+
+  function zoomMap(factor: number) {
+    setView((current) => ({
+      ...current,
+      scale: clampNumber(current.scale * factor, 0.35, 10)
+    }));
+  }
+
+  function rotateMap(delta: number) {
+    setView((current) => ({
+      ...current,
+      rotationDeg: normalizeRotation(current.rotationDeg + delta)
+    }));
+  }
+
+  function fitMap() {
+    setView((current) => ({
+      ...fitPlaybackMapView(points),
+      rotationDeg: current.rotationDeg
+    }));
+  }
+
+  function resetMap() {
+    setView(fitPlaybackMapView(points));
+  }
+
+  function startPan(event: PointerEvent<SVGSVGElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDrag({
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: view.panX,
+      panY: view.panY,
+      moved: false
+    });
+  }
+
+  function movePan(event: PointerEvent<SVGSVGElement>) {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const deltaX = ((event.clientX - drag.startX) / Math.max(rect.width, 1)) * 108;
+    const deltaY = ((event.clientY - drag.startY) / Math.max(rect.height, 1)) * 108;
+    setDrag({ ...drag, moved: drag.moved || Math.abs(deltaX) > 0.4 || Math.abs(deltaY) > 0.4 });
+    setView((current) => ({
+      ...current,
+      panX: clampNumber(drag.panX + deltaX, -80, 80),
+      panY: clampNumber(drag.panY + deltaY, -80, 80)
+    }));
+  }
+
+  function endPan(event: PointerEvent<SVGSVGElement>) {
+    if (drag?.pointerId === event.pointerId) setDrag(null);
+  }
+
+  function wheelZoom(event: WheelEvent<SVGSVGElement>) {
+    event.preventDefault();
+    zoomMap(event.deltaY < 0 ? 1.15 : 0.87);
+  }
+
+  function focusNearestMarker(event: MouseEvent<SVGCircleElement>, fallbackDriver: string) {
+    event.stopPropagation();
+    const svg = event.currentTarget.ownerSVGElement;
+    const inverseTransform = mapLayerRef.current?.getScreenCTM()?.inverse();
+    if (!svg || !inverseTransform) {
+      onToggleDriver(fallbackDriver);
+      return;
+    }
+
+    const pointer = svg.createSVGPoint();
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+    const mapPoint = pointer.matrixTransform(inverseTransform);
+    let nearestDriver = fallbackDriver;
+    const fallbackMarker = renderedMarkers.find(({ marker }) => marker.driver === fallbackDriver);
+    let nearestDistance = fallbackMarker
+      ? (mapPoint.x - fallbackMarker.displayX) ** 2 + (mapPoint.y - fallbackMarker.displayY) ** 2
+      : Number.POSITIVE_INFINITY;
+
+    for (const { marker, displayX, displayY } of renderedMarkers) {
+      const deltaX = mapPoint.x - displayX;
+      const deltaY = mapPoint.y - displayY;
+      const distance = deltaX * deltaX + deltaY * deltaY;
+      if (distance + 1e-6 < nearestDistance) {
+        nearestDistance = distance;
+        nearestDriver = marker.driver;
+      }
+    }
+
+    onToggleDriver(nearestDriver);
+  }
+
+  return (
+    <div className="relative rounded-md border border-line bg-slate-50 p-3">
+      <div className="absolute bottom-3 left-3 z-20 flex flex-wrap items-center gap-1" data-testid="playback-map-controls">
+        <Button className="h-8 min-h-8 px-2" icon={<ZoomIn className="h-4 w-4" />} aria-label="Zoom map in" data-testid="playback-map-zoom-in" onClick={() => zoomMap(1.2)} />
+        <Button className="h-8 min-h-8 px-2" icon={<ZoomOut className="h-4 w-4" />} aria-label="Zoom map out" data-testid="playback-map-zoom-out" onClick={() => zoomMap(1 / 1.2)} />
+        <Button className="h-8 min-h-8 px-2" icon={<RotateCcw className="h-4 w-4" />} aria-label="Rotate map left" data-testid="playback-map-rotate-left" onClick={() => rotateMap(-15)} />
+        <Button className="h-8 min-h-8 px-2" icon={<RotateCw className="h-4 w-4" />} aria-label="Rotate map right" data-testid="playback-map-rotate-right" onClick={() => rotateMap(15)} />
+        <Button className="h-8 min-h-8 px-2" icon={<Maximize2 className="h-4 w-4" />} aria-label="Fit map" data-testid="playback-map-fit" onClick={fitMap} />
+        <Button className="h-8 min-h-8 px-2" icon={<RefreshCw className="h-4 w-4" />} aria-label="Reset map" data-testid="playback-map-reset" onClick={resetMap} />
+      </div>
+      <svg
+        className="h-[min(58vh,480px)] w-full cursor-grab touch-none active:cursor-grabbing xl:h-[calc(100vh-17.5rem)] xl:min-h-[440px] xl:max-h-[640px]"
+        data-testid="race-playback-map"
+        role="img"
+        viewBox="-4 -4 108 108"
+        onPointerDown={startPan}
+        onPointerMove={movePan}
+        onPointerUp={endPan}
+        onPointerCancel={endPan}
+        onWheel={wheelZoom}
+      >
+        <g data-testid="playback-map-layer" transform={transform} ref={mapLayerRef}>
+          <polyline points={polylinePoints(points)} fill="none" stroke="#94a3b8" strokeWidth={2.5 * visualSizeScale} strokeLinecap="round" strokeLinejoin="round" />
+          {miniSectorTrackSegments.map((segment) => (
+            <polyline
+              key={segment.index}
+              points={segment.points}
+              fill="none"
+              stroke={miniSectorStateColor(segment.state)}
+              strokeWidth={3.6 * visualSizeScale}
+              strokeLinecap="butt"
+              strokeLinejoin="round"
+              data-testid={`playback-map-mini-sector-${segment.index}`}
+              data-mini-sector-state={segment.state}
+              data-mini-sector-group={segment.group}
+              data-start-distance={segment.startDistance}
+              data-end-distance={segment.endDistance}
+              pointerEvents="none"
+            />
+          ))}
+          {officialSectorTrackSegments.map((segment) => (
+            <polyline
+              key={segment.sector}
+              points={segment.points}
+              fill="none"
+              stroke={segment.color}
+              strokeWidth={4.2 * visualSizeScale}
+              strokeLinecap="butt"
+              strokeLinejoin="round"
+              data-testid={`playback-map-sector-${segment.sector}`}
+              data-sector={segment.sector}
+              data-driver={segment.driver}
+              data-sector-time={segment.time}
+              data-start-distance={segment.startDistance}
+              data-end-distance={segment.endDistance}
+              pointerEvents="none"
+            />
+          ))}
+          {renderedMarkers.map(({ marker, displayX, displayY, hitRadius }) => (
+            <circle
+              key={`${marker.driver}-hitbox`}
+              cx={displayX}
+              cy={displayY}
+              r={hitRadius}
+              fill="transparent"
+              stroke="none"
+              pointerEvents="all"
+              data-testid={`playback-marker-hitbox-${marker.driver}`}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => focusNearestMarker(event, marker.driver)}
+            />
+          ))}
+          {renderedMarkers.map(({ marker, displayX, displayY, selected, dimmed, markerOpacity, radius, selectedRingRadius }) => {
+            return (
+              <g key={marker.driver}>
+                <title>{`${marker.driver} ${marker.status}`}</title>
+                {selected && (
+                  <circle
+                    cx={displayX}
+                    cy={displayY}
+                    r={selectedRingRadius}
+                    fill="none"
+                    stroke="#0f172a"
+                    strokeWidth={1.4 * visualSizeScale}
+                    opacity="0.9"
+                    pointerEvents="none"
+                  />
+                )}
+                <circle
+                  cx={displayX}
+                  cy={displayY}
+                  r={radius}
+                  fill={marker.color ?? "#0f766e"}
+                  opacity={dimmed ? 0.32 : markerOpacity}
+                  stroke={selected ? "#0f172a" : "#ffffff"}
+                  strokeWidth={(selected ? 1.8 : 1.25) * visualSizeScale}
+                  data-testid={`playback-marker-${marker.driver}`}
+                  pointerEvents="all"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => focusNearestMarker(event, marker.driver)}
+                />
+              </g>
+            );
+          })}
+          {renderedMarkers.map(({ marker, displayX, displayY, dimmed, labelOffset }) => (
+            <g
+              key={`${marker.driver}-label`}
+              transform={`translate(${displayX} ${displayY}) rotate(${-view.rotationDeg})`}
+              data-testid={`playback-label-${marker.driver}`}
+              pointerEvents="none"
+            >
+              <text
+                x={3.8 * visualSizeScale}
+                y={-3.2 * visualSizeScale + labelOffset}
+                className="fill-slate-900 font-semibold"
+                fontSize={3.7 * visualSizeScale}
+                opacity={dimmed ? 0.45 : 1}
+              >
+                {marker.driver}
+              </text>
+            </g>
+          ))}
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function PlaybackTimeline({
+  mode,
+  payload,
+  lapBounds,
+  timeBounds,
+  timeView,
+  lapValue,
+  timeValue,
+  loading,
+  timeAvailable,
+  onModeChange,
+  onLapChange,
+  onTimeChange,
+  onZoomIn,
+  onZoomOut,
+  onFit
+}: {
+  mode: PlaybackMode;
+  payload: PlaybackPayload;
+  lapBounds: TrackBounds;
+  timeBounds: TrackBounds | null;
+  timeView: TrackBounds | null;
+  lapValue: number;
+  timeValue: number;
+  loading: boolean;
+  timeAvailable: boolean;
+  onModeChange: (mode: PlaybackMode) => void;
+  onLapChange: (value: number) => void;
+  onTimeChange: (value: number) => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onFit: () => void;
+}) {
+  const bounds = mode === "lap" ? lapBounds : timeView ?? timeBounds;
+  const value = mode === "lap" ? lapValue : timeValue;
+  const disabled = bounds === null;
+  const minimum = bounds?.minimum ?? 0;
+  const maximum = bounds?.maximum ?? minimum;
+  const span = Math.max(maximum - minimum, 0);
+  const step = mode === "lap" ? 1 : Math.max(span / 600, 0.05);
+  const ticks = payload.leader_lap_markers.filter((marker) => {
+    const tickValue = mode === "lap" ? marker.lap_number : marker.session_time_seconds;
+    return tickValue >= minimum && tickValue <= maximum;
+  });
+  const tickStride = Math.max(1, Math.ceil(ticks.length / 12));
+  const displayTicks = ticks.filter((_, index) => index % tickStride === 0 || index === ticks.length - 1);
+  const label = mode === "lap"
+    ? `Lap ${Math.round(lapValue)}`
+    : formatSessionTime(timeValue);
+
+  return (
+    <div className="grid gap-2 rounded-md border border-line bg-slate-50 p-2 xl:h-full xl:min-h-0 xl:grid-rows-[auto_auto_auto_minmax(0,1fr)]" data-testid="race-playback-timeline">
+      <div className="flex flex-wrap items-center justify-between gap-1 xl:grid xl:justify-items-center">
+        <div className="text-xs font-semibold text-ink">Timeline</div>
+        <div className="text-xs font-semibold tabular-nums text-ink">{label}</div>
+      </div>
+      <div className="flex items-center justify-center gap-1">
+        <Button
+          className="h-7 min-h-7 px-2 text-[10px]"
+          variant={mode === "time" ? "primary" : "secondary"}
+          onClick={() => onModeChange("time")}
+          disabled={!timeAvailable}
+        >
+          Time
+        </Button>
+        <Button className="h-7 min-h-7 px-2 text-[10px]" variant={mode === "lap" ? "primary" : "secondary"} onClick={() => onModeChange("lap")}>Lap</Button>
+        {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted" aria-label="Loading playback" />}
+      </div>
+      <div className="flex justify-center gap-1">
+        <Button className="h-7 min-h-7 px-1.5" icon={<ZoomIn className="h-3.5 w-3.5" />} aria-label="Zoom in" onClick={onZoomIn} disabled={mode !== "time" || !timeBounds} />
+        <Button className="h-7 min-h-7 px-1.5" icon={<ZoomOut className="h-3.5 w-3.5" />} aria-label="Zoom out" onClick={onZoomOut} disabled={mode !== "time" || !timeBounds} />
+        <Button className="h-7 min-h-7 px-1.5" icon={<Maximize2 className="h-3.5 w-3.5" />} aria-label="Fit timeline" onClick={onFit} disabled={mode !== "time" || !timeBounds} />
+      </div>
+      <div className="relative hidden min-h-0 xl:block" data-testid="race-playback-timeline-vertical">
+        <div className="absolute bottom-1 left-1/2 top-1 w-1 -translate-x-1/2 rounded bg-slate-300" />
+        {displayTicks.map((marker) => {
+          const tickValue = mode === "lap" ? marker.lap_number : marker.session_time_seconds;
+          const top = span > 0 ? (1 - ((tickValue - minimum) / span)) * 100 : 100;
+          return (
+            <div
+              key={`${marker.lap_number}-${marker.session_time_seconds}`}
+              className="absolute left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center"
+              style={{ top: `${top}%` }}
+            >
+              <div className="h-px w-5 bg-slate-500" />
+              <div className="ml-1 whitespace-nowrap text-[9px] font-medium text-muted">L{marker.lap_number}</div>
+            </div>
+          );
+        })}
+        <input
+          className="absolute bottom-1 left-1/2 top-1 h-[calc(100%-0.5rem)] w-5 -translate-x-1/2 cursor-pointer bg-transparent accent-teal-700"
+          data-testid="race-playback-timeline-slider-vertical"
+          aria-label="Playback timeline"
+          type="range"
+          min={minimum}
+          max={maximum}
+          step={step}
+          value={clampNumber(value, minimum, maximum)}
+          style={{ writingMode: "vertical-lr", direction: "rtl" }}
+          onChange={(event) => {
+            const next = Number(event.target.value);
+            if (mode === "lap") onLapChange(next);
+            else onTimeChange(next);
+          }}
+          disabled={disabled || span <= 0}
+        />
+        <span className="absolute left-1 top-0 text-[9px] tabular-nums text-muted">{mode === "lap" ? `L${maximum}` : formatSessionTime(maximum)}</span>
+        <span className="absolute bottom-0 left-1 text-[9px] tabular-nums text-muted">{mode === "lap" ? `L${minimum}` : formatSessionTime(minimum)}</span>
+      </div>
+      <div className="xl:hidden">
+        <div className="relative h-12">
+          <div className="absolute inset-x-0 top-6 h-1 rounded bg-slate-300" />
+          {displayTicks.map((marker) => {
+            const tickValue = mode === "lap" ? marker.lap_number : marker.session_time_seconds;
+            const left = span > 0 ? ((tickValue - minimum) / span) * 100 : 0;
+            return (
+              <div
+                key={`${marker.lap_number}-${marker.session_time_seconds}`}
+                className="absolute top-1 h-9 -translate-x-1/2"
+                style={{ left: `${left}%` }}
+              >
+                <div className="mx-auto h-8 w-px bg-slate-500" />
+                <div className="mt-0.5 whitespace-nowrap text-[10px] font-medium text-muted">L{marker.lap_number}</div>
+              </div>
+            );
+          })}
+          <input
+            className="absolute inset-x-0 top-[18px] h-5 w-full cursor-pointer bg-transparent accent-teal-700"
+            data-testid="race-playback-timeline-slider"
+            aria-label="Playback timeline"
+            type="range"
+            min={minimum}
+            max={maximum}
+            step={step}
+            value={clampNumber(value, minimum, maximum)}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              if (mode === "lap") onLapChange(next);
+              else onTimeChange(next);
+            }}
+            disabled={disabled || span <= 0}
+          />
+        </div>
+        <div className="flex justify-between text-xs tabular-nums text-muted">
+          <span>{mode === "lap" ? `L${minimum}` : formatSessionTime(minimum)}</span>
+          <span>{mode === "lap" ? `L${maximum}` : formatSessionTime(maximum)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function playbackLapBounds(payload: PlaybackPayload): TrackBounds | null {
+  const laps = objectValue(payload.bounds.laps);
+  const mode = payload.available_modes.lap;
+  const minimum = typeof laps.minimum === "number" ? laps.minimum : typeof mode?.minimum === "number" ? mode.minimum : null;
+  const maximum = typeof laps.maximum === "number" ? laps.maximum : typeof mode?.maximum === "number" ? mode.maximum : null;
+  if (minimum === null || maximum === null || !Number.isFinite(minimum) || !Number.isFinite(maximum)) return null;
+  return { minimum, maximum };
+}
+
+function playbackTimeBounds(payload: PlaybackPayload): TrackBounds | null {
+  const sessionTime = objectValue(payload.bounds.session_time);
+  const mode = payload.available_modes.time;
+  const minimum = typeof sessionTime.minimum === "number" ? sessionTime.minimum : typeof mode?.minimum === "number" ? mode.minimum : null;
+  const maximum = typeof sessionTime.maximum === "number" ? sessionTime.maximum : typeof mode?.maximum === "number" ? mode.maximum : null;
+  if (minimum === null || maximum === null || !Number.isFinite(minimum) || !Number.isFinite(maximum)) return null;
+  return { minimum, maximum };
+}
+
+function playbackTimeView(bounds: TrackBounds, cursor: number, requestedSpan: number | null): TrackBounds {
+  const fullSpan = Math.max(bounds.maximum - bounds.minimum, 0);
+  if (fullSpan <= 0) return bounds;
+  const span = clampNumber(requestedSpan ?? fullSpan, Math.min(fullSpan, 10), fullSpan);
+  const start = clampNumber(cursor - span / 2, bounds.minimum, bounds.maximum - span);
+  return { minimum: start, maximum: start + span };
+}
+
+function playbackDisplayBounds(points: TrackMapPoint[]) {
+  const finitePoints = points.filter((point) => Number.isFinite(point.display_x) && Number.isFinite(point.display_y));
+  if (finitePoints.length === 0) {
+    return { minimumX: 0, maximumX: 100, minimumY: 0, maximumY: 100 };
+  }
+  return {
+    minimumX: Math.min(...finitePoints.map((point) => point.display_x)),
+    maximumX: Math.max(...finitePoints.map((point) => point.display_x)),
+    minimumY: Math.min(...finitePoints.map((point) => point.display_y)),
+    maximumY: Math.max(...finitePoints.map((point) => point.display_y))
+  };
+}
+
+function fitPlaybackMapView(points: TrackMapPoint[]): PlaybackMapView {
+  const bounds = playbackDisplayBounds(points);
+  const width = Math.max(bounds.maximumX - bounds.minimumX, 1);
+  const height = Math.max(bounds.maximumY - bounds.minimumY, 1);
+  const scale = clampNumber(Math.min(92 / width, 92 / height), 0.35, 10);
+  return { scale, panX: 0, panY: 0, rotationDeg: 0 };
+}
+
+function normalizeRotation(value: number) {
+  const normalized = value % 360;
+  return normalized > 180 ? normalized - 360 : normalized < -180 ? normalized + 360 : normalized;
+}
+
+function formatSessionTime(value: number) {
+  if (!Number.isFinite(value)) return "None";
+  const minutes = Math.floor(value / 60);
+  const seconds = value - minutes * 60;
+  return `${minutes}:${seconds.toFixed(1).padStart(4, "0")}`;
 }
 
 function ReviewEditor({
@@ -2338,6 +3564,73 @@ function segmentPolylinePoints(points: TrackMapPoint[], startDistance: number, e
     markerAtDistance(points, end)
   ];
   return segment.map((point) => `${point.display_x},${point.display_y}`).join(" ");
+}
+
+type MiniSectorState = PlaybackMarker["context"]["mini_sector_states"][number];
+
+function playbackMiniSectorTrackSegments(
+  points: TrackMapPoint[],
+  states: PlaybackMarker["context"]["mini_sector_states"],
+  groups: PlaybackMarker["context"]["mini_sector_groups"]
+) {
+  if (points.length < 2 || states.length === 0) return [];
+  const ordered = [...points].sort((left, right) => left.distance_m - right.distance_m);
+  const minimum = 0;
+  const maximum = ordered[ordered.length - 1].distance_m;
+  const segmentLength = (maximum - minimum) / states.length;
+  if (!Number.isFinite(segmentLength) || segmentLength <= 0) return [];
+  return states.map((state, index) => {
+    const startDistance = minimum + index * segmentLength;
+    const endDistance = index === states.length - 1 ? maximum : minimum + (index + 1) * segmentLength;
+    return {
+      index,
+      state,
+      group: groups[index] ?? 0,
+      startDistance,
+      endDistance,
+      points: segmentPolylinePoints(ordered, startDistance, endDistance)
+    };
+  });
+}
+
+function playbackOfficialSectorTrackSegments(points: TrackMapPoint[], selectedMarkers: PlaybackMarker[]) {
+  if (points.length < 2 || selectedMarkers.length < 2) return [];
+  const ordered = [...points].sort((left, right) => left.distance_m - right.distance_m);
+  const trackLength = ordered[ordered.length - 1].distance_m;
+  if (!Number.isFinite(trackLength) || trackLength <= 0) return [];
+  const inferredGroups = selectedMarkers.find((marker) => marker.context.mini_sector_groups.some((group) => group > 0))?.context.mini_sector_groups ?? [];
+  const boundaries = [0, 1, 2, 3].map((boundaryIndex) => {
+    if (boundaryIndex === 0) return 0;
+    if (boundaryIndex === 3) return trackLength;
+    if (inferredGroups.length === 0) return trackLength * (boundaryIndex / 3);
+    const completedSegments = inferredGroups.filter((group) => group > 0 && group <= boundaryIndex).length;
+    return trackLength * (completedSegments / inferredGroups.length);
+  });
+  return [0, 1, 2].flatMap((sectorIndex) => {
+    const winner = selectedMarkers
+      .map((marker) => ({ marker, time: marker.context.last_sector_times_seconds[sectorIndex] }))
+      .filter((candidate): candidate is { marker: PlaybackMarker; time: number } => candidate.time !== null && candidate.time !== undefined && Number.isFinite(candidate.time))
+      .sort((left, right) => left.time - right.time)[0];
+    if (!winner) return [];
+    const startDistance = boundaries[sectorIndex];
+    const endDistance = boundaries[sectorIndex + 1];
+    return [{
+      sector: sectorIndex + 1,
+      driver: winner.marker.driver,
+      time: winner.time,
+      color: winner.marker.color ?? "#0f766e",
+      startDistance,
+      endDistance,
+      points: segmentPolylinePoints(ordered, startDistance, endDistance)
+    }];
+  });
+}
+
+function miniSectorStateColor(state: MiniSectorState) {
+  if (state === "fastest") return TIMING_PERFORMANCE_COLORS.fastest;
+  if (state === "faster") return TIMING_PERFORMANCE_COLORS.personalBest;
+  if (state === "slower") return TIMING_PERFORMANCE_COLORS.slower;
+  return "#cbd5e1";
 }
 
 function markerAtDistance(points: TrackMapPoint[], distance: number) {

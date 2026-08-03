@@ -3,6 +3,7 @@ import type {
   HistoryItem,
   PackageView,
   ParameterDiagnostics,
+  PlaybackPayload,
   PluginStatus,
   ProjectConfigForm,
   ReviewStatus,
@@ -192,6 +193,26 @@ export function resolveAnalysisChartDiagnostics(payload: { template_id: string; 
 
 export function getAnalysisTrackMap(payload: { template_id: string; recipe_id?: string; target_session_ids: string[]; parameters?: Record<string, unknown>; max_points?: number }) {
   return request<TrackMapPayload>("/api/analysis/track-map", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
+export function getAnalysisPlayback(payload: {
+  session_id: string;
+  mode?: "time" | "lap";
+  cursor?: number | null;
+  start_lap?: number | null;
+  end_lap?: number | null;
+  selected_drivers?: string[] | null;
+  max_frames?: number;
+  max_markers?: number;
+  max_points?: number;
+  maximum_sample_gap_seconds?: number;
+  maximum_timing_sample_age_seconds?: number;
+}) {
+  return request<PlaybackPayload>("/api/analysis/playback", {
     method: "POST",
     headers: jsonHeaders,
     body: JSON.stringify(payload)

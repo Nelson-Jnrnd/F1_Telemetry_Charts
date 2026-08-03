@@ -9,13 +9,267 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from f1_telemetry_charts.analysis import workspace
+from f1_telemetry_charts.analysis.playback import (
+    PlaybackMarker,
+    _equal_distance_segment_times,
+    _markers_with_analyst_context,
+    _markers_with_timing,
+    _mini_sector_snapshot,
+    _pit_state_at_time,
+)
 from f1_telemetry_charts.analysis.workspace import AnalysisService, list_global_presets, recipe_parameter_schema
 from f1_telemetry_charts.config.models import DataCacheConfig, SessionConfig
+from f1_telemetry_charts.data import (
+    LapRecord,
+    TelemetrySample,
+    TimingAppRecord,
+    TimingStreamRecord,
+)
 from f1_telemetry_charts.preview import read_package_view
 from f1_telemetry_charts.ui.server import create_app
 
 
+def _mini_sector_test_samples(
+    driver: str,
+    lap_number: int,
+    times: list[float],
+) -> list[TelemetrySample]:
+    return [
+        TelemetrySample(
+            driver=driver,
+            lap_number=lap_number,
+            distance_m=distance,
+            session_time_seconds=session_time,
+        )
+        for distance, session_time in zip([0, 200, 400, 600], times)
+    ]
+
+
 class AnalysisWorkspaceTests(unittest.TestCase):
+    def test_playback_sparse_leader_remains_valid_relative_anchor(self) -> None:
+        markers = [
+            PlaybackMarker(
+                driver="PER",
+                status="active",
+                context={"lap_number": 16},
+            ),
+            PlaybackMarker(
+                driver="VER",
+                status="active",
+                context={"lap_number": 15},
+            ),
+        ]
+        enriched = _markers_with_timing(
+            markers,
+            100,
+            {
+                "PER": [
+                    TimingStreamRecord(
+                        driver="PER",
+                        session_time_seconds=0,
+                        position=1,
+                        gap_to_leader_seconds=0,
+                        gap_parse_status="leader",
+                    )
+                ],
+                "VER": [
+                    TimingStreamRecord(
+                        driver="VER",
+                        session_time_seconds=98,
+                        position=2,
+                        gap_to_leader_seconds=11.516,
+                        gap_parse_status="parsed",
+                    )
+                ],
+            },
+            maximum_timing_sample_age_seconds=10,
+        )
+
+        self.assertEqual(enriched[0].context.timing_status, "fresh")
+        self.assertEqual(enriched[0].context.gap_to_leader_seconds, 0)
+        self.assertEqual(enriched[0].context.timing_sample_age_seconds, 100)
+        self.assertEqual(enriched[1].context.lap_number, 15)
+        self.assertEqual(enriched[1].context.timing_status, "fresh")
+        self.assertEqual(enriched[1].context.gap_to_leader_seconds, 11.516)
+        self.assertIsNone(enriched[1].context.gap_to_leader_laps)
+
+    def test_playback_mini_sectors_are_equal_distance_and_grouped_by_sector(self) -> None:
+        laps_by_driver = {
+            "VER": {
+                1: LapRecord(
+                    driver="VER",
+                    lap_number=1,
+                    lap_start_time_seconds=0,
+                    lap_end_time_seconds=60,
+                    lap_time_seconds=60,
+                    sector_1_time_seconds=20,
+                    sector_2_time_seconds=20,
+                    sector_3_time_seconds=20,
+                ),
+                2: LapRecord(
+                    driver="VER",
+                    lap_number=2,
+                    lap_start_time_seconds=60,
+                    lap_end_time_seconds=114,
+                    lap_time_seconds=54,
+                    sector_1_time_seconds=18,
+                    sector_2_time_seconds=18,
+                    sector_3_time_seconds=18,
+                ),
+            },
+            "PER": {
+                1: LapRecord(
+                    driver="PER",
+                    lap_number=1,
+                    lap_start_time_seconds=0,
+                    lap_end_time_seconds=63,
+                    lap_time_seconds=63,
+                    sector_1_time_seconds=21,
+                    sector_2_time_seconds=21,
+                    sector_3_time_seconds=21,
+                )
+            },
+        }
+        telemetry = {
+            "VER": {
+                1: _mini_sector_test_samples("VER", 1, [0, 20, 40, 60]),
+                2: _mini_sector_test_samples("VER", 2, [60, 78, 96, 114]),
+            },
+            "PER": {
+                1: _mini_sector_test_samples("PER", 1, [0, 21, 42, 63]),
+            },
+        }
+
+        states, groups = _mini_sector_snapshot(
+            120,
+            ["VER", "PER"],
+            laps_by_driver,
+            telemetry,
+            track_length_metres=600,
+        )
+
+        self.assertEqual(len(groups), 15)
+        self.assertEqual(set(groups), {1, 2, 3})
+        self.assertEqual(states["VER"], ["fastest"] * 15)
+        self.assertEqual(states["PER"], ["faster"] * 15)
+
+    def test_playback_mini_sectors_anchor_sparse_lap_endpoints(self) -> None:
+        samples = [
+            TelemetrySample(
+                driver="VER",
+                lap_number=1,
+                distance_m=10,
+                session_time_seconds=1,
+            ),
+            TelemetrySample(
+                driver="VER",
+                lap_number=1,
+                distance_m=590,
+                session_time_seconds=59,
+            ),
+        ]
+
+        durations = _equal_distance_segment_times(
+            samples,
+            [0, 200, 400, 600],
+            lap_start_time=0,
+            lap_end_time=60,
+        )
+
+        self.assertEqual(durations, [20, 20, 20])
+
+    def test_playback_pit_state_uses_live_pit_event_timestamps(self) -> None:
+        laps = [
+            LapRecord(
+                driver="VER",
+                lap_number=10,
+                pit_in_time_seconds=600,
+                is_pit_in_lap=True,
+            ),
+            LapRecord(
+                driver="VER",
+                lap_number=11,
+                pit_out_time_seconds=625,
+                is_pit_out_lap=True,
+            ),
+        ]
+
+        self.assertEqual(_pit_state_at_time(laps, 599), "none")
+        self.assertEqual(_pit_state_at_time(laps, 610), "pit_in")
+        self.assertEqual(_pit_state_at_time(laps, 625), "none")
+
+    def test_playback_tyre_age_uses_live_total_then_infers_current_stint(self) -> None:
+        laps = {
+            "VER": {
+                4: LapRecord(
+                    driver="VER",
+                    lap_number=4,
+                    lap_start_time_seconds=300,
+                    lap_end_time_seconds=400,
+                    lap_time_seconds=100,
+                    compound="MEDIUM",
+                    stint=2,
+                ),
+                5: LapRecord(
+                    driver="VER",
+                    lap_number=5,
+                    lap_start_time_seconds=400,
+                    lap_end_time_seconds=500,
+                    lap_time_seconds=100,
+                    compound="MEDIUM",
+                    stint=2,
+                ),
+                6: LapRecord(
+                    driver="VER",
+                    lap_number=6,
+                    lap_start_time_seconds=500,
+                    compound="MEDIUM",
+                    stint=2,
+                ),
+            }
+        }
+        marker = PlaybackMarker(driver="VER", status="active")
+
+        live = _markers_with_analyst_context(
+            [marker],
+            550,
+            laps,
+            {
+                "VER": [
+                    TimingAppRecord(
+                        driver="VER",
+                        session_time_seconds=500,
+                        stint=2,
+                        total_laps=7,
+                        compound="MEDIUM",
+                    )
+                ]
+            },
+            {},
+            [],
+        )
+        inferred = _markers_with_analyst_context(
+            [marker],
+            550,
+            laps,
+            {
+                "VER": [
+                    TimingAppRecord(
+                        driver="VER",
+                        session_time_seconds=500,
+                        stint=2,
+                        start_laps=2,
+                        compound="MEDIUM",
+                    )
+                ]
+            },
+            {},
+            [],
+        )
+
+        self.assertEqual(live[0].context.tyre_age_laps, 7)
+        self.assertEqual(inferred[0].context.tyre_age_laps, 4)
+
     def test_workspace_snapshots_chart_generation_presets_and_export(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir) / "analysis"
@@ -1328,6 +1582,279 @@ class AnalysisApiTests(unittest.TestCase):
                 },
             )
             self.assertEqual(chart_response.status_code, 200, chart_response.text)
+
+    def test_analysis_playback_returns_lap_frame_context(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={"path": str(Path(temp_dir) / "analysis"), "name": "Playback"},
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["*"],
+                    "data_cache": {
+                        "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
+                    },
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+
+            response = client.post(
+                "/api/analysis/playback",
+                json={
+                    "session_id": session["session_id"],
+                    "mode": "lap",
+                    "cursor": 2,
+                    "max_points": 2,
+                },
+            )
+
+            self.assertEqual(response.status_code, 200, response.text)
+            payload = response.json()
+            self.assertEqual(payload["status"], "available")
+            self.assertEqual(payload["mode"], "lap")
+            self.assertEqual(payload["default_mode"], "lap")
+            self.assertTrue(payload["available_modes"]["lap"]["available"])
+            self.assertTrue(payload["available_modes"]["time"]["available"])
+            self.assertEqual(payload["bounds"]["laps"]["minimum"], 1)
+            self.assertEqual(payload["bounds"]["laps"]["maximum"], 2)
+            self.assertEqual(len(payload["points"]), 2)
+            self.assertEqual(payload["leader_lap_markers"][1]["lap_number"], 2)
+            self.assertEqual(payload["leader_lap_markers"][1]["leader_driver"], "VER")
+            self.assertAlmostEqual(payload["leader_lap_markers"][1]["session_time_seconds"], 97.254)
+            self.assertEqual(len(payload["frames"]), 1)
+            frame = payload["frames"][0]
+            self.assertEqual(frame["lap_number"], 2)
+            self.assertEqual(frame["cursor"]["mode"], "lap")
+            self.assertEqual(frame["cursor"]["leader_lap_number"], 2)
+            self.assertAlmostEqual(frame["session_time_seconds"], 97.254)
+            markers = {marker["driver"]: marker for marker in frame["markers"]}
+            self.assertEqual(markers["VER"]["status"], "active")
+            self.assertEqual(markers["VER"]["color"], "#3671C6")
+            self.assertEqual(markers["VER"]["distance_m"], 0)
+            self.assertEqual(markers["VER"]["context"]["position"], 1)
+            self.assertEqual(markers["VER"]["context"]["gap_to_leader_seconds"], 0)
+            self.assertEqual(markers["VER"]["context"]["timing_status"], "fresh")
+            self.assertEqual(markers["VER"]["context"]["tyre_age_laps"], 2)
+            self.assertEqual(markers["VER"]["context"]["last_lap_time_seconds"], 97.254)
+            self.assertEqual(markers["VER"]["context"]["best_lap_time_seconds"], 97.254)
+            self.assertEqual(
+                markers["VER"]["context"]["last_sector_times_seconds"],
+                [31.102, 41.942, 24.21],
+            )
+            self.assertEqual(markers["VER"]["context"]["mini_sector_states"], [])
+            self.assertEqual(
+                markers["VER"]["context"]["timing_app_source"],
+                "fastf1_timing_app_data",
+            )
+            self.assertEqual(markers["PER"]["status"], "active")
+            self.assertEqual(markers["PER"]["color"], "#3671C6")
+            self.assertEqual(markers["PER"]["source_lap"], 1)
+            self.assertEqual(markers["PER"]["distance_m"], 246)
+            self.assertEqual(markers["PER"]["context"]["position"], 2)
+            self.assertEqual(markers["PER"]["context"]["gap_to_leader_seconds"], 1.234)
+            self.assertEqual(markers["PER"]["context"]["interval_to_ahead_seconds"], 1.234)
+            self.assertEqual(markers["PER"]["context"]["gap_source"], "fastf1_timing_data")
+            self.assertFalse(markers["PER"]["context"]["gap_inferred"])
+            self.assertEqual(markers["PER"]["context"]["timing_position"], 2)
+            self.assertEqual(markers["ALO"]["color"], "#358C75")
+            self.assertEqual(markers["ALO"]["source_lap"], 1)
+            self.assertEqual(markers["ALO"]["distance_m"], 240)
+            self.assertEqual(markers["ALO"]["context"]["position"], 5)
+            self.assertEqual(markers["ALO"]["context"]["gap_to_leader_seconds"], 4.321)
+            self.assertNotIn("raw_telemetry", payload)
+            self.assertEqual(payload["metadata"]["timing"]["record_count"], 6)
+            self.assertEqual(payload["metadata"]["timing_app"]["record_count"], 3)
+
+            coverage = client.get("/api/analysis/coverage").json()
+            playback = coverage["sessions"][session["session_id"]]["playback"]
+            self.assertTrue(playback["available"])
+            self.assertEqual(playback["default_mode"], "lap")
+
+    def test_analysis_playback_degrades_without_time_indexed_positions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture_path = Path(temp_dir) / "no-session-time.json"
+            payload = json.loads(
+                Path("tests/fixtures/2023_bahrain_race_dataset.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            for lap in payload["laps"]:
+                lap.pop("lap_start_time_seconds", None)
+                lap.pop("lap_end_time_seconds", None)
+            for sample in payload["telemetry"]:
+                sample.pop("session_time_seconds", None)
+            fixture_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={"path": str(Path(temp_dir) / "analysis"), "name": "No Time"},
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["VER"],
+                    "data_cache": {"fixture_path": str(fixture_path)},
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+
+            response = client.post(
+                "/api/analysis/playback",
+                json={"session_id": session["session_id"], "mode": "time"},
+            )
+
+            self.assertEqual(response.status_code, 200, response.text)
+            payload = response.json()
+            self.assertEqual(payload["status"], "unavailable")
+            self.assertEqual(payload["diagnostics"][0]["field"], "mode")
+            self.assertIn("time-indexed position", payload["diagnostics"][0]["message"])
+            self.assertFalse(payload["available_modes"]["time"]["available"])
+            self.assertFalse(payload["available_modes"]["lap"]["available"])
+
+    def test_analysis_playback_time_mode_interpolates_at_shared_timestamp(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={"path": str(Path(temp_dir) / "analysis"), "name": "Time Playback"},
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["VER", "PER"],
+                    "data_cache": {
+                        "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
+                    },
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+
+            response = client.post(
+                "/api/analysis/playback",
+                json={
+                    "session_id": session["session_id"],
+                    "mode": "time",
+                    "cursor": 145.31,
+                    "maximum_sample_gap_seconds": 60,
+                },
+            )
+
+            self.assertEqual(response.status_code, 200, response.text)
+            frame = response.json()["frames"][0]
+            self.assertEqual(frame["mode"], "time")
+            self.assertAlmostEqual(frame["session_time_seconds"], 145.31)
+            self.assertEqual(frame["cursor"]["leader_lap_number"], 2)
+            markers = {marker["driver"]: marker for marker in frame["markers"]}
+            self.assertEqual(markers["VER"]["interpolation_method"], "exact")
+            self.assertEqual(markers["VER"]["distance_m"], 125)
+            self.assertEqual(markers["PER"]["interpolation_status"], "interpolated")
+            self.assertEqual(markers["PER"]["source_lap"], 2)
+            self.assertLess(markers["PER"]["distance_m"], 125)
+            self.assertEqual(markers["PER"]["context"]["gap_to_leader_seconds"], 1.702)
+            self.assertEqual(markers["PER"]["context"]["interval_to_ahead_seconds"], 1.702)
+            self.assertEqual(markers["PER"]["context"]["timing_status"], "fresh")
+
+    def test_analysis_playback_range_handoff_preserves_other_chart_parameters(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "analysis"
+            client = TestClient(create_app())
+            client.post(
+                "/api/analysis/create",
+                json={"path": str(root), "name": "Playback Handoff"},
+            )
+            client.post(
+                "/api/analysis/sessions",
+                json={
+                    "session": {
+                        "season": 2023,
+                        "event": "Bahrain Grand Prix",
+                        "session": "Race",
+                    },
+                    "drivers": ["VER", "PER"],
+                    "data_cache": {
+                        "fixture_path": "tests/fixtures/2023_bahrain_race_dataset.json"
+                    },
+                },
+            )
+            session = client.get("/api/analysis").json()["analysis"]["sessions"][0]
+            chart_response = client.post(
+                "/api/analysis/charts",
+                json={
+                    "template_id": "lap_time_delta",
+                    "target_session_ids": [session["session_id"]],
+                    "parameters": {
+                        "chart": {"title": "Delta"},
+                        "selection": {
+                            "driver_selection_mode": "selected",
+                            "drivers": ["VER", "PER"],
+                        },
+                        "analysis": {"delta_mode": "single_lap_delta"},
+                    },
+                },
+            )
+            self.assertEqual(chart_response.status_code, 200, chart_response.text)
+            chart = chart_response.json()["analysis"]["charts"][0]
+            selected_parameters = {
+                **chart["parameters"],
+                "selection": {
+                    **chart["parameters"]["selection"],
+                    "laps": {"range": {"start": 2, "end": 2}},
+                    "playback_interval": {
+                        "source": "race_playback",
+                        "mode": "lap",
+                        "start_lap": 2,
+                        "end_lap": 2,
+                        "session_id": session["session_id"],
+                    },
+                },
+            }
+
+            update_response = client.put(
+                f"/api/analysis/charts/{chart['chart_instance_id']}",
+                json={"parameters": selected_parameters},
+            )
+
+            self.assertEqual(update_response.status_code, 200, update_response.text)
+            updated = update_response.json()["analysis"]["charts"][0]
+            self.assertEqual(updated["generation_state"], "stale")
+            self.assertEqual(updated["parameters"]["analysis"]["delta_mode"], "single_lap_delta")
+            self.assertEqual(updated["parameters"]["selection"]["laps"]["range"], {"start": 2, "end": 2})
+            self.assertEqual(
+                updated["parameters"]["selection"]["playback_interval"]["source"],
+                "race_playback",
+            )
+
+            generated = client.post(
+                "/api/analysis/charts/generate",
+                json={"chart_ids": [chart["chart_instance_id"]]},
+            )
+            self.assertEqual(generated.status_code, 200, generated.text)
+            chart = generated.json()["analysis"]["charts"][0]
+            metadata = json.loads((root / chart["metadata_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(metadata["lap_range"], {"start": 2, "end": 2})
+            self.assertEqual(
+                metadata["effective_configuration"]["selection"]["playback_interval"]["source"],
+                "race_playback",
+            )
 
 
 def _full_field_payload() -> dict:

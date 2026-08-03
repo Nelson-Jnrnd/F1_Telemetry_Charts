@@ -11,16 +11,28 @@ from unittest.mock import patch
 from f1_telemetry_charts.data import DataGatewayError, SessionQuery, TelemetrySample
 from f1_telemetry_charts.data.gateways import FastF1SessionGateway
 from f1_telemetry_charts.data.gateways.fastf1 import (
+    _duration_seconds_or_none,
     _lap_records_from_laps,
     _merge_position_columns,
     _percentage_or_none,
     _session_to_dataset,
     _telemetry_samples_from_lap_methods,
     _telemetry_samples_from_laps,
+    _timing_app_records_from_session,
+    _timing_lap_delta,
+    _timing_stream_records_from_session,
 )
 
 
 class FastF1GatewayTests(unittest.TestCase):
+    def test_fastf1_missing_duration_does_not_persist_nan(self) -> None:
+        self.assertIsNone(_duration_seconds_or_none(_Duration(float("nan"))))
+
+    def test_fastf1_timing_lap_delta_preserves_official_lap_relationship(self) -> None:
+        self.assertEqual(_timing_lap_delta("1 LAP"), 1)
+        self.assertEqual(_timing_lap_delta("+2 LAPS"), 2)
+        self.assertIsNone(_timing_lap_delta("+12.345"))
+
     def test_cache_only_requires_existing_cache_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             missing_cache = Path(temp_dir) / "missing"
@@ -88,6 +100,109 @@ class FastF1GatewayTests(unittest.TestCase):
 
         self.assertEqual([driver.abbreviation for driver in dataset.drivers], ["VER", "PER"])
         self.assertEqual({lap.driver for lap in dataset.laps}, {"VER", "PER"})
+
+    def test_fastf1_gateway_normalizes_timing_stream_records(self) -> None:
+        fake_fastf1 = _fake_fastf1_module()
+        fake_fastf1.get_session = lambda *_: _FakeTimingSession()
+        fake_fastf1.api = types.SimpleNamespace(
+            timing_data=lambda path: (
+                None,
+                _FakeRows(
+                    [
+                        {
+                            "Time": _Duration(97.254),
+                            "Driver": "1",
+                            "Position": 1,
+                            "GapToLeader": None,
+                            "IntervalToPositionAhead": None,
+                        },
+                        {
+                            "Time": _Duration(97.254),
+                            "Driver": "11",
+                            "Position": 2,
+                            "GapToLeader": _Duration(1.234),
+                            "IntervalToPositionAhead": "+1.234",
+                        },
+                    ]
+                ),
+            )
+        )
+        query = SessionQuery(
+            season=2023,
+            event="Bahrain Grand Prix",
+            session="Race",
+            drivers=["VER", "PER"],
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(sys.modules, {"fastf1": fake_fastf1}):
+                dataset = FastF1SessionGateway(temp_dir).load_session(query)
+
+        self.assertEqual([record.driver for record in dataset.timing], ["VER", "PER"])
+        self.assertEqual(dataset.timing[0].position, 1)
+        self.assertEqual(dataset.timing[0].gap_to_leader_seconds, 0.0)
+        self.assertEqual(dataset.timing[0].gap_parse_status, "leader")
+        self.assertEqual(dataset.timing[1].gap_to_leader_seconds, 1.234)
+        self.assertEqual(dataset.timing[1].interval_to_ahead_seconds, 1.234)
+
+    def test_fastf1_timing_stream_records_fail_softly_without_private_api(self) -> None:
+        session = _FakeTimingSession()
+
+        records = _timing_stream_records_from_session(
+            session,
+            [
+                session_driver("1", "VER"),
+                session_driver("11", "PER"),
+            ],
+            fastf1_module=types.SimpleNamespace(),
+        )
+
+        self.assertEqual(records, [])
+
+    def test_fastf1_gateway_normalizes_sparse_timing_app_records(self) -> None:
+        session = _FakeTimingSession()
+        records = _timing_app_records_from_session(
+            session,
+            [
+                session_driver("1", "VER"),
+                session_driver("11", "PER"),
+            ],
+            fastf1_module=types.SimpleNamespace(
+                api=types.SimpleNamespace(
+                    timing_app_data=lambda path: _FakeRows(
+                        [
+                            {
+                                "Time": _Duration(97.254),
+                                "Driver": "1",
+                                "LapNumber": 2,
+                                "LapTime": _Duration(97.254),
+                                "Stint": 1,
+                                "TotalLaps": 2,
+                                "Compound": "SOFT",
+                                "StartLaps": 1,
+                            },
+                            {
+                                "Time": _Duration(145.31),
+                                "Driver": "1",
+                                "LapNumber": 2,
+                                "LapTime": None,
+                                "Stint": 1,
+                                "TotalLaps": 3,
+                                "Compound": None,
+                                "StartLaps": None,
+                            },
+                        ]
+                    )
+                )
+            ),
+        )
+
+        self.assertEqual(len(records), 2)
+        self.assertEqual(records[0].driver, "VER")
+        self.assertEqual(records[0].lap_time_seconds, 97.254)
+        self.assertEqual(records[0].compound, "SOFT")
+        self.assertEqual(records[1].total_laps, 3)
+        self.assertEqual(records[1].source, "fastf1_timing_app_data")
 
     def test_fastf1_canonical_geometry_uses_unfiltered_loaded_session(self) -> None:
         session = _FakeSession()
@@ -166,6 +281,8 @@ class FastF1GatewayTests(unittest.TestCase):
 
         self.assertFalse(records[0].is_pit_in_lap)
         self.assertFalse(records[0].is_pit_out_lap)
+        self.assertIsNone(records[0].pit_in_time_seconds)
+        self.assertIsNone(records[0].pit_out_time_seconds)
         self.assertFalse(records[0].is_deleted)
         self.assertFalse(records[0].is_generated)
         self.assertIsNone(records[0].is_accurate)
@@ -280,6 +397,12 @@ def _fake_fastf1_module():
     return module
 
 
+def session_driver(number: str, abbreviation: str):
+    from f1_telemetry_charts.data import DriverMetadata
+
+    return DriverMetadata(driver_number=number, abbreviation=abbreviation)
+
+
 def _fake_driver_color(identifier: str, **_: object) -> str:
     if identifier == "VER":
         return "112233"
@@ -359,6 +482,10 @@ class _FakeSession:
         return _FakeCircuitInfo()
 
 
+class _FakeTimingSession(_FakeSession):
+    api_path = "/static/2023-bahrain-race"
+
+
 class _FakeCircuitInfo:
     rotation = 42.0
 
@@ -392,6 +519,21 @@ class _FakeRows:
     def iterrows(self):
         for index, row in enumerate(self._rows):
             yield index, row
+
+    @property
+    def columns(self):
+        if not self._rows:
+            return []
+        keys = []
+        for row in self._rows:
+            for key in row:
+                if key not in keys:
+                    keys.append(key)
+        return keys
+
+    @property
+    def empty(self):
+        return not self._rows
 
 
 class _FakeLaps(_FakeRows):

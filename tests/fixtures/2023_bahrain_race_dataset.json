@@ -33,50 +33,80 @@
     {
       "driver": "VER",
       "lap_number": 1,
+      "lap_start_time_seconds": 0,
+      "lap_end_time_seconds": 97.254,
       "lap_time_seconds": 97.254,
       "compound": "SOFT",
       "stint": 1,
-      "position": 1
+      "position": 1,
+      "sector_1_time_seconds": 31.102,
+      "sector_2_time_seconds": 41.942,
+      "sector_3_time_seconds": 24.21
     },
     {
       "driver": "VER",
       "lap_number": 2,
+      "lap_start_time_seconds": 97.254,
+      "lap_end_time_seconds": 193.366,
       "lap_time_seconds": 96.112,
       "compound": "SOFT",
       "stint": 1,
-      "position": 1
+      "position": 1,
+      "sector_1_time_seconds": 30.801,
+      "sector_2_time_seconds": 41.204,
+      "sector_3_time_seconds": 24.107
     },
     {
       "driver": "PER",
       "lap_number": 1,
+      "lap_start_time_seconds": 0,
+      "lap_end_time_seconds": 98.044,
       "lap_time_seconds": 98.044,
       "compound": "SOFT",
       "stint": 1,
-      "position": 2
+      "position": 2,
+      "sector_1_time_seconds": 31.411,
+      "sector_2_time_seconds": 42.163,
+      "sector_3_time_seconds": 24.47
     },
     {
       "driver": "PER",
       "lap_number": 2,
+      "lap_start_time_seconds": 98.044,
+      "lap_end_time_seconds": 194.848,
       "lap_time_seconds": 96.804,
       "compound": "SOFT",
       "stint": 1,
-      "position": 2
+      "position": 2,
+      "sector_1_time_seconds": 31.012,
+      "sector_2_time_seconds": 41.501,
+      "sector_3_time_seconds": 24.291
     },
     {
       "driver": "ALO",
       "lap_number": 1,
+      "lap_start_time_seconds": 0,
+      "lap_end_time_seconds": 99.512,
       "lap_time_seconds": 99.512,
       "compound": "SOFT",
       "stint": 1,
-      "position": 5
+      "position": 5,
+      "sector_1_time_seconds": 31.902,
+      "sector_2_time_seconds": 42.904,
+      "sector_3_time_seconds": 24.706
     },
     {
       "driver": "ALO",
       "lap_number": 2,
+      "lap_start_time_seconds": 99.512,
+      "lap_end_time_seconds": 196.733,
       "lap_time_seconds": 97.221,
       "compound": "SOFT",
       "stint": 1,
-      "position": 5
+      "position": 5,
+      "sector_1_time_seconds": 31.214,
+      "sector_2_time_seconds": 41.708,
+      "sector_3_time_seconds": 24.299
     }
   ],
   "telemetry": [
@@ -84,6 +114,7 @@
       "driver": "VER",
       "lap_number": 2,
       "distance_m": 0,
+      "session_time_seconds": 97.254,
       "x": 0,
       "y": 0,
       "speed_kph": 271.2,
@@ -95,6 +126,7 @@
       "driver": "VER",
       "lap_number": 2,
       "distance_m": 125,
+      "session_time_seconds": 145.31,
       "x": 80,
       "y": 45,
       "speed_kph": 279.1,
@@ -106,6 +138,7 @@
       "driver": "VER",
       "lap_number": 2,
       "distance_m": 250,
+      "session_time_seconds": 193.366,
       "x": 150,
       "y": 0,
       "speed_kph": 286.4,
@@ -115,8 +148,9 @@
     },
     {
       "driver": "PER",
-      "lap_number": 2,
+      "lap_number": 1,
       "distance_m": 0,
+      "session_time_seconds": 0,
       "x": 0,
       "y": -8,
       "speed_kph": 269.8,
@@ -125,15 +159,209 @@
       "gear": 8
     },
     {
-      "driver": "ALO",
+      "driver": "PER",
+      "lap_number": 1,
+      "distance_m": 246,
+      "session_time_seconds": 97.254,
+      "x": 146,
+      "y": -8,
+      "speed_kph": 269.8,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "PER",
+      "lap_number": 1,
+      "distance_m": 248,
+      "session_time_seconds": 98.044,
+      "x": 148,
+      "y": -8,
+      "speed_kph": 269.8,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "PER",
       "lap_number": 2,
       "distance_m": 0,
+      "session_time_seconds": 98.044,
+      "x": 0,
+      "y": -8,
+      "speed_kph": 269.8,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "PER",
+      "lap_number": 2,
+      "distance_m": 125,
+      "session_time_seconds": 146.446,
+      "x": 80,
+      "y": 37,
+      "speed_kph": 277.2,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "PER",
+      "lap_number": 2,
+      "distance_m": 250,
+      "session_time_seconds": 194.848,
+      "x": 150,
+      "y": -8,
+      "speed_kph": 284.6,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "ALO",
+      "lap_number": 1,
+      "distance_m": 0,
+      "session_time_seconds": 0,
       "x": 0,
       "y": 8,
       "speed_kph": 268.1,
       "throttle_percent": 100,
       "brake": false,
       "gear": 8
+    },
+    {
+      "driver": "ALO",
+      "lap_number": 1,
+      "distance_m": 240,
+      "session_time_seconds": 97.254,
+      "x": 140,
+      "y": 8,
+      "speed_kph": 268.1,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "ALO",
+      "lap_number": 1,
+      "distance_m": 246,
+      "session_time_seconds": 99.512,
+      "x": 146,
+      "y": 8,
+      "speed_kph": 268.1,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    },
+    {
+      "driver": "ALO",
+      "lap_number": 2,
+      "distance_m": 0,
+      "session_time_seconds": 99.512,
+      "x": 0,
+      "y": 8,
+      "speed_kph": 268.1,
+      "throttle_percent": 100,
+      "brake": false,
+      "gear": 8
+    }
+  ],
+  "timing": [
+    {
+      "driver": "VER",
+      "session_time_seconds": 97.254,
+      "position": 1,
+      "gap_to_leader_seconds": 0,
+      "interval_to_ahead_seconds": null,
+      "source": "fastf1_timing_data",
+      "gap_parse_status": "leader",
+      "interval_parse_status": "leader"
+    },
+    {
+      "driver": "PER",
+      "session_time_seconds": 97.254,
+      "position": 2,
+      "gap_to_leader_seconds": 1.234,
+      "interval_to_ahead_seconds": 1.234,
+      "source": "fastf1_timing_data",
+      "gap_parse_status": "parsed",
+      "interval_parse_status": "parsed"
+    },
+    {
+      "driver": "ALO",
+      "session_time_seconds": 97.254,
+      "position": 5,
+      "gap_to_leader_seconds": 4.321,
+      "interval_to_ahead_seconds": 2.876,
+      "source": "fastf1_timing_data",
+      "gap_parse_status": "parsed",
+      "interval_parse_status": "parsed"
+    },
+    {
+      "driver": "VER",
+      "session_time_seconds": 145.31,
+      "position": 1,
+      "gap_to_leader_seconds": 0,
+      "interval_to_ahead_seconds": null,
+      "source": "fastf1_timing_data",
+      "gap_parse_status": "leader",
+      "interval_parse_status": "leader"
+    },
+    {
+      "driver": "PER",
+      "session_time_seconds": 145.31,
+      "position": 2,
+      "gap_to_leader_seconds": 1.702,
+      "interval_to_ahead_seconds": 1.702,
+      "source": "fastf1_timing_data",
+      "gap_parse_status": "parsed",
+      "interval_parse_status": "parsed"
+    },
+    {
+      "driver": "ALO",
+      "session_time_seconds": 145.31,
+      "position": 5,
+      "gap_to_leader_seconds": 5.144,
+      "interval_to_ahead_seconds": 3.021,
+      "source": "fastf1_timing_data",
+      "gap_parse_status": "parsed",
+      "interval_parse_status": "parsed"
+    }
+  ],
+  "timing_app": [
+    {
+      "driver": "VER",
+      "session_time_seconds": 97.254,
+      "lap_number": 2,
+      "lap_time_seconds": 97.254,
+      "stint": 1,
+      "total_laps": 2,
+      "compound": "SOFT",
+      "start_laps": 1,
+      "source": "fastf1_timing_app_data"
+    },
+    {
+      "driver": "PER",
+      "session_time_seconds": 98.044,
+      "lap_number": 2,
+      "lap_time_seconds": 98.044,
+      "stint": 1,
+      "total_laps": 2,
+      "compound": "SOFT",
+      "start_laps": 1,
+      "source": "fastf1_timing_app_data"
+    },
+    {
+      "driver": "ALO",
+      "session_time_seconds": 99.512,
+      "lap_number": 2,
+      "lap_time_seconds": 99.512,
+      "stint": 1,
+      "total_laps": 2,
+      "compound": "SOFT",
+      "start_laps": 1,
+      "source": "fastf1_timing_app_data"
     }
   ],
   "weather": [

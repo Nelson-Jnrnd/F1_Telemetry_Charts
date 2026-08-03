@@ -81,6 +81,14 @@ class PackagePreviewTests(unittest.TestCase):
             asset = client.get(asset_path)
             self.assertEqual(asset.status_code, 200, asset_path)
 
+    def test_ui_tyre_icons_are_served_from_vite_public_path(self) -> None:
+        client = TestClient(create_app())
+
+        for compound in ("S_red", "M_yellow", "H_white", "I_green", "W_blue"):
+            asset = client.get(f"/tyres/tire_{compound}.svg")
+            self.assertEqual(asset.status_code, 200, compound)
+            self.assertEqual(asset.headers["content-type"], "image/svg+xml")
+
     def test_api_review_update_and_draft_regeneration(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             result = run_analysis(_config(Path(temp_dir)))

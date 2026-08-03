@@ -20,6 +20,11 @@ from f1_telemetry_charts.analysis.manifest import (
     RecipeRunEntry,
 )
 from f1_telemetry_charts.analysis.observations import Observation
+from f1_telemetry_charts.analysis.playback import (
+    PlaybackPayload,
+    build_playback_payload,
+    playback_summary,
+)
 from f1_telemetry_charts.analysis.report import write_report_package
 from f1_telemetry_charts.analysis.track_map import (
     DEFAULT_TRACK_MAP_POINT_LIMIT,
@@ -272,6 +277,7 @@ class AnalysisService:
                 "available": True,
                 "name": session.name,
                 **coverage_bounds(dataset, selected_drivers=session.drivers),
+                "playback": playback_summary(dataset),
             }
         return {"sessions": sessions}
 
@@ -335,6 +341,56 @@ class AnalysisService:
             ),
             session_id=session.session_id,
             max_points=max_points,
+        )
+
+    def playback(
+        self,
+        analysis: AnalysisWorkspace,
+        *,
+        session_id: str,
+        mode: Literal["time", "lap"] = "lap",
+        cursor: float | None = None,
+        start_lap: int | None = None,
+        end_lap: int | None = None,
+        selected_drivers: list[str] | None = None,
+        max_frames: int = 12,
+        max_markers: int = 30,
+        max_points: int = DEFAULT_TRACK_MAP_POINT_LIMIT,
+        maximum_sample_gap_seconds: float = 5.0,
+        maximum_timing_sample_age_seconds: float = 10.0,
+    ) -> PlaybackPayload:
+        session = next(
+            (item for item in analysis.sessions if item.session_id == session_id),
+            None,
+        )
+        if session is None:
+            raise ValueError("Unknown target session.")
+        if session.snapshot is None or session.load_state != "loaded":
+            return PlaybackPayload(
+                status="unavailable",
+                session_id=session.session_id,
+                mode=mode,
+                diagnostics=[
+                    {
+                        "field": "session_id",
+                        "message": "Target session is not loaded",
+                    }
+                ],
+            )
+        dataset = _read_snapshot_dataset(self.root, session.snapshot)
+        return build_playback_payload(
+            dataset,
+            session_id=session.session_id,
+            mode=mode,
+            cursor=cursor,
+            start_lap=start_lap,
+            end_lap=end_lap,
+            selected_drivers=selected_drivers,
+            max_frames=max_frames,
+            max_markers=max_markers,
+            max_points=max_points,
+            maximum_sample_gap_seconds=maximum_sample_gap_seconds,
+            maximum_timing_sample_age_seconds=maximum_timing_sample_age_seconds,
         )
 
     def add_session(

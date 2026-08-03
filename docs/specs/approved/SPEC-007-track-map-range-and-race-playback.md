@@ -453,16 +453,18 @@ Completion gate:
 - **Verification method:** Frontend visual/interaction checks and API tests.
 - **Evidence location:** To be filled during implementation.
 
-### REQ-013: Lap and timestamp playback modes
+### REQ-013: Time and lap playback modes
 
-- **Statement:** The playback explorer must support both lap-based scrubbing
-  and session timestamp scrubbing where the underlying snapshot contains enough
-  data.
+- **Statement:** The playback explorer must support both continuous Time
+  scrubbing and Lap scrubbing where the underlying snapshot contains enough
+  data. Lap scrubbing resolves to the session timestamp where the race leader
+  starts the selected lap.
 - **Rationale:** Analysts may choose race phases by lap number or by real
   session timeline.
-- **Acceptance criteria:** The UI exposes a clear mode switch; lap mode uses
-  bounded lap values; timestamp mode uses bounded session-time values; modes
-  are disabled with diagnostics when required source data is missing.
+- **Acceptance criteria:** The UI exposes a clear mode switch; Time mode uses
+  bounded session-time values; Lap mode uses bounded leader lap values snapped
+  to leader lap-start timestamps; modes are disabled with diagnostics when
+  required source data is missing.
 - **Verification method:** API tests and frontend checks.
 - **Evidence location:** To be filled during implementation.
 
@@ -887,38 +889,38 @@ Completion gate:
 | REQ-005 | Distance ranges are bounded | recipe/API tests | `python -m unittest tests.test_core_recipes tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/recipes/telemetry_trace.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_core_recipes.py`; `tests/test_analysis_workspace.py` | |
 | REQ-006 | Track geometry derives from loaded data | model/API tests | `python -m unittest tests.test_fastf1_gateway tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `tests/test_fastf1_gateway.py`; `tests/test_analysis_workspace.py` | |
 | REQ-007 | Visual range selector works | UI/API tests | `pnpm --dir frontend typecheck`; `pnpm --dir frontend build`; browser smoke check at desktop and mobile widths, including Add Chart draft access | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `frontend/src/api.ts`; `frontend/src/types.ts`; rebuilt `src/f1_telemetry_charts/ui/static/` assets | |
-| REQ-008 | Corner shortcuts resolve ranges | model/UI tests | TBD | TBD | |
-| REQ-009 | Missing corners degrade cleanly | API/UI tests | TBD | TBD | |
+| REQ-008 | Corner shortcuts resolve ranges | model/UI tests | `python -m unittest tests.test_track_geometry tests.test_fastf1_gateway tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_track_geometry.py`; `tests/test_fastf1_gateway.py`; `tests/test_analysis_workspace.py` | |
+| REQ-009 | Missing corners degrade cleanly | API/UI tests | `python -m unittest tests.test_track_geometry tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/recipes/parameters.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_track_geometry.py`; `tests/test_analysis_workspace.py` | |
 | REQ-010 | Visual selection syncs to chart params | frontend/API tests | `python -m unittest tests.test_analysis_workspace`; browser smoke check for apply/save/generate/reopen | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py` | |
 | REQ-011 | Segment metadata/annotations export | renderer/metadata tests | `python -m unittest tests.test_analysis_workspace`; generated metadata fixture inspection in test | `src/f1_telemetry_charts/recipes/telemetry_trace.py`; `tests/test_analysis_workspace.py` | |
-| REQ-012 | Playback explorer renders positions | frontend/API tests | TBD | TBD | |
-| REQ-013 | Lap and timestamp modes are bounded | API/frontend tests | TBD | TBD | |
-| REQ-014 | Interpolation semantics are explicit | unit tests | TBD | TBD | |
-| REQ-015 | Playback context details are available | API/frontend tests | TBD | TBD | |
-| REQ-016 | Playback interval applies to chart range | integration tests | TBD | TBD | |
-| REQ-017 | Snapshot reuse avoids implicit reloads | service tests/benchmark | `python -m unittest tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py` | |
-| REQ-018 | Exported metadata preserves selections | metadata tests | `python -m unittest tests.test_core_recipes tests.test_analysis_workspace`; browser smoke check | Built-in recipe metadata in `src/f1_telemetry_charts/recipes/`; `tests/test_core_recipes.py`; `tests/test_analysis_workspace.py` | |
-| REQ-019 | Degraded modes are graceful | API/frontend tests | `python -m unittest tests.test_analysis_workspace tests.test_llm_contract`; browser degraded-state check | Coverage availability reasons in `src/f1_telemetry_charts/recipes/parameters.py`; track-map unavailable payload in `src/f1_telemetry_charts/analysis/track_map.py`; UI degraded state in `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | |
+| REQ-012 | Playback explorer renders positions | frontend/API tests | `python -m unittest tests.test_analysis_workspace`; `pnpm --dir frontend typecheck`; `pnpm --dir frontend build`; browser smoke check | `src/f1_telemetry_charts/analysis/playback.py`; `src/f1_telemetry_charts/ui/server.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py` | |
+| REQ-013 | Time and lap modes are bounded | API/frontend tests | `python -m unittest tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/analysis/playback.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py` | |
+| REQ-014 | Interpolation semantics are explicit | unit tests | `python -m unittest tests.test_analysis_workspace` | `src/f1_telemetry_charts/analysis/playback.py`; `tests/test_analysis_workspace.py` | |
+| REQ-015 | Playback context details are available | API/frontend tests | `python -m unittest tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/analysis/playback.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py` | |
+| REQ-016 | Playback interval applies to chart range | integration tests | `python -m unittest tests.test_analysis_workspace`; browser smoke check | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_analysis_workspace.py` | |
+| REQ-017 | Snapshot reuse avoids implicit reloads | service tests/benchmark | `python -m unittest tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/playback.py`; `tests/test_analysis_workspace.py` | |
+| REQ-018 | Exported metadata preserves selections | metadata tests | `python -m unittest tests.test_core_recipes tests.test_analysis_workspace`; browser smoke check | Built-in recipe metadata in `src/f1_telemetry_charts/recipes/`; `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_core_recipes.py`; `tests/test_analysis_workspace.py` | |
+| REQ-019 | Degraded modes are graceful | API/frontend tests | `python -m unittest tests.test_analysis_workspace tests.test_llm_contract`; browser degraded-state check | Coverage availability reasons in `src/f1_telemetry_charts/recipes/parameters.py`; track-map unavailable payload in `src/f1_telemetry_charts/analysis/track_map.py`; playback unavailable payload in `src/f1_telemetry_charts/analysis/playback.py`; UI degraded state in `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | |
 | REQ-020 | LLM inspection is bounded and safe | LLM contract tests | `python -m unittest tests.test_llm_contract` | `src/f1_telemetry_charts/llm/contract.py`; `tests/test_llm_contract.py` | |
-| NFR-001 | Selector/playback interactions are responsive | benchmark/manual check | Browser smoke check for existing numeric-range and track-selector interactions | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/track_map.py` | |
-| NFR-002 | Map/playback payloads are bounded | API tests | `python -m unittest tests.test_analysis_workspace tests.test_llm_contract` | `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/llm/contract.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | |
+| NFR-001 | Selector/playback interactions are responsive | benchmark/manual check | Browser smoke check for numeric-range, track-selector, and race-playback interactions | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/analysis/playback.py` | |
+| NFR-002 | Map/playback payloads are bounded | API tests | `python -m unittest tests.test_analysis_workspace tests.test_llm_contract` | `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/analysis/playback.py`; `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/llm/contract.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | |
 | NFR-003 | UI works on desktop and mobile widths | browser screenshots/manual checks | Browser smoke check at default desktop viewport and 390x844 mobile viewport | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; rebuilt `src/f1_telemetry_charts/ui/static/` assets | |
 | SEC-001 | Endpoints stay inside open Analysis | API security tests | `python -m unittest tests.test_analysis_workspace`; code inspection | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/ui/server.py` | |
 | SEC-002 | No code authoring surface exists | API/LLM inspection | `python -m unittest tests.test_analysis_workspace tests.test_llm_contract`; code inspection | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/llm/contract.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx` | |
 | DATA-001 | Style source metadata is recorded | model/metadata tests | `python -m unittest tests.test_core_recipes tests.test_fastf1_gateway` | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `tests/test_core_recipes.py`; `tests/test_fastf1_gateway.py` | |
 | DATA-002 | Coverage bounds model works | model/API tests | `python -m unittest tests.test_analysis_workspace tests.test_llm_contract` | `src/f1_telemetry_charts/recipes/parameters.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | |
 | DATA-003 | Track geometry model serializes | model/API tests | `python -m unittest tests.test_analysis_workspace tests.test_llm_contract` | `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/types.ts`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | |
-| DATA-004 | Corner marker model works | model tests | TBD | TBD | |
-| DATA-005 | Playback frame model works | model/API tests | TBD | TBD | |
+| DATA-004 | Corner marker model works | model tests | `python -m unittest tests.test_track_geometry tests.test_fastf1_gateway` | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/types.ts`; `tests/test_track_geometry.py`; `tests/test_fastf1_gateway.py` | |
+| DATA-005 | Playback frame model works | model/API tests | `python -m unittest tests.test_analysis_workspace` | `src/f1_telemetry_charts/analysis/playback.py`; `frontend/src/types.ts`; `tests/test_analysis_workspace.py` | |
 | API-001 | Coverage endpoint works | FastAPI tests | `python -m unittest tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py` | |
 | API-002 | Track map endpoint works | FastAPI tests | `python -m unittest tests.test_analysis_workspace`; browser smoke check | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `tests/test_analysis_workspace.py` | |
 | API-003 | Range validation endpoint works | FastAPI tests | `python -m unittest tests.test_analysis_workspace tests.test_llm_contract`; browser smoke check | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | |
-| API-004 | Playback endpoint works | FastAPI tests | TBD | TBD | |
+| API-004 | Playback endpoint works | FastAPI tests | `python -m unittest tests.test_analysis_workspace` | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py` | |
 | UX-001 | Visual selection is primary for telemetry | browser/manual check | Browser smoke check for Track Selector in Add Chart and existing telemetry chart editing, with synchronized numeric distance controls | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; rebuilt `src/f1_telemetry_charts/ui/static/` assets | |
 | UX-002 | Selector markers/segment/corners are clear | browser visual check | Browser smoke check confirmed trace, highlighted segment, start/end markers, reset/apply/cancel, and no mobile overflow | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; rebuilt `src/f1_telemetry_charts/ui/static/` assets | |
 | UX-003 | Bounded input feedback is field-level | frontend/API tests | `pnpm --dir frontend typecheck`; `pnpm --dir frontend build`; browser smoke check | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; rebuilt `src/f1_telemetry_charts/ui/static/` assets | |
-| UX-004 | Playback layout is work-focused | browser visual check | TBD | TBD | |
-| UX-005 | Chart-range handoff preserves edits | frontend integration tests | TBD | TBD | |
+| UX-004 | Playback layout is work-focused | browser visual check | `pnpm --dir frontend typecheck`; `pnpm --dir frontend build`; browser smoke check | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; rebuilt `src/f1_telemetry_charts/ui/static/` assets | |
+| UX-005 | Chart-range handoff preserves edits | frontend integration tests | `python -m unittest tests.test_analysis_workspace`; browser smoke check | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_analysis_workspace.py` | |
 | UX-006 | Missing data states are concise | frontend fixture tests | `python -m unittest tests.test_analysis_workspace tests.test_llm_contract`; browser smoke check | `src/f1_telemetry_charts/recipes/parameters.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | |
 
 ## Test plan
@@ -959,9 +961,9 @@ Completion gate:
   prototypes.
 - Slice 1 is official styles and bounded numeric ranges.
 - Slice 1 implementation started on 2026-07-23.
-- Later slice decisions for corner padding and playback default mode are
-  explicitly deferred until before Slice 3 and Slice 4 respectively; they do
-  not block Slice 1 approval or implementation.
+- Later slice decisions for corner padding and playback default mode were
+  resolved before their implementation slices. Playback defaults to lap mode
+  when lap and timestamp data are both available.
 
 ## Open questions
 
@@ -977,8 +979,9 @@ Completion gate:
       telemetry range model is already distance-based and this remains
       predictable across sessions.
 - [x] Should playback default to lap mode or session timestamp mode when both
-      are available? Answer: deferred until before Slice 4, because playback is
-      out of scope for earlier slices.
+      are available? Answer: lap mode by default, with timestamp mode exposed
+      through an explicit switch only when the loaded snapshot has sufficient
+      time-indexed position coverage.
 - [ ] What representative FastF1-backed session should be the visual/browser
       verification fixture for track-map work?
 
@@ -995,7 +998,8 @@ Completion gate:
       padding with a 100 m default for each side and per-selection adjustment
       in the track selector.
 - [x] Choose default playback mode when lap and timestamp data are both
-      available. Answer: deferred until before Slice 4.
+      available. Answer: lap-first default; timestamp is an explicit available
+      mode when snapshot coverage supports it.
 
 ## Conflict check
 
@@ -1022,34 +1026,34 @@ without changing plugin trust boundaries or allowing code authoring.
 | REQ-009 | Corner fallback behavior | Missing or unprojectable circuit metadata reports corner diagnostics while preserving manual visual distance selection | `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/recipes/parameters.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_track_geometry.py`; `tests/test_analysis_workspace.py` | Implemented in Slice 3 |
 | REQ-010 | Range-to-chart synchronization | Selector writes normalized `analysis.distance_range_m` and `selection.track_segment`; saved chart regenerates and selector reopens from saved parameters | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py`; browser smoke check | Implemented in Slice 2 |
 | REQ-011 | Track segment chart annotations | Telemetry chart metadata records selected `track_segment`, corner metadata when used, and synchronized `distance_range_m` in generated artifact JSON | `src/f1_telemetry_charts/recipes/telemetry_trace.py`; `tests/test_analysis_workspace.py` | Implemented through Slice 3 |
-| REQ-012 | Race playback explorer | TBD | TBD | Deferred to Slice 4 |
-| REQ-013 | Lap and timestamp playback modes | TBD | TBD | Deferred to Slice 4 |
-| REQ-014 | Position frame interpolation | TBD | TBD | Deferred to Slice 4 |
-| REQ-015 | Playback context details | TBD | TBD | Deferred to Slice 4 |
-| REQ-016 | Playback-driven chart range selection | TBD | TBD | Deferred to Slice 4 |
-| REQ-017 | Snapshot reuse | Bounds/style/map/corner APIs read loaded snapshots only; no selector path reloads FastF1 data | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `tests/test_analysis_workspace.py` | Implemented through Slice 3 |
-| REQ-018 | Exported selection metadata | Chart metadata records style sources, coverage bounds, requested/effective ranges, selected track segment metadata, and selected corner metadata | `src/f1_telemetry_charts/recipes/`; `tests/test_core_recipes.py`; `tests/test_analysis_workspace.py` | Implemented through Slice 3 metadata |
-| REQ-019 | Graceful degraded modes | Coverage and track-map payloads report unavailable geometry/corners with reasons; UI preserves bounded numeric telemetry controls and manual selector controls | `src/f1_telemetry_charts/recipes/parameters.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py`; browser degraded-state check | Implemented through Slice 3 degraded states |
-| REQ-020 | LLM-safe track-map inspection | LLM inspection exposes bounded coverage, corner availability, and track-map summaries without raw point arrays; parameter updates remain backend validated | `src/f1_telemetry_charts/llm/contract.py`; `tests/test_llm_contract.py` | Implemented through Slice 3 summaries |
-| NFR-001 | Interactive performance | Existing numeric range diagnostics and track selector use cached snapshot payloads and browser-verified responsive controls | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/analysis/track_map.py`; browser smoke check | Implemented for Slice 1 and Slice 2 interactions |
-| NFR-002 | Payload bounds | Track map payloads default to 500 points, cap at 1200, preserve endpoint downsampling, expose original sample counts, and include bounded corner marker metadata | `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented through Slice 3 track maps |
-| NFR-003 | Responsive usability | Track selector modal, corner controls, and range controls browser-checked at desktop and 390x844 mobile width without horizontal overflow | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; rebuilt `src/f1_telemetry_charts/ui/static/` assets; browser smoke check | Implemented through Slice 3 selector |
+| REQ-012 | Race playback explorer | Snapshot-derived playback payload and Workbench Race Playback surface render canonical track map, car markers, current lap cursor, selected driver focus, and scrub controls | `src/f1_telemetry_charts/analysis/playback.py`; `src/f1_telemetry_charts/ui/server.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py` | Implemented in Slice 4 |
+| REQ-013 | Time and lap playback modes | Time mode uses bounded session-time values; Lap mode uses bounded leader lap values snapped to leader lap-start timestamps; both modes render markers from shared session-time interpolation and remain manually scrubbed because automatic cursor advancement cannot keep pace with playback-frame generation | `src/f1_telemetry_charts/analysis/playback.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py`; browser smoke check | Implemented through AMEND-018 |
+| REQ-014 | Position frame interpolation | Playback markers record exact/linear/nearest/missing interpolation status, maximum timestamp sample gap, sample gap seconds, and active/stale/missing marker state | `src/f1_telemetry_charts/analysis/playback.py`; `tests/test_analysis_workspace.py` | Implemented in Slice 4 |
+| REQ-015 | Playback context details | Marker context includes FastF1 seconds/lap timing relations, pit/position context, persisted timing-app compound and tyre age with loaded-lap current-stint fallback, last/best lap, official last/best sectors, and inferred equal-distance minisector states anchored to official lap boundaries when sampled telemetry omits exact endpoints. With no selection, timing remains absolute; one selected driver preserves the shared-reference relative mode; two or more selected drivers preserve absolute values and highlight the fastest selected comparable cell in Race LAST, Laps LAST/BEST, Last Sectors S1/S2/S3/LAP, and Best Sectors S1/S2/S3/THEO, including all exact ties. Non-comparable position, interval, gap, and tyre-age columns are not ranked. Last-lap and minisector values distinguish slower, personal-best, and visible session-best states while normal UI hides provenance unless debug mode is enabled. A single selected driver colors equal-distance minisector intervals on the map; multiple selected drivers color official track sectors using the loaded color of the driver with the fastest selected last-sector time | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/analysis/playback.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_fastf1_gateway.py`; `tests/test_analysis_workspace.py`; browser smoke check | Implemented through AMEND-022 |
+| REQ-016 | Playback-driven chart range selection | Normalized playback-interval parameter support remains in the backend, but AMEND-010 removes chart-range application controls from the Race Playback surface pending a future explicit workflow | `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_analysis_workspace.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; browser smoke check | UI workflow deferred by AMEND-010 |
+| REQ-017 | Snapshot reuse | Bounds/style/map/corner/playback APIs read loaded snapshots only; no selector or playback path reloads FastF1 data | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/analysis/playback.py`; `tests/test_analysis_workspace.py` | Implemented through Slice 4 |
+| REQ-018 | Exported selection metadata | Chart metadata records style sources, coverage bounds, requested/effective ranges, selected track segment/corner metadata, and playback-derived interval metadata | `src/f1_telemetry_charts/recipes/`; `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_core_recipes.py`; `tests/test_analysis_workspace.py` | Implemented through Slice 4 metadata |
+| REQ-019 | Graceful degraded modes | Coverage, track-map, and playback payloads report unavailable geometry/corners/timestamp/position states with reasons; UI preserves compatible controls | `src/f1_telemetry_charts/recipes/parameters.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/analysis/playback.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py`; browser degraded-state check | Implemented through Slice 4 degraded states |
+| REQ-020 | LLM-safe track-map inspection | LLM inspection exposes bounded coverage, corner availability, track-map summaries, and playback summaries without raw point/frame arrays; parameter updates remain backend validated | `src/f1_telemetry_charts/llm/contract.py`; `tests/test_llm_contract.py` | Implemented through Slice 4 summaries |
+| NFR-001 | Interactive performance | Existing numeric range diagnostics, track selector, and playback explorer use cached snapshot payloads and browser-verified responsive controls | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/analysis/playback.py`; browser smoke check | Implemented through Slice 4 interactions |
+| NFR-002 | Payload bounds | Track map and playback payloads default to 500 map points, cap requested point/frame/marker counts, expose source counts/metadata, and omit raw unbounded telemetry from LLM summaries | `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/analysis/playback.py`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented through Slice 4 payloads |
+| NFR-003 | Responsive usability | Race Playback browser-checked at 1280x720 with no document-level horizontal or vertical overflow, a 430 px desktop timing console, a 20-row timing field using one exact row height across all views, and compact direct comparison tabs without internal horizontal overflow; the 390x844 stacked surface retains no horizontal overflow | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; rebuilt `src/f1_telemetry_charts/ui/static/` assets; browser smoke check | Implemented through AMEND-015 |
 | SEC-001 | Local snapshot boundary | Coverage and validation operate on open Analysis snapshots | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_analysis_workspace.py` | Implemented for Slice 1 |
 | SEC-002 | No code authoring surface | Structured style, bounds, range, and LLM parameter APIs only | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/llm/contract.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx` | Implemented for Slice 1 |
 | DATA-001 | Style source metadata | `StyleColor` and `SessionStyleMetadata` plus chart metadata `style_sources` | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_core_recipes.py`; `tests/test_fastf1_gateway.py` | Implemented in Slice 1 |
 | DATA-002 | Coverage bounds model | Structured lap, distance, session-time, and track-map availability bounds | `src/f1_telemetry_charts/recipes/parameters.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented for Slice 1 |
 | DATA-003 | Track geometry model | Pydantic session geometry plus track map point, marker, segment, and payload models with deterministic projection and unavailable/invalid states | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/track_geometry.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/types.ts`; `tests/test_track_geometry.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented in Slice 2 |
 | DATA-004 | Corner marker model | Pydantic circuit corner/session circuit info plus projected track-map corner payload model | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/types.ts`; `tests/test_track_geometry.py`; `tests/test_fastf1_gateway.py` | Implemented in Slice 3 |
-| DATA-005 | Playback frame model | TBD | TBD | Deferred to Slice 4 |
+| DATA-005 | Playback frame model | Pydantic playback payload/frame/marker/context models plus persisted timing stream, explicit official lap relations, sparse timing-app records with deterministic current-stint tyre-age fallback, and track-length-derived minisector groups/states with official lap-boundary anchoring for normally sparse telemetry endpoints and matching frontend TypeScript types | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/analysis/playback.py`; `frontend/src/types.ts`; `tests/test_fastf1_gateway.py`; `tests/test_analysis_workspace.py` | Implemented through AMEND-019 |
 | API-001 | Coverage endpoint | `GET /api/analysis/coverage` and LLM inspection coverage payload | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/llm/contract.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented for Slice 1 |
 | API-002 | Track map endpoint | `POST /api/analysis/track-map` returns bounded projected session geometry, corner markers, segment markers, bounds, counts, and diagnostics independent of selected-driver position coverage | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `tests/test_analysis_workspace.py` | Implemented through Slice 3 |
 | API-003 | Range validation endpoint | Diagnostics/create/update/generate/LLM paths share backend bounds validation and accept corner-derived distance ranges through the same `distance_range_m` contract | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented through Slice 3 ranges |
-| API-004 | Playback endpoint | TBD | TBD | Deferred to Slice 4 |
+| API-004 | Playback endpoint | `POST /api/analysis/playback` returns bounded lap playback payloads, mode availability, diagnostics, map points, frames, markers, and context | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py` | Implemented in Slice 4 |
 | UX-001 | Primary visual distance selection | Add Chart and telemetry chart editor expose Track Selector action next to chart controls; applying visual selection updates existing numeric distance fields before save/generate | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; browser smoke check | Implemented in Slice 2 |
 | UX-002 | Track-map selector ergonomics | SVG trace renders full lap, corner markers, highlighted selected segment, distinct start/end markers, range sliders, numeric fields, corner padding controls, reset/apply/cancel, and unavailable state | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; browser smoke check | Implemented through Slice 3 selector |
 | UX-003 | Bounded input feedback | Min/max range fields, field diagnostics, invalid Save/Generate blocking | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; browser smoke check | Implemented in Slice 1 |
-| UX-004 | Race playback explorer layout | TBD | TBD | Draft |
-| UX-005 | Chart-range handoff | TBD | TBD | Draft |
+| UX-004 | Race playback explorer layout | Workbench Race Playback uses a viewport-bound map with a narrow 430 px floating timing console, 11px table typography, larger tyre icons, and exact 19px rows across Race, Laps, Last Sec, Best Sec, and Minis. Timing rows and map markers toggle membership in one shared multi-driver selection. Zero selections retain absolute mode, one selection uses relative mode, and multiple selections use absolute comparison mode with selected-fastest cells highlighted. Session-fastest, personal-fastest, and slower timing states use the centralized `#bd29c1`, `#31ce34`, and `#ddcd35` palette respectively. A single selected driver paints equal-distance Minis around the circuit; multiple selections divide the track by inferred official-sector boundaries and color S1/S2/S3 with each selected last-sector winner's driver/team color. Clicking any selected row or marker removes only that driver. Race uses explicit column widths, the cursor chip shares the title line, map controls occupy the canvas lower-left, and no separate All action is required. Session selection remains in the panel header and Time/Lap remains in the desktop vertical timeline rail; automatic playback controls are omitted because frame generation cannot support useful continuous playback | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `frontend/public/tyres/`; `src/f1_telemetry_charts/ui/server.py`; rebuilt `src/f1_telemetry_charts/ui/static/` assets; browser smoke check | Implemented through AMEND-023 |
+| UX-005 | Chart-range handoff | AMEND-010 removes Chart Range, Chart, and Apply Range controls from Race Playback; existing normalized backend parameter support is retained for a future explicit workflow | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_analysis_workspace.py`; browser smoke check | UI workflow deferred by AMEND-010 |
 | UX-006 | Degraded data states | Numeric/manual controls remain usable while unavailable map/corner/time states are explicit in coverage and selector payloads | `src/f1_telemetry_charts/recipes/parameters.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py`; browser smoke check | Implemented through Slice 3 |
 
 ## Implementation notes
@@ -1089,6 +1093,15 @@ without changing plugin trust boundaries or allowing code authoring.
   discovery, frontend typecheck/build, desktop and mobile browser checks,
   degraded no-geometry browser check, governance validation, spec validation,
   and drift validation.
+- 2026-07-29: Slice 4 implementation is complete. The Analysis backend now
+  builds bounded snapshot-derived playback payloads with lap-first mode
+  selection, explicit timestamp degraded diagnostics, canonical track map
+  points, frame/marker context, active/stale/missing interpolation semantics,
+  and inferred local gap metadata. The Workbench now includes a Race Playback
+  surface with map markers, lap scrubber, selected-driver focus, context
+  panel, and chart lap-range handoff through normalized `selection.laps.range`
+  plus `selection.playback_interval` metadata. LLM inspection includes bounded
+  playback summaries without raw point or frame arrays.
 - 2026-07-23: Slice 2 follow-up made the Track Selector available from the Add
   Chart form as soon as the selected template is Telemetry Trace and the target
   session is loaded. Browser smoke confirmed the selector opens before chart
@@ -1272,6 +1285,524 @@ artifact metadata, and tests.
   retained generated chip near the title, and no mobile overflow.
 - **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
   2026-07-29 with feedback beginning "Remove the explicit icon controls."
+
+### AMEND-005
+
+- **Date:** 2026-07-29
+- **Reason:** The previously deferred Slice 4 decision for default playback
+  mode needed resolution before implementation.
+- **Changed requirements:** Refines REQ-013 and UX-004. When lap and timestamp
+  playback data are both available, the Race Playback explorer defaults to lap
+  mode. Timestamp playback remains available through an explicit mode switch
+  only when backend diagnostics report sufficient time-indexed position
+  coverage in the loaded snapshot. AMEND-006 renames this UI mode to `Time` and
+  clarifies the shared-timestamp marker semantics.
+- **Behavioral impact:** Playback opens in the mode that directly matches the
+  existing chart lap-range handoff model while preserving timestamp playback as
+  an explicit supported mode for future snapshots with adequate time coverage.
+- **Test impact:** Add API/frontend coverage for lap-first default, timestamp
+  availability diagnostics, and chart range handoff from lap playback.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-29 with "Yes I agree with your recommentation for slice 4. You can
+  make the plan" and "I approve, Implement it".
+
+### AMEND-006
+
+- **Date:** 2026-07-29
+- **Reason:** Follow-up review clarified that lap-number playback is not a
+  shared race moment. Displayed car positions must be resolved from session
+  timestamps; otherwise all drivers can appear at the start line for the same
+  lap number even when they are not physically there.
+- **Changed requirements:** Refines REQ-013, REQ-014, DATA-005, API-004, and
+  UX-004. The Race Playback explorer exposes `Time` and `Lap` modes. Time mode
+  scrubs a bounded session-time cursor continuously. Lap mode snaps to the
+  timestamp where the race leader starts the selected lap. Both modes generate
+  car markers from the same timestamp-based interpolation path. The timeline
+  shows leader lap-start indicators and provides zoom controls for finer
+  timestamp selection.
+- **Behavioral impact:** Lap mode remains the default, but it no longer means
+  "show each driver on the same lap number." It means "show all selected
+  drivers at the shared session timestamp corresponding to the leader starting
+  this lap." Time mode is available when the snapshot contains time-indexed
+  position samples.
+- **Test impact:** Update playback API, LLM, frontend build, and browser smoke
+  coverage for `Time`/`Lap` modes, leader lap-start markers, timestamp
+  interpolation, no-time degraded states, and zoomable timeline controls.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-29 with feedback beginning "I think we should have timestamp based
+  play back" and "Go forward with implementing this".
+
+### AMEND-007
+
+- **Date:** 2026-07-29
+- **Reason:** Follow-up review of the Slice 4 playback map found that driver
+  markers were not visually using the intended driver/team colors and that the
+  map needed basic inspection controls before adding timing-table and overlay
+  slices.
+- **Changed requirements:** Refines REQ-012, REQ-015, UX-004, and NFR-003. Race
+  Playback map markers must use loaded snapshot style colors in this order:
+  FastF1/session driver style, session team color, FastF1/session team style,
+  deterministic fallback. The map viewport must support zoom in/out, pan,
+  rotate left/right, fit, and reset as presentation-only state. Driver markers
+  must remain clickable after transforms, and clicking a marker sets the same
+  focused-driver selection used by the panel.
+- **Behavioral impact:** Playback data and cursor semantics do not change.
+  Users can inspect the same playback frame with a transformed map view and can
+  visually focus a driver directly from the map.
+- **Test impact:** Add API coverage for playback marker color resolution and
+  browser smoke coverage for non-black marker fills, zoom/pan/rotate/fit/reset
+  controls, marker click focus, and mobile no-overflow behavior.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-29 with "Let's go" after the detailed "Playback Map Controls And
+  Driver Colors" plan.
+
+### AMEND-008
+
+- **Date:** 2026-07-29
+- **Reason:** Follow-up review of rotated playback maps found that driver
+  labels became upside down at 180-degree rotation and that selected-driver
+  emphasis could visually dominate the map at low zoom levels.
+- **Changed requirements:** Refines UX-004 and NFR-003. Race Playback map
+  driver labels must remain screen-readable while staying anchored to their
+  transformed marker positions. Visible marker, label, stroke, and selection
+  emphasis sizing must clamp inverse zoom compensation so low-zoom views do not
+  create oversized dots or rings. Marker clickability must use a separate
+  invisible hit target so the visible marker can stay compact without making
+  selection difficult. When expanded marker hit targets overlap, the clicked
+  position must resolve to the nearest visible marker in transformed map
+  coordinates.
+- **Behavioral impact:** Playback data, cursor semantics, driver focus, and map
+  transforms do not change. The amendment only changes presentation and
+  interaction hit testing for existing playback map markers and labels.
+- **Test impact:** Add frontend/browser coverage for counter-rotated labels,
+  compact selected-driver emphasis at low zoom, and marker click behavior
+  through invisible hit targets.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-29 with "counter-rotate labels only and clamp the inverse scale and
+  split visible marker size from click hitbox".
+
+### AMEND-009
+
+- **Date:** 2026-07-29
+- **Reason:** Follow-up planning for the Race Playback timing tower clarified
+  that FastF1 exposes race timing stream values for `GapToLeader` and
+  `IntervalToPositionAhead` through `fastf1.api.timing_data()`. The playback
+  timing tower should use these loaded timing values instead of deriving gaps
+  from map marker distances.
+- **Changed requirements:** Refines DATA-005, API-004, REQ-015, UX-004, and
+  NFR-003. Loaded session snapshots gain optional normalized timing stream
+  records containing session time, driver, position, gap to leader, interval to
+  position ahead, source, and parse status metadata. Race Playback frames align
+  timing stream records to the playback cursor using as-of timestamp semantics
+  with an explicit maximum timing sample age. The playback payload exposes
+  timing tower rows ordered by timing position first, with map/driver order as a
+  deterministic fallback. The Workbench Race Playback surface replaces the
+  selected-driver metric card with a timing tower whose row clicks and map
+  marker clicks share focused-driver selection. With no focused driver, rows
+  show FastF1 leader gaps and intervals to the car ahead. With a focused
+  driver, rows additionally expose display-relative deltas computed from
+  FastF1 leader-gap values when both drivers have fresh timing samples.
+- **Behavioral impact:** Playback cursor and marker positioning semantics do
+  not change. Timing data is loaded with the session and persisted in snapshots;
+  opening or scrubbing Race Playback does not perform a hidden FastF1 fetch.
+  Missing or stale timing stream samples degrade timing cells only; a marker can
+  still be visible on the map while timing values are unavailable.
+- **Test impact:** Add gateway coverage for FastF1 timing stream extraction,
+  fixture coverage for persisted timing records, playback API tests for as-of
+  timing alignment and focused-driver relative deltas, frontend build/typecheck,
+  and browser smoke for timing-row/marker selection sync and degraded timing
+  cells.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-29 with "Go ahead with implementation" after correcting the plan to
+  use FastF1 timing stream gap and interval data.
+
+### AMEND-010
+
+- **Date:** 2026-07-30
+- **Reason:** Human review of the initial Race Playback timing tower found that
+  it still read as a debug/status panel instead of an analyst timing screen.
+  The right-side chart application controls also competed with the timing
+  context even though Race Playback does not currently own a chart-application
+  workflow.
+- **Changed requirements:** Refines DATA-005, REQ-015, REQ-016, UX-004, and
+  NFR-003. The Race Playback right panel is dedicated to a compact timing tower
+  and no longer exposes chart range, chart selection, or Apply Range controls.
+  Frame context moves beside the playback timeline as a compact cursor chip.
+  Normal timing rows use a thin driver/team color rail and three-letter driver
+  abbreviation, and prioritize pit state, position, interval, gap to leader,
+  tyre compound, tyre age, last lap, best lap, official last/best sector
+  context, and mini-sector state placeholders. Marker/timing provenance such as
+  active, stale, missing, interpolation method, sample age, and timing source is
+  hidden unless the page is opened with the `debug` URL parameter enabled.
+  Mini-sector cells expose state only and may use purple, green, yellow, or grey;
+  until a comparison reference is approved they remain grey/unavailable and no
+  mini-sector time values are shown. Driver and row selection remain
+  synchronized and never filter other map markers.
+- **Behavioral impact:** Race Playback becomes a focused inspection surface.
+  Existing chart parameters and generated charts are unchanged; the prior
+  range-application helper remains outside this surface for a future explicit
+  workflow. Missing timing, lap, tyre, or sector data degrades only the
+  corresponding cells. Rare pit badges may appear in normal mode; debug-only
+  provenance is available through `?debug`, `?debug=1`, or `?debug=true`.
+- **Test impact:** Add playback payload coverage for as-of lap, tyre-age,
+  last/best lap, and official sector context; frontend typecheck/build; browser
+  smoke for the cursor chip, compact timing rows, color rail, normal/debug
+  provenance behavior, row/marker focus synchronization, and desktop/mobile
+  overflow.
+- **Deferred:** Computed mini-sector comparisons require a separately approved
+  reference rule. Race-control, penalty, and track-limit text parsing remains
+  optional follow-up work because the source is private and message parsing is
+  fragile.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-30 with "Implement the live timing tower column redesign task. You
+  have leeway in implementation but it must respect the original needs," using
+  `docs/reports/SPEC-007-timing-tower-redesign-handoff.md` as the design
+  handoff.
+
+### AMEND-011
+
+- **Date:** 2026-07-30
+- **Reason:** Human review of AMEND-010 found that unavailable mini-sector
+  placeholders made every race row too tall, tyre codes lacked the supplied
+  compound artwork, leader-relative comparison failed at normal start/finish
+  transitions, and lap/sector comparison required tiresome per-driver
+  expansion.
+- **Changed requirements:** Refines DATA-005, REQ-015, UX-004, and NFR-003.
+  Race Playback uses the map as the primary desktop canvas with a collapsible
+  timing console floating above it; mobile uses the same console as a
+  full-width stacked surface. The console provides field-wide `Race`, `Lap
+  Times`, `Sectors`, and `Mini Sectors` views. Race rows are single-line and
+  compact. Lap Times shows every driver's last and best completed laps plus
+  deltas to the fastest visible values. Sectors provides `Last` and `Best`
+  sub-views for all drivers; Best includes theoretical best from the sum of
+  each driver's best three official sectors. Driver selection remains
+  map/tower focus only and does not gate comparison data.
+- **Relative timing correction:** Cars on adjacent displayed lap numbers at a
+  shared cursor remain seconds-comparable when official timing gaps are
+  available. The known cursor/timing leader is a valid zero-gap anchor even
+  when FastF1 has not recently repeated its sparse leader row. A lap-number
+  difference caused only by straddling start/finish must never display as a
+  lap deficit. Signed lap deficits may be shown only when the official timing
+  source explicitly reports a lap relationship; map distance is never used to
+  invent timing.
+- **Mini-sector inference:** Mini sectors are computed from loaded snapshot
+  telemetry with no hidden FastF1 fetch. The circuit lap distance determines a
+  target count using approximately 200 metres per mini sector, clamped to a
+  bounded 15–40 segments; the final boundaries divide the full lap into exactly
+  equal-distance bins. Official S1/S2 grouping boundaries are inferred by
+  aligning completed-lap official sector timing to distance-indexed telemetry.
+  The UI does not number mini sectors; it renders slim vertical state lines
+  with slightly larger gaps only at the S1/S2 group boundaries. For each
+  driver's latest completed lap at the cursor, purple means fastest visible
+  segment, green means that driver's personal-best segment, yellow means slower
+  than personal best, and grey means unavailable.
+- **Tyre artwork:** The timing console uses the human-provided SVG compound
+  icons for Soft, Medium, Hard, Intermediate, and Wet, with tyre age adjacent
+  and accessible compound labels retained.
+- **Test impact:** Add analytics tests for equal-distance boundaries, inferred
+  official-sector groups, state classification, and sparse-leader relative
+  timing; add frontend checks for all comparison schemas, supplied tyre icons,
+  overlay collapse/focus behavior, and desktop/mobile overflow.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-30 with "You can implement everything we talked about I validate it,"
+  plus the explicit instruction that mini sectors be equal-distance,
+  track-length-derived, grouped by official sectors, unnumbered, and rendered
+  as slightly grouped colored vertical lines.
+
+### AMEND-012
+
+- **Date:** 2026-07-30
+- **Reason:** Human review of the floating timing console found that the
+  horizontal timeline and duplicated focus/session controls still consumed too
+  much vertical space, while timing rows remained too tall to inspect enough of
+  the field at once.
+- **Changed requirements:** Refines UX-004 and NFR-003. On desktop, Race
+  Playback places a compact vertical timeline rail to the right of the
+  map/timing canvas. The `Time`/`Lap` mode actions and timeline zoom/fit actions
+  live with that rail. On smaller screens the timeline remains horizontal and
+  stacked to preserve touch usability. Session selection moves into the Race
+  Playback panel header. The separate Driver focus selector is removed because
+  map markers, timing rows, and the timing console `All` action fully own focus.
+  Map height expands into the reclaimed space, and all timing comparison rows
+  use tighter vertical sizing while retaining readable values and click
+  targets.
+- **Behavioral impact:** Playback cursor, timing, comparison, and selection
+  semantics do not change. This amendment only consolidates controls and
+  reallocates page space so more timing rows and more of the map remain visible.
+- **Test impact:** Update frontend typecheck/build and browser smoke coverage
+  for header session selection, absent Driver focus control, desktop vertical
+  timeline placement and mode actions, compact timing rows, expanded map
+  canvas, mobile horizontal timeline, and desktop/mobile overflow.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-30 with the explicit request to move the timeline to a right-side
+  vertical rail, colocate Time/Lap with it, remove Driver focus, place Session
+  beside the Race Playback title, and reduce row padding.
+
+### AMEND-013
+
+- **Date:** 2026-07-30
+- **Reason:** Human review of AMEND-012 found that the minimum-height map made
+  the whole page scroll, timing typography was still undersized despite unused
+  row space, view schemas did not align consistently, the sector sub-mode row
+  consumed vertical space, and the fastest-lap label was abbreviated.
+- **Changed requirements:** Refines UX-004 and NFR-003. Desktop Race Playback
+  sizes the map/timeline canvas from the available viewport without imposing a
+  page-height overflow. The cursor chip floats inside the canvas rather than
+  adding document height. Standard timing rows become shorter while their
+  primary typography becomes larger. Every timing view uses a consistent
+  color-rail, position, and driver prefix; PIT state is shown inside the driver
+  cell rather than shifting Race columns. `Last Sectors` and `Best Sectors`
+  become separate entries in the main timing-view navigation, eliminating the
+  sector sub-mode row. Fastest lap comparison copy reads `FASTEST`.
+- **Behavioral impact:** Timing values, sector references, focus, and playback
+  cursor semantics do not change. The update only improves density,
+  consistency, naming, and viewport fit.
+- **Test impact:** Update frontend typecheck/build and browser checks for no
+  desktop page-height overflow at the standard viewport, larger timing text,
+  full 20-car fit, aligned view prefixes, direct Last/Best Sectors tabs,
+  `FASTEST` copy, and retained mobile no-overflow behavior.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-30 with the explicit requests to replace `FAST` with `FASTEST`,
+  prevent vertical page overflow, increase timing typography while reducing
+  row height, align timing-table layouts, and remove the separate sector
+  sub-mode row.
+
+### AMEND-014
+
+- **Date:** 2026-07-30
+- **Reason:** Human review of AMEND-013 found that timing values still needed
+  more visual weight, Race columns distributed horizontal space poorly,
+  selection clearing required a separate action, tyre age could disappear
+  when live timing-app rows omitted `TotalLaps`, and last-lap performance state
+  was not visually encoded.
+- **Changed requirements:** Refines DATA-005, REQ-015, UX-004, and NFR-003.
+  Timing rows use larger typography and one exact shared height across Race,
+  Lap Times, Last Sectors, Best Sectors, and Mini Sectors. Race column widths
+  are explicit so unused flexible width does not accumulate between driver and
+  interval. Tyre icons become larger. Tyre age prefers live timing-app
+  `TotalLaps` and otherwise infers a bounded current-stint age from loaded lap
+  and stint data. Last-lap values use yellow when slower than the driver's
+  personal best, orange when equal to personal best, and purple when equal to
+  the visible session best. Clicking the already-focused driver in either the
+  map or tower clears focus, replacing the timing-console `All` action. Map
+  controls move to the lower-left of the canvas and the cursor information chip
+  moves onto the Race Playback title line.
+- **Behavioral impact:** Driver focus becomes a toggle but remains a single
+  shared selection across map and tower. Tyre-age inference is a display
+  fallback only and does not mutate snapshot source data. Timing comparisons
+  and playback cursor semantics remain unchanged.
+- **Test impact:** Add backend coverage for timing-app tyre age and inferred
+  current-stint fallback; update frontend typecheck/build and browser checks for
+  exact cross-view row height, larger typography/icons, last-lap color states,
+  compact Race column distribution, title-line cursor chip, bottom-left map
+  controls, absent `All` action, and map/tower focus toggling.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-30 through the explicit implementation request for these timing-tower
+  refinements.
+
+### AMEND-015
+
+- **Date:** 2026-07-31
+- **Reason:** Human review of AMEND-014 found that the floating console still
+  obscured too much of the map and that selecting a driver only made race gap
+  relative while the rest of the timing views retained absolute values.
+- **Changed requirements:** Refines REQ-015, UX-004, and NFR-003. The desktop
+  timing console becomes materially narrower and uses shorter comparison-tab
+  labels plus compact per-view column schemas. With no selected driver, views
+  retain their field-wide absolute and fastest-visible comparison behavior.
+  With a selected driver, that driver becomes the shared reference across all
+  comparable values: Race interval, race gap, tyre age, and last lap; Lap
+  Times last and best lap; Last Sectors S1/S2/S3 and last lap; and Best Sectors
+  S1/S2/S3 and theoretical best. The reference row renders `REF`; other rows
+  render signed deltas where positive means a greater value (slower for times,
+  older for tyre age) and negative means a smaller value. Tyre compound icons,
+  position, driver identity, pit state, and unavailable values remain absolute
+  because they have no meaningful numeric relative form. Mini-sector state
+  lines remain their already-relative qualitative comparison view.
+- **Behavioral impact:** Relative mode is now console-wide rather than limited
+  to race gap. Clearing focus restores the previous absolute/global comparison
+  presentation without changing the playback cursor or source data.
+- **Test impact:** Update frontend typecheck/build and browser checks for the
+  reduced desktop width, compact tabs and schemas, reference-row `REF` values,
+  signed deltas across Race/Lap Times/Last Sectors/Best Sectors, focus clearing
+  back to absolute values, exact row-height retention, and desktop/mobile
+  overflow.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-07-31 through the explicit implementation request to reduce timing-tower
+  width and make all timing values relative to the selected driver.
+
+### AMEND-016
+
+- **Date:** 2026-08-03
+- **Reason:** Human review found the unfocused Laps deltas redundant with
+  selecting the comparison driver and found the equal-age focused tyre state
+  visually over-emphasized.
+- **Changed requirements:** Refines REQ-015 and UX-004. In unfocused mode, the
+  Laps view shows only each driver's absolute last lap and best lap; it no
+  longer adds field-fastest delta columns. Focused mode continues to replace
+  those values with signed selected-driver deltas. In focused Race view, a
+  zero-lap tyre-age delta uses the neutral/default text tone instead of the
+  purple equal-time comparison tone. The selected reference row remains
+  visually distinct as `REF`.
+- **Behavioral impact:** The Laps view is less repetitive and narrower in its
+  information density. Equal tyre ages read as neutral rather than exceptional.
+- **Test impact:** Update frontend typecheck/build and browser checks for the
+  five-column unfocused Laps schema and neutral focused `0L` tyre-age state.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-08-03 through the explicit request to remove unfocused Laps deltas and
+  neutralize equal focused tyre ages.
+
+### AMEND-017
+
+- **Date:** 2026-08-03
+- **Reason:** Human review rejected relative interval subtraction and requested
+  automatic playback with shared speed control.
+- **Changed requirements:** Refines REQ-013, REQ-015, and UX-004. Focused Race
+  mode retains the `INT` column but renders `—` for every driver because local
+  intervals to different cars ahead are not comparable to the selected driver.
+  Race Playback adds a title-line play/pause action beside the cursor status
+  chip and a shared `1×`, `2×`, `4×`, `8×`, `16×` speed selector. Lap mode
+  advances one lap every five seconds at `1×`, divided by the selected speed.
+  Time mode advances by elapsed real time multiplied by the selected speed.
+  Playback stops at the available range end; starting again at the end restarts
+  from the range minimum. Session or mode changes pause playback.
+- **Behavioral impact:** Analysts can watch the race progress without manual
+  scrubbing while focused interval values no longer imply a false comparison.
+- **Test impact:** Update frontend typecheck/build and browser checks for
+  focused `INT` placeholders, play/pause state, Lap and Time cursor advancement,
+  speed selection, end-of-range behavior, and viewport containment.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-08-03 through the explicit focused-INT and playback-control request.
+
+### AMEND-018
+
+- **Date:** 2026-08-03
+- **Reason:** Human evaluation found automatic playback unusable because each
+  cursor step requires a playback-frame regeneration that cannot keep pace
+  with continuous Lap or Time advancement.
+- **Changed requirements:** Supersedes only the automatic-player portion of
+  AMEND-017. Remove the title-line play/pause action, speed selector, playback
+  timers, and automatic cursor advancement. Preserve manual Lap/Time timeline
+  scrubbing, the title-line cursor status chip, and focused `INT` placeholders.
+- **Behavioral impact:** Race Playback returns to explicit analyst-controlled
+  cursor changes and avoids generating a backlog of playback requests.
+- **Test impact:** Update frontend typecheck/build and browser checks to confirm
+  the player/speed controls are absent, manual timeline controls remain, and
+  the page retains desktop/mobile containment.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-08-03 through the explicit request to scrap automatic playback because
+  generation speed made it unusable.
+
+### AMEND-019
+
+- **Date:** 2026-08-03
+- **Reason:** Human requested completion of the Minis tab. Real-session
+  verification found that FastF1 lap telemetry commonly starts after 0 m and
+  ends before the inferred full track length, causing otherwise valid completed
+  laps to be rejected and the tab to remain empty.
+- **Changed requirements:** Refines DATA-005, REQ-015, and UX-004. Equal-distance
+  minisectors continue to derive from inferred track length and remain grouped
+  by official sectors 1/2/3. When telemetry samples do not reach exact lap
+  endpoints, use the official lap start/end times as virtual 0 m/full-length
+  anchors before interpolating minisector durations. The Minis tab renders the
+  latest completed lap as unnumbered colored vertical lines: purple for visible
+  session best, green for personal best, orange for slower, and grey only when
+  data is genuinely unavailable. Sector groups are separated by a larger gap.
+- **Behavioral impact:** Valid real-session telemetry now produces useful
+  minisector strips instead of being discarded for normal sampling gaps.
+- **Test impact:** Add endpoint-anchoring regression coverage, rerun playback
+  tests, frontend typecheck/build, and browser checks on a later real race lap
+  for populated states, sector grouping, row height, and overflow.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-08-03 through the explicit request to implement the minisector tab.
+
+### AMEND-020
+
+- **Date:** 2026-08-03
+- **Reason:** Human review requested that selecting a driver connect the Minis
+  comparison directly to circuit geography instead of limiting it to the
+  timing row.
+- **Changed requirements:** Refines REQ-015 and UX-004. While a driver is
+  focused, split the displayed circuit into the same equal-distance intervals
+  as that driver's latest completed-lap minisector states. Interpolate each
+  interval boundary against track-map distance and color the corresponding
+  circuit portion purple for visible session best, green for personal best,
+  orange for slower, and grey for unavailable. With no focused driver, retain
+  the neutral track trace.
+- **Behavioral impact:** Selecting a timing row or map marker immediately shows
+  where the focused driver's latest lap gained or lost performance around the
+  circuit; clearing the driver restores the uncluttered map.
+- **Test impact:** Run frontend typecheck/build and browser checks for selected
+  driver map overlays, equal interval boundaries, state/color parity, focus
+  clearing, map controls, and desktop/mobile containment.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-08-03 through the explicit request to color the selected driver's track
+  portions from the last minisector states.
+
+### AMEND-021
+
+- **Date:** 2026-08-03
+- **Reason:** Human review supplied the exact performance-state palette and
+  requested consistent use wherever those semantic timing colors appear.
+- **Changed requirements:** Refines REQ-015 and UX-004. Use `#bd29c1` for a
+  visible session-fastest lap, sector, or minisector; use `#31ce34` for a
+  personal-fastest lap, sector, or minisector; and use `#ecf34e` for a slower
+  lap, sector, or minisector. Apply the same centralized palette to the timing
+  table, Minis strips, and selected-driver circuit overlay. Do not recolor
+  unrelated UI accents, warnings, relative-reference deltas, or track-selector
+  corner highlights that do not carry these meanings.
+- **Behavioral impact:** Performance colors remain identical across textual
+  timing values, compact Minis lines, and geographic track-map segments.
+- **Test impact:** Run frontend typecheck/build and browser checks that inspect
+  computed colors for session-fastest, personal-fastest, and slower states.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-08-03 through the explicit exact-color request.
+
+### AMEND-022
+
+- **Date:** 2026-08-03
+- **Reason:** Human requested simultaneous driver comparison in the Live timing
+  tower and a geographic summary of which selected driver owns each official
+  sector on the latest completed lap.
+- **Changed requirements:** Refines REQ-015 and UX-004. Timing rows and map
+  markers toggle membership in a shared driver selection. Zero selected drivers
+  retain absolute/global timing, one selected driver retains existing relative
+  semantics, and two or more selected drivers activate absolute comparison
+  mode. Highlight the fastest selected comparable values for Race `LAST`, Laps
+  `LAST`/`BEST`, Last Sectors `S1`/`S2`/`S3`/`LAP`, and Best Sectors
+  `S1`/`S2`/`S3`/`THEO`; highlight all ties within timing tolerance. Do not rank
+  position, interval, gap, or tyre age. In multi-select mode, infer official
+  S1/S2/S3 distance boundaries from the existing equal-distance minisector
+  groups, falling back to equal thirds only when grouping is unavailable, and
+  color each track sector using the loaded color of the selected driver with
+  the fastest last-sector time for that sector. Single selection keeps the
+  existing minisector-state circuit overlay.
+- **Behavioral impact:** Analysts can compare a subset without hiding the rest
+  of the field, see the selected winner in every meaningful timing column, and
+  immediately identify sector ownership on the circuit.
+- **Test impact:** Run frontend typecheck/build and browser interaction checks
+  for additive row/map selection, single-relative and multi-absolute mode
+  transitions, cell winners, ties, three sector owners/colors, deselection,
+  map controls, and desktop/mobile containment.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-08-03 through the explicit multi-selection and sector-map request.
+
+### AMEND-023
+
+- **Date:** 2026-08-03
+- **Reason:** Human visual review requested a darker, less fluorescent yellow
+  for slower timing states.
+- **Changed requirements:** Refines UX-004 and supersedes only the slower-color
+  value in AMEND-021. Replace `#ecf34e` with `#ddcd35` everywhere the semantic
+  timing palette represents a slower lap, sector, minisector, or focused map
+  interval. Session-fastest remains `#bd29c1` and personal-fastest remains
+  `#31ce34`.
+- **Behavioral impact:** Only slower-state presentation changes; timing,
+  comparison, selection, and map-segmentation semantics remain unchanged.
+- **Test impact:** Frontend typecheck/build, compiled palette inspection, and
+  browser visual/console verification.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
+  2026-08-03 through the explicit instruction to change yellow to `#ddcd35`.
 
 ## Review checklist
 

@@ -145,6 +145,7 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
         view = service.view(analysis)
         coverage = service.coverage_bounds(analysis)
         track_map_summaries = _track_map_summaries(service, analysis)
+        playback_summaries = _playback_summaries(service, analysis)
     except Exception as exc:
         return {
             "contract_version": CONTRACT_VERSION,
@@ -174,6 +175,7 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
         ],
         "coverage_bounds": coverage,
         "track_map_summaries": track_map_summaries,
+        "playback_summaries": playback_summaries,
     }
 
 
@@ -270,6 +272,30 @@ def _track_map_summaries(service: AnalysisService, analysis: Any) -> list[dict[s
                 **payload,
             }
         )
+    return summaries
+
+
+def _playback_summaries(service: AnalysisService, analysis: Any) -> list[dict[str, Any]]:
+    summaries: list[dict[str, Any]] = []
+    for session in analysis.sessions:
+        try:
+            payload = service.playback(
+                analysis,
+                session_id=session.session_id,
+                mode="lap",
+                max_frames=1,
+                max_markers=5,
+                max_points=2,
+            ).model_dump(mode="json")
+        except Exception as exc:
+            payload = {
+                "status": "invalid",
+                "session_id": session.session_id,
+                "diagnostics": [{"field": "playback", "message": str(exc)}],
+            }
+        payload.pop("points", None)
+        payload.pop("frames", None)
+        summaries.append(payload)
     return summaries
 
 

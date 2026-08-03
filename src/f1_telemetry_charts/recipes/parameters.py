@@ -693,6 +693,8 @@ def effective_configuration_metadata(
     if box_policy is not None:
         effective_filters["box_lap_policy"] = box_policy
     diagnostics = diagnostics or ParameterDiagnostics()
+    selection = section(config, "selection")
+    playback_interval = selection.get("playback_interval")
     effective_configuration = {
         "selection": {
             "driver_selection_mode": driver_selection_mode(config),
@@ -709,6 +711,8 @@ def effective_configuration_metadata(
         if coverage is not None
         else coverage_bounds(dataset, selected_drivers=selected_drivers, config=config),
     }
+    if isinstance(playback_interval, dict):
+        effective_configuration["selection"]["playback_interval"] = playback_interval
     if extra_effective:
         effective_configuration.update(extra_effective)
     return {

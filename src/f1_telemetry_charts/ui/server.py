@@ -22,6 +22,7 @@ from f1_telemetry_charts.analysis.workspace import (
     AnalysisService,
     AnalysisView,
     ParameterDiagnosticsView,
+    PlaybackPayload,
     PresetScope,
     TrackMapPayload,
     list_recipe_metadata_payloads,
@@ -160,6 +161,22 @@ class AnalysisTrackMapRequest(BaseModel):
     max_points: int = Field(default=500, ge=2, le=1200)
 
 
+class AnalysisPlaybackRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: str = Field(min_length=1)
+    mode: Literal["time", "lap"] = "lap"
+    cursor: float | None = None
+    start_lap: int | None = Field(default=None, ge=1)
+    end_lap: int | None = Field(default=None, ge=1)
+    selected_drivers: list[str] | None = None
+    max_frames: int = Field(default=12, ge=1, le=60)
+    max_markers: int = Field(default=30, ge=1, le=60)
+    max_points: int = Field(default=500, ge=2, le=1200)
+    maximum_sample_gap_seconds: float = Field(default=5.0, ge=0, le=300)
+    maximum_timing_sample_age_seconds: float = Field(default=10.0, ge=0, le=300)
+
+
 class PresetSaveRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -196,6 +213,9 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
         assets_dir = static_dir / "assets"
         if assets_dir.exists():
             app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+        tyres_dir = static_dir / "tyres"
+        if tyres_dir.exists():
+            app.mount("/tyres", StaticFiles(directory=tyres_dir), name="tyres")
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
@@ -519,6 +539,27 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
                 target_session_ids=request.target_session_ids,
                 parameters=request.parameters,
                 max_points=request.max_points,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/analysis/playback", response_model=PlaybackPayload)
+    def get_analysis_playback(request: AnalysisPlaybackRequest) -> PlaybackPayload:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            return service.playback(
+                service.open(),
+                session_id=request.session_id,
+                mode=request.mode,
+                cursor=request.cursor,
+                start_lap=request.start_lap,
+                end_lap=request.end_lap,
+                selected_drivers=request.selected_drivers,
+                max_frames=request.max_frames,
+                max_markers=request.max_markers,
+                max_points=request.max_points,
+                maximum_sample_gap_seconds=request.maximum_sample_gap_seconds,
+                maximum_timing_sample_age_seconds=request.maximum_timing_sample_age_seconds,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc

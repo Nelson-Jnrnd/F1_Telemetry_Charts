@@ -215,6 +215,96 @@ export type TrackMapPayload = {
   diagnostics: Array<{ field: string; message: string }>;
 };
 
+export type PlaybackMode = "time" | "lap";
+
+export type PlaybackModeAvailability = {
+  available: boolean;
+  minimum?: number | null;
+  maximum?: number | null;
+  default?: number | null;
+  reason?: string | null;
+};
+
+export type LeaderLapMarker = {
+  lap_number: number;
+  session_time_seconds: number;
+  leader_driver: string;
+};
+
+export type PlaybackCursor = {
+  mode: PlaybackMode;
+  session_time_seconds: number;
+  leader_lap_number?: number | null;
+  leader_driver?: string | null;
+  lap_offset_seconds?: number | null;
+};
+
+export type PlaybackMarker = {
+  driver: string;
+  status: "active" | "stale" | "missing";
+  reason?: string | null;
+  distance_m?: number | null;
+  display_x?: number | null;
+  display_y?: number | null;
+  color?: string | null;
+  source_lap?: number | null;
+  source_sample_count: number;
+  interpolation_method: "exact" | "linear" | "nearest" | "missing";
+  interpolation_status: "exact" | "interpolated" | "stale" | "missing";
+  sample_gap_seconds?: number | null;
+  context: {
+    lap_number?: number | null;
+    lap_time_seconds?: number | null;
+    position?: number | null;
+    compound?: string | null;
+    stint?: number | null;
+    tyre_age_laps?: number | null;
+    last_lap_time_seconds?: number | null;
+    best_lap_time_seconds?: number | null;
+    last_sector_times_seconds: Array<number | null>;
+    best_sector_times_seconds: Array<number | null>;
+    mini_sector_states: Array<"fastest" | "faster" | "slower" | "unavailable">;
+    mini_sector_groups: Array<0 | 1 | 2 | 3>;
+    timing_app_source?: string | null;
+    track_status?: string | null;
+    pit_state: "pit_in" | "pit_out" | "pit_in_out" | "none";
+    gap_to_leader_seconds?: number | null;
+    interval_to_ahead_seconds?: number | null;
+    gap_to_leader_laps?: number | null;
+    interval_to_ahead_laps?: number | null;
+    gap_source?: string | null;
+    gap_inferred: boolean;
+    timing_status: "fresh" | "stale" | "missing";
+    timing_sample_age_seconds?: number | null;
+    timing_position?: number | null;
+  };
+};
+
+export type PlaybackFrame = {
+  mode: PlaybackMode;
+  cursor_value: number;
+  cursor: PlaybackCursor;
+  lap_number?: number | null;
+  session_time_seconds: number;
+  markers: PlaybackMarker[];
+  context: Record<string, unknown>;
+};
+
+export type PlaybackPayload = {
+  status: "available" | "unavailable" | "invalid";
+  session_id?: string | null;
+  mode: PlaybackMode;
+  default_mode: PlaybackMode;
+  available_modes: Record<string, PlaybackModeAvailability>;
+  selected_drivers: string[];
+  points: TrackMapPoint[];
+  leader_lap_markers: LeaderLapMarker[];
+  frames: PlaybackFrame[];
+  bounds: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  diagnostics: Array<{ field: string; message: string }>;
+};
+
 export type ParameterPreset = {
   preset_id: string;
   recipe_id: string;
