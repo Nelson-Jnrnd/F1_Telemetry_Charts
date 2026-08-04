@@ -29,6 +29,8 @@ HOW TO USE THIS TEMPLATE
   verification method, evidence location.
 - Once status is Approved, behavioral changes require a Spec Amendments entry.
   Typos and formatting may be fixed without an amendment; meaning may not.
+- `related_prs` or `delivery_refs` is required for delivery outside the
+  canonical `chatbot` branch. Both may remain empty for delivery on `chatbot`.
 -->
 
 # <SPEC-XXX>: <Title>

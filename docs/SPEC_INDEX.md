@@ -38,9 +38,9 @@ Terminal alternatives: `Superseded`, `Archived`, `Rejected`.
 | SPEC-007 | Visual Track Map Range Selection and Race Playback Explorer | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-007-track-map-range-and-race-playback.md` |
 
 Requirement-level implementation and verification evidence was reconciled on
-2026-08-04. Nelson Jeanrenaud explicitly approved direct delivery on the shared
-`chatbot` branch; commit `d070f5e` was pushed and is recorded as the delivery
-reference for all seven implemented specs.
+2026-08-04. `chatbot` is the canonical delivery branch, so a PR or separate
+direct-delivery reference is not required there. Commit `d070f5e` remains
+recorded as traceability for all seven implemented specs.
 
 > Keep this table in sync with the frontmatter of each spec. `/spec-report` and
 > `scripts/validate_drift.py` help detect drift between this index and the

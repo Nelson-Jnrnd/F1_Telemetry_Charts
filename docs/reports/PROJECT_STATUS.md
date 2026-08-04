@@ -18,8 +18,7 @@ _Last updated: 2026-08-04._
   AMEND-024 and covers the delivered track selector, race playback/timing
   explorer, Minis comparisons, multi-driver sector comparison, and median
   session track geometry.
-- **Open PR:** none required. Nelson Jeanrenaud explicitly approved direct
-  delivery on the shared `chatbot` branch.
+- **Open PR:** none required; `chatbot` is the canonical delivery branch.
 - **Checks:** Latest recorded local run: 102 Python tests passed; frontend
   typecheck and production build passed; representative 20-chart/50-observation
   package preview completed in 0.0813 seconds against the 3-second limit;
@@ -27,11 +26,11 @@ _Last updated: 2026-08-04._
 - **Delivery:** Implementation commit `d070f5e` and lifecycle commit `bc37036`
   are pushed to `origin/chatbot`; each spec records the implementation commit's
   direct-delivery URL under `delivery_refs`.
-- **Changed files:** No tracked changes. `beta-test-screenshots/` is unrelated
-  and remains untracked.
+- **Changed files:** No tracked changes after canonical-branch workflow delivery.
+  `beta-test-screenshots/` is unrelated and remains untracked.
 - **Remaining evidence:** No implementation evidence gaps are identified.
   SPEC-007's chart-range handoff UI is intentionally deferred
   by AMEND-010 rather than accidentally missing.
-- **Lifecycle gate:** satisfied by the explicitly approved direct-delivery path
-  and pushed commit evidence.
+- **Lifecycle gate:** satisfied by verified delivery on the canonical `chatbot`
+  branch. PR/direct-delivery references are not required on this branch.
 - **Recommended next action:** choose the next product task.

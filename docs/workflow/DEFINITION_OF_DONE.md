@@ -3,8 +3,9 @@
 Work is **not complete** unless all of the following are true. This gate
 protects against half-finished or untraceable changes.
 
-- [ ] The delivery reference—PR, or an explicitly approved direct-push
-      commit—references an approved spec (`SPEC-XXX`).
+- [ ] When delivery occurs outside the canonical `chatbot` branch, the PR or
+      explicitly approved direct-push commit references an approved spec
+      (`SPEC-XXX`). This item is not applicable on `chatbot`.
 - [ ] The change maps to specific requirement IDs (REQ/NFR/SEC/UX/DATA/API).
 - [ ] Tests or verification evidence are provided for each requirement.
 - [ ] Relevant checks pass (governance scripts and any project tests).

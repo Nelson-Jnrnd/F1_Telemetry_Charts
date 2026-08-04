@@ -34,6 +34,6 @@ automatic-playback experiment and the earlier slower-state color. Its
 dependencies on SPEC-004, SPEC-005, and SPEC-006 are declared.
 
 All seven lifecycle statuses are `Implemented`. Empty PR references are valid
-because Nelson Jeanrenaud explicitly approved direct delivery on the shared
-branch and pushed commit `d070f5e` is recorded under each spec's
-`delivery_refs`.
+because `chatbot` is the canonical delivery branch; PR/direct-delivery evidence
+is required only when completing a spec from another branch. Existing commit
+`d070f5e` remains recorded under each spec's `delivery_refs`.

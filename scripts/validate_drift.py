@@ -6,7 +6,8 @@ Checks (project-agnostic):
   - Duplicate requirement IDs within a single spec.
   - Approved/Implemented specs modified without an amendment marker.
   - Requirement IDs introduced outside specs (reports / README).
-  - Implemented specs without a PR or direct-delivery reference.
+  - Implemented specs outside the canonical delivery branch without a PR or
+    direct-delivery reference.
 
 Blocking issues exit non-zero; weaker signals are warnings.
 Dependency-free.
@@ -15,6 +16,7 @@ Usage: python scripts/validate_drift.py
 """
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -28,6 +30,7 @@ SPEC_DIRS = [
     "docs/specs/archived",
 ]
 TEMPLATE_NAME = "SPEC_TEMPLATE.md"
+CANONICAL_DELIVERY_BRANCH = "chatbot"
 
 # Files that are derived and must NOT introduce requirement IDs.
 DERIVED_GLOBS = [
@@ -64,6 +67,24 @@ def git_tracked(rel: str) -> bool:
         return r.returncode == 0
     except Exception:
         return False
+
+
+def current_branch() -> str:
+    """Return the local or CI branch name when it can be determined."""
+    ci_branch = os.environ.get("GITHUB_HEAD_REF") or os.environ.get(
+        "GITHUB_REF_NAME"
+    )
+    if ci_branch:
+        return ci_branch
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.strip() if result.returncode == 0 else ""
+    except Exception:
+        return ""
 
 
 def main() -> int:
@@ -141,13 +162,14 @@ def main() -> int:
                 "references, not definitions."
             )
 
-    # 5. Implemented specs without a delivery reference.
+    # 5. Implemented specs outside the canonical branch without delivery evidence.
+    branch = current_branch()
     for path in specs:
         text = path.read_text(encoding="utf-8")
         rel = str(path.relative_to(REPO_ROOT))
         status_m = FRONTMATTER_STATUS_RE.search(text)
         status = status_m.group(1).strip() if status_m else ""
-        if status == "Implemented":
+        if status == "Implemented" and branch != CANONICAL_DELIVERY_BRANCH:
             prs_m = re.search(r"^related_prs:\s*(.+)$", text, flags=re.MULTILINE)
             deliveries_m = re.search(
                 r"^delivery_refs:\s*(.+)$", text, flags=re.MULTILINE

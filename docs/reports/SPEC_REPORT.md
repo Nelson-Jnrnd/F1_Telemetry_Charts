@@ -81,7 +81,7 @@ Analysis-first navigation. The surviving package review behavior belongs in the
 Analysis Workbench Review/Export workflow; plugin, run-history, notification,
 security, and reusable UI contracts remain in force.
 
-Formal lifecycle state is now complete. Nelson Jeanrenaud explicitly approved
-direct delivery on the shared `chatbot` branch; pushed commit `d070f5e` is
-recorded under each spec's `delivery_refs`, and all specs are in the implemented
-folder.
+Formal lifecycle state is now complete. `chatbot` is the canonical delivery
+branch, so PR/direct-delivery references are not required there. Existing
+commit `d070f5e` remains recorded for traceability, and all specs are in the
+implemented folder.
