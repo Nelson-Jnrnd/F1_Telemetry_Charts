@@ -34,7 +34,14 @@ export type Observation = {
   text: string;
   edited_text?: string | null;
   confidence?: string | number | null;
-  evidence_artifact_ids?: string[];
+  evidence?: Array<{
+    artifact_id: string;
+    recipe_id: string;
+    image_path: string;
+    metadata_path: string;
+    source_fields?: string[];
+  }>;
+  metrics?: Array<{ name: string; value: string | number; unit?: string | null; driver?: string | null }>;
   limitations?: string[];
   [key: string]: unknown;
 };

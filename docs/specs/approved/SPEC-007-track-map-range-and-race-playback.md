@@ -30,7 +30,7 @@ depends_on:
 supersedes: []
 superseded_by:
 conflicts_with: []
-last_verified_at: 2026-07-24
+last_verified_at: 2026-08-03
 ---
 
 # SPEC-007: Visual Track Map Range Selection and Race Playback Explorer
@@ -982,8 +982,13 @@ Completion gate:
       are available? Answer: lap mode by default, with timestamp mode exposed
       through an explicit switch only when the loaded snapshot has sufficient
       time-indexed position coverage.
-- [ ] What representative FastF1-backed session should be the visual/browser
-      verification fixture for track-map work?
+- [x] What representative FastF1-backed session should be the visual/browser
+      verification fixture for track-map work? Answer: the cached, normalized
+      2023 Bahrain Grand Prix Race session. It is the shared browser and
+      full-field baseline for SPEC-007 and SPEC-006. Synthetic fixtures remain
+      responsible for unavailable geometry, sparse telemetry, and other
+      degraded-state checks. The current 20-driver normalized dataset is
+      `analyses/race-analysis/sessions/session-6129e831b8/dataset.json`.
 
 ## Human decisions required
 
@@ -1000,6 +1005,9 @@ Completion gate:
 - [x] Choose default playback mode when lap and timestamp data are both
       available. Answer: lap-first default; timestamp is an explicit available
       mode when snapshot coverage supports it.
+- [x] Choose the representative FastF1-backed visual/browser fixture. Answer:
+      the cached, normalized 2023 Bahrain Grand Prix Race session, approved by
+      Nelson Jeanrenaud on 2026-08-03 in the Codex task conversation.
 
 ## Conflict check
 
@@ -1134,6 +1142,12 @@ without changing plugin trust boundaries or allowing code authoring.
   20 car markers with no browser console warnings or errors. Full unittest
   discovery passed with 101 tests, frontend typecheck passed, and governance,
   specification, and drift validation passed.
+- 2026-08-03: The remaining verification-fixture question was resolved. The
+  cached, normalized 2023 Bahrain Grand Prix Race session is the canonical
+  visual/browser and full-field baseline shared with SPEC-006. Synthetic
+  fixtures continue to cover unavailable geometry, sparse telemetry, and other
+  degraded states. This verification-only decision does not change product
+  behavior and requires no spec amendment.
 
 ## First slice implementation plan
 

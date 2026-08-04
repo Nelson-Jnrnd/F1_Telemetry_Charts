@@ -30,7 +30,7 @@ depends_on:
   - SPEC-002
   - SPEC-003
 conflicts_with: []
-last_verified_at:
+last_verified_at: 2026-08-04
 ---
 
 # SPEC-004: V2 Analysis Workbench and Staged Run Pipeline
@@ -860,11 +860,11 @@ View definitions:
 | API-004 | Chart instance API exists. | FastAPI tests | `python -m unittest tests.test_analysis_workspace` | `/api/analysis/charts/*` | TBD |
 | API-005 | Preset API exists. | FastAPI tests | `python -m unittest tests.test_analysis_workspace` | `/api/analysis/presets` | TBD |
 | API-006 | Export API exists. | FastAPI tests | `python -m unittest tests.test_analysis_workspace` | `/api/analysis/export`; `/api/analysis/review/refresh` | TBD |
-| UX-001 | Outline-driven Workbench exists. | Frontend build | `pnpm --dir frontend build`; browser connector failed | `AnalysisWorkbenchPage.tsx` | TBD |
-| UX-002 | Session lifecycle UX exists. | Frontend build | `pnpm --dir frontend build`; browser connector failed | `SessionDraftEditor`; `SessionEditor` | TBD |
+| UX-001 | Outline-driven Workbench exists. | Frontend build and responsive browser evidence | `pnpm --dir frontend build`; browser check on 2026-08-03 | `AnalysisWorkbenchPage.tsx`; `docs/reports/SPEC-003-UX-007-responsive-evidence.md` | TBD |
+| UX-002 | Session lifecycle UX exists. | Frontend build, API tests, and browser interaction | `pnpm --dir frontend build`; Analysis API tests; Chromium session editor/add/remove-warning check on 2026-08-04 | `SessionDraftEditor`; `SessionEditor`; closeout evidence report | TBD |
 | UX-003 | Chart tuning UX exists. | Frontend/API tests | `pnpm --dir frontend build`; `python -m unittest tests.test_analysis_workspace` | `ChartEditor`; `ParameterControl`; Analysis chart APIs | TBD |
 | UX-004 | Analysis save/load UX exists. | Frontend/API tests | `pnpm --dir frontend build`; `python -m unittest tests.test_analysis_workspace` | Analysis top bar actions; create/open APIs | TBD |
-| UX-005 | Review/export UX exists. | Frontend/API tests | `pnpm --dir frontend build`; `python -m unittest tests.test_analysis_workspace` | `ReviewEditor`; `ExportEditor`; export APIs | TBD |
+| UX-005 | Review/export UX exists. | Frontend/API tests and browser interaction | `pnpm --dir frontend build`; `python -m unittest tests.test_analysis_workspace`; Chromium Review/Export check on 2026-08-04 | `ReviewEditor`; `ExportEditor`; export APIs; closeout evidence report | TBD |
 | UX-006 | LLM-readable Analysis state exists. | Contract tests | `python -m unittest tests.test_llm_contract` | `inspect_analysis`; `update_analysis_chart_parameters` | TBD |
 
 ## Test plan
@@ -944,47 +944,47 @@ receive a compatible amendment or SPEC-004 must define replacement APIs clearly.
 
 | Requirement ID | Design / component | Implementation (file/function) | Test | Status |
 | -------------- | ------------------ | ------------------------------ | ---- | ------ |
-| REQ-001 | Analysis object | `src/f1_telemetry_charts/analysis/workspace.py` | `tests/test_analysis_workspace.py` | In Implementation |
-| REQ-002 | Analysis save/load | `AnalysisService.create/open/save`; `/api/analysis/create`; `/api/analysis/open` | `tests/test_analysis_workspace.py` | In Implementation |
-| REQ-003 | Session restore on load | `AnalysisService.open`; `DatasetSnapshot` | `tests/test_analysis_workspace.py` | In Implementation |
-| REQ-004 | Session lifecycle | `AnalysisService.add_session/load_session/remove_session`; `AnalysisWorkbenchPage.tsx` | `tests/test_analysis_workspace.py`; frontend build | In Implementation |
-| REQ-005 | Session snapshot | `_write_snapshot`; `_read_snapshot_dataset` | `tests/test_analysis_workspace.py` | In Implementation |
-| REQ-006 | No reload during tuning | `AnalysisService.generate_charts` | `tests/test_analysis_workspace.py`; `scripts/benchmark_analysis_regeneration.py` | In Implementation |
-| REQ-007 | Chart instance object | `ChartInstance` | `tests/test_analysis_workspace.py` | In Implementation |
-| REQ-008 | Chart lifecycle | `AnalysisService.add_chart/update_chart/remove_chart`; chart API endpoints | `tests/test_analysis_workspace.py`; frontend build | In Implementation |
-| REQ-009 | Recipe parameter schema | `RecipeParameterSchema`; `recipe_parameter_schema` | `tests/test_analysis_workspace.py` | In Implementation |
-| REQ-010 | Parameter validation | `_validate_parameters`; API error handling | `tests/test_analysis_workspace.py` | In Implementation |
-| REQ-011 | Workbench parameter editing | `AnalysisWorkbenchPage.tsx`; `ParameterControl` | frontend build | In Implementation |
-| REQ-012 | LLM parameter editing | `inspect_analysis`; `update_analysis_chart_parameters` | `tests/test_llm_contract.py` | In Implementation |
-| REQ-013 | Selected chart generation | `/api/analysis/charts/generate`; `AnalysisService.generate_charts` | `tests/test_analysis_workspace.py` | In Implementation |
-| REQ-014 | Parameter presets | `ParameterPreset`; `AnalysisService.save_preset`; preset UI controls | `tests/test_analysis_workspace.py`; frontend build | In Implementation |
-| REQ-015 | Review and export | `refresh_observations`; `export_package`; Review/Export UI | `tests/test_analysis_workspace.py`; frontend build | In Implementation |
-| REQ-016 | Batch compatibility | `run_analysis`; `ChartRecipeConfig` backward-compatible fields | full unittest discovery | In Implementation |
-| REQ-017 | Plugin recipe parameters | registry metadata plus schema fallback | `tests/test_plugins.py`; `tests/test_analysis_workspace.py` | In Implementation |
-| NFR-001 | Iteration performance | snapshot-backed chart generation | `tests/test_analysis_workspace.py`; `scripts/benchmark_analysis_regeneration.py` | In Implementation |
-| NFR-002 | Snapshot size control | deterministic JSON files under Analysis root | `tests/test_analysis_workspace.py` | In Implementation |
-| NFR-003 | Backward compatibility | existing config/generate path preserved | full unittest discovery | In Implementation |
-| NFR-004 | Deterministic outputs | `_hash_payload`; snapshot/parameter hashes | `tests/test_analysis_workspace.py` | In Implementation |
-| SEC-001 | Local Analysis storage | local filesystem service/API only | `tests/test_analysis_workspace.py` | In Implementation |
-| SEC-002 | Plugin schema safety | schema data rendered by frontend controls | `tests/test_plugins.py`; frontend build | In Implementation |
-| DATA-001 | Analysis model | `AnalysisWorkspace` | `tests/test_analysis_workspace.py` | In Implementation |
-| DATA-002 | Session model | `AnalysisSession` | `tests/test_analysis_workspace.py` | In Implementation |
-| DATA-003 | Dataset snapshot model | `DatasetSnapshot` | `tests/test_analysis_workspace.py` | In Implementation |
-| DATA-004 | Recipe parameter schema model | `RecipeParameterSchema`; `ParameterField` | `tests/test_analysis_workspace.py` | In Implementation |
-| DATA-005 | Chart instance model | `ChartInstance` | `tests/test_analysis_workspace.py` | In Implementation |
-| DATA-006 | Parameter preset model | `ParameterPreset` | `tests/test_analysis_workspace.py` | In Implementation |
-| API-001 | Analysis API | `/api/analysis/create/open/save` | `tests/test_analysis_workspace.py` | In Implementation |
-| API-002 | Session API | `/api/analysis/sessions/*` | `tests/test_analysis_workspace.py` | In Implementation |
-| API-003 | Recipe metadata API | `/api/analysis/recipes` | `tests/test_analysis_workspace.py` | In Implementation |
-| API-004 | Chart instance API | `/api/analysis/charts/*` | `tests/test_analysis_workspace.py` | In Implementation |
-| API-005 | Preset API | `/api/analysis/presets` | `tests/test_analysis_workspace.py` | In Implementation |
-| API-006 | Export API | `/api/analysis/export`; `/api/analysis/review/refresh` | `tests/test_analysis_workspace.py` | In Implementation |
-| UX-001 | Outline-driven Workbench | `AnalysisWorkbenchPage.tsx` | frontend build; browser visual pending | In Implementation |
-| UX-002 | Session lifecycle UX | `SessionDraftEditor`; `SessionEditor` | frontend build; browser visual pending | In Implementation |
-| UX-003 | Chart tuning UX | `ChartEditor`; `ParameterControl`; Analysis asset lightbox | frontend build; API tests | In Implementation |
-| UX-004 | Analysis save/load UX | Analysis top bar controls | frontend build; API tests | In Implementation |
-| UX-005 | Review/export UX | `ReviewEditor`; `ExportEditor` | frontend build; API tests | In Implementation |
-| UX-006 | LLM-readable state | LLM Analysis helpers | `tests/test_llm_contract.py` | In Implementation |
+| REQ-001 | Analysis object | `src/f1_telemetry_charts/analysis/workspace.py` | `tests/test_analysis_workspace.py` | Implemented |
+| REQ-002 | Analysis save/load | `AnalysisService.create/open/save`; `/api/analysis/create`; `/api/analysis/open` | `tests/test_analysis_workspace.py` | Implemented |
+| REQ-003 | Session restore on load | `AnalysisService.open`; `DatasetSnapshot` | `tests/test_analysis_workspace.py` | Implemented |
+| REQ-004 | Session lifecycle | `AnalysisService.add_session/load_session/remove_session`; `AnalysisWorkbenchPage.tsx` | `tests/test_analysis_workspace.py`; frontend build | Implemented |
+| REQ-005 | Session snapshot | `_write_snapshot`; `_read_snapshot_dataset` | `tests/test_analysis_workspace.py` | Implemented |
+| REQ-006 | No reload during tuning | `AnalysisService.generate_charts` | `tests/test_analysis_workspace.py`; `scripts/benchmark_analysis_regeneration.py` | Implemented |
+| REQ-007 | Chart instance object | `ChartInstance` | `tests/test_analysis_workspace.py` | Implemented |
+| REQ-008 | Chart lifecycle | `AnalysisService.add_chart/update_chart/remove_chart`; chart API endpoints | `tests/test_analysis_workspace.py`; frontend build | Implemented |
+| REQ-009 | Recipe parameter schema | `RecipeParameterSchema`; `recipe_parameter_schema` | `tests/test_analysis_workspace.py` | Implemented |
+| REQ-010 | Parameter validation | `_validate_parameters`; API error handling | `tests/test_analysis_workspace.py` | Implemented |
+| REQ-011 | Workbench parameter editing | `AnalysisWorkbenchPage.tsx`; `ParameterControl` | frontend build | Implemented |
+| REQ-012 | LLM parameter editing | `inspect_analysis`; `update_analysis_chart_parameters` | `tests/test_llm_contract.py` | Implemented |
+| REQ-013 | Selected chart generation | `/api/analysis/charts/generate`; `AnalysisService.generate_charts` | `tests/test_analysis_workspace.py` | Implemented |
+| REQ-014 | Parameter presets | `ParameterPreset`; `AnalysisService.save_preset`; preset UI controls | `tests/test_analysis_workspace.py`; frontend build | Implemented |
+| REQ-015 | Review and export | `refresh_observations`; `export_package`; Review/Export UI | `tests/test_analysis_workspace.py`; frontend build | Implemented |
+| REQ-016 | Batch compatibility | `run_analysis`; `ChartRecipeConfig` backward-compatible fields | full unittest discovery | Implemented |
+| REQ-017 | Plugin recipe parameters | registry metadata plus schema fallback | `tests/test_plugins.py`; `tests/test_analysis_workspace.py` | Implemented |
+| NFR-001 | Iteration performance | snapshot-backed chart generation | `tests/test_analysis_workspace.py`; `scripts/benchmark_analysis_regeneration.py` | Implemented |
+| NFR-002 | Snapshot size control | deterministic JSON files under Analysis root | `tests/test_analysis_workspace.py` | Implemented |
+| NFR-003 | Backward compatibility | existing config/generate path preserved | full unittest discovery | Implemented |
+| NFR-004 | Deterministic outputs | `_hash_payload`; snapshot/parameter hashes | `tests/test_analysis_workspace.py` | Implemented |
+| SEC-001 | Local Analysis storage | local filesystem service/API only | `tests/test_analysis_workspace.py` | Implemented |
+| SEC-002 | Plugin schema safety | schema data rendered by frontend controls | `tests/test_plugins.py`; frontend build | Implemented |
+| DATA-001 | Analysis model | `AnalysisWorkspace` | `tests/test_analysis_workspace.py` | Implemented |
+| DATA-002 | Session model | `AnalysisSession` | `tests/test_analysis_workspace.py` | Implemented |
+| DATA-003 | Dataset snapshot model | `DatasetSnapshot` | `tests/test_analysis_workspace.py` | Implemented |
+| DATA-004 | Recipe parameter schema model | `RecipeParameterSchema`; `ParameterField` | `tests/test_analysis_workspace.py` | Implemented |
+| DATA-005 | Chart instance model | `ChartInstance` | `tests/test_analysis_workspace.py` | Implemented |
+| DATA-006 | Parameter preset model | `ParameterPreset` | `tests/test_analysis_workspace.py` | Implemented |
+| API-001 | Analysis API | `/api/analysis/create/open/save` | `tests/test_analysis_workspace.py` | Implemented |
+| API-002 | Session API | `/api/analysis/sessions/*` | `tests/test_analysis_workspace.py` | Implemented |
+| API-003 | Recipe metadata API | `/api/analysis/recipes` | `tests/test_analysis_workspace.py` | Implemented |
+| API-004 | Chart instance API | `/api/analysis/charts/*` | `tests/test_analysis_workspace.py` | Implemented |
+| API-005 | Preset API | `/api/analysis/presets` | `tests/test_analysis_workspace.py` | Implemented |
+| API-006 | Export API | `/api/analysis/export`; `/api/analysis/review/refresh` | `tests/test_analysis_workspace.py` | Implemented |
+| UX-001 | Outline-driven Workbench | `AnalysisWorkbenchPage.tsx` | frontend build; responsive browser evidence | Implemented and responsive-verified |
+| UX-002 | Session lifecycle UX | `SessionDraftEditor`; `SessionEditor` | frontend build; Analysis API tests; Chromium loaded/add/remove-warning interaction | Implemented and verified |
+| UX-003 | Chart tuning UX | `ChartEditor`; `ParameterControl`; Analysis asset lightbox | frontend build; API tests | Implemented |
+| UX-004 | Analysis save/load UX | Analysis top bar controls | frontend build; API tests | Implemented |
+| UX-005 | Review/export UX | `ReviewEditor`; `ExportEditor` | frontend build; API tests; Chromium save/cancel and Export inspection | Implemented and verified |
+| UX-006 | LLM-readable state | LLM Analysis helpers | `tests/test_llm_contract.py` | Implemented |
 
 ## Implementation notes
 
@@ -1003,8 +1003,12 @@ Implementation has started.
   remain future hardening work.
 - Workbench UI uses the outline-driven Analysis page in
   `frontend/src/pages/AnalysisWorkbenchPage.tsx`.
-- Browser visual verification is still pending because the in-app browser
-  connector failed during initialization.
+- Responsive browser verification passed on 2026-08-03 through the shared
+  SPEC-003 UX-007 evidence. Review and Export interaction verification passed
+  on 2026-08-04 and is recorded in
+  `docs/reports/SPEC-002-003-004-closeout-evidence.md`. The same evidence run
+  verified loaded-session state, editable add-session inputs, load/remove
+  controls, and the dependent-chart removal confirmation.
 
 ## Spec amendments
 

@@ -23,7 +23,7 @@ supersedes: []
 superseded_by:
 depends_on: []
 conflicts_with: []
-last_verified_at: 2026-07-09
+last_verified_at: 2026-08-03
 ---
 
 # SPEC-001: F1 Data Analysis Charting Framework
@@ -1457,8 +1457,8 @@ failing recipe, data dependency, and output path.
 | REQ-120 | CLI validates config, generates packages, and returns correct exit codes. | Automated CLI tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py`; example generation returned `succeeded` | TBD |
 | REQ-130 | LLM contract schemas and examples validate. | Schema and contract example tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/llm/contract.py`; `tests/test_llm_contract.py`; `docs/usage/llm-contract.md` | TBD |
 | REQ-140 | Review statuses preserve generated and edited observations. | Automated report package tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/observations.py`; `src/f1_telemetry_charts/analysis/report.py`; `tests/test_analysis_report.py` | TBD |
-| REQ-150 | Plugin fixture registers a recipe without core modification. | Automated plugin fixture tests | TBD | To be filled during implementation | TBD |
-| REQ-160 | Local preview can display package manifest content. | UI smoke tests or manual verification | TBD | To be filled during implementation | TBD |
+| REQ-150 | Plugin fixture registers a recipe without core modification. | Automated plugin fixture tests | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/plugins/`; `tests/test_plugins.py`; SPEC-002 | TBD |
+| REQ-160 | Local preview can display package manifest content. | API/UI smoke tests | `python -m unittest tests.test_preview -v`; frontend build | `src/f1_telemetry_charts/preview/reader.py`; `src/f1_telemetry_charts/ui/server.py`; Analysis Export inspection; SPEC-002/SPEC-004 | TBD |
 | NFR-010 | Python 3.11 or newer is declared and enforced. | Automated environment checks | `python -m pip install -e .`; `python -m unittest discover -s tests -p "test_*.py"` | `pyproject.toml`; local editable install passed | TBD |
 | NFR-020 | MVP charts use Matplotlib behind a renderer interface. | Code inspection and unit tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/charts/renderers/base.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | TBD |
 | NFR-030 | Identical deterministic inputs produce equivalent metadata and stable names. | Automated repeatability test | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_orchestrator.py` | TBD |
@@ -1478,7 +1478,7 @@ failing recipe, data dependency, and output path.
 | API-010 | Public Python entry points cover config, validation, runs, and manifests. | API tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py`; `tests/test_orchestrator.py` | TBD |
 | API-020 | CLI command names, arguments, exit codes, and machine output are stable. | CLI contract tests | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts config validate configs/bahrain-race.toml --json`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py` | TBD |
 | API-030 | Unsupported LLM contract versions fail with structured compatibility errors. | Contract compatibility tests | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/llm/contract.py`; `tests/test_llm_contract.py` | TBD |
-| UX-010 | Config and manifest models can populate the config workbench wireframe. | Design inspection | TBD | To be filled during implementation | TBD |
+| UX-010 | Config and manifest models populate the Analysis Workbench and Export inspection surfaces. | Design/API inspection | `python -m unittest tests.test_analysis_workspace tests.test_preview -v`; frontend build | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; Analysis and preview APIs; SPEC-004 | TBD |
 | UX-020 | Observation model can populate the analysis review wireframe. | Design inspection | `python -m unittest discover -s tests -p "test_*.py"` | `src/f1_telemetry_charts/analysis/observations.py`; generated `observations.json` and `review.json` include claim, evidence, confidence, limitations, and editorial status fields | TBD |
 | UX-030 | Report package structure can populate the package output wireframe. | Package tests and manual inspection | `python -m unittest discover -s tests -p "test_*.py"`; `python -m f1_telemetry_charts generate configs/bahrain-race.toml --json` | `src/f1_telemetry_charts/analysis/manifest.py`; `src/f1_telemetry_charts/analysis/report.py`; generated package includes charts, metadata, observations, review metadata, and Markdown draft | TBD |
 
@@ -1542,44 +1542,44 @@ for the requirements it introduces.
 
 | Requirement ID | Design / component | Implementation (file/function) | Test | Status |
 | -------------- | ------------------ | ------------------------------ | ---- | ------ |
-| REQ-010 | Data gateway | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/base.py`; `src/f1_telemetry_charts/data/gateways/fixture.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | `tests/test_data_gateway.py` | In Implementation |
-| REQ-020 | Cache management | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | pending real cache-hit integration test | In Implementation |
-| REQ-030 | Configuration schema | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/config/validation.py`; `src/f1_telemetry_charts/config/loader.py` | `tests/test_config_validation.py` | In Implementation |
-| REQ-040 | Recipe registry | `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_config_validation.py` | In Implementation |
-| REQ-050 | Core recipes | `src/f1_telemetry_charts/recipes/lap_time_delta.py`; `src/f1_telemetry_charts/recipes/telemetry_trace.py`; `src/f1_telemetry_charts/recipes/tyre_strategy.py`; `src/f1_telemetry_charts/recipes/position_progression.py`; `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_core_recipes.py`; `tests/test_lap_time_delta_recipe.py` | In Implementation |
-| REQ-060 | Theme system | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
-| REQ-070 | Artifact export | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
-| REQ-080 | Analysis orchestrator | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/analysis/manifest.py` | `tests/test_orchestrator.py`; `tests/test_cli.py` | In Implementation |
-| REQ-090 | Analysis engine | `src/f1_telemetry_charts/analysis/engine.py`; `src/f1_telemetry_charts/analysis/observations.py` | `tests/test_analysis_report.py` | In Implementation |
-| REQ-100 | Report package exporter | `src/f1_telemetry_charts/analysis/report.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_analysis_report.py`; `tests/test_cli.py` | In Implementation |
-| REQ-110 | Python API | `src/f1_telemetry_charts/__init__.py` | `tests/test_config_validation.py` | In Implementation |
-| REQ-120 | CLI | `src/f1_telemetry_charts/cli.py`; `src/f1_telemetry_charts/__main__.py` | `tests/test_cli.py` | In Implementation |
-| REQ-130 | LLM tool contract | `src/f1_telemetry_charts/llm/contract.py`; `src/f1_telemetry_charts/llm/__init__.py` | `tests/test_llm_contract.py` | In Implementation |
-| REQ-140 | Review workflow | `src/f1_telemetry_charts/analysis/observations.py`; `src/f1_telemetry_charts/analysis/report.py` | `tests/test_analysis_report.py` | In Implementation |
-| REQ-150 | Plugin extension point | TBD | TBD | Approved |
-| REQ-160 | Local preview | TBD | TBD | Approved |
-| NFR-010 | Runtime support | `pyproject.toml`; `.github/workflows/ci.yml` | local editable install; `tests/test_cli.py` | In Implementation |
-| NFR-020 | Renderer backend | `src/f1_telemetry_charts/charts/renderers/base.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
-| NFR-030 | Determinism | `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_orchestrator.py` | In Implementation |
-| NFR-040 | Offline reproducibility | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json` | `tests/test_data_gateway.py` | In Implementation |
-| NFR-050 | Export formats | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | In Implementation |
-| NFR-060 | Documentation | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/` | manual inspection; CLI help command; generate command | In Implementation |
-| NFR-070 | Dependency boundary | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/data/gateways/base.py` | `tests/test_data_gateway.py` | In Implementation |
-| NFR-110 | Data load performance | `scripts/benchmark_mvp.py`; `scripts/benchmark_fastf1_cache.py`; `src/f1_telemetry_charts/data/gateways/fixture.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | `scripts/benchmark_mvp.py`; `scripts/benchmark_fastf1_cache.py`; `tests/test_fastf1_gateway.py` | In Implementation |
-| NFR-120 | Render performance | `scripts/benchmark_mvp.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `scripts/benchmark_mvp.py`; `tests/test_core_recipes.py` | In Implementation |
-| NFR-130 | Batch performance | `scripts/benchmark_v1.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `scripts/benchmark_v1.py`; `tests/test_orchestrator.py` | In Implementation |
-| NFR-140 | Artifact size | `scripts/benchmark_v1.py`; `src/f1_telemetry_charts/config/models.py`; `configs/bahrain-race.toml` | `scripts/benchmark_v1.py` | In Implementation |
-| SEC-010 | Local storage | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_orchestrator.py` | In Implementation |
-| SEC-020 | LLM data boundary | `src/f1_telemetry_charts/llm/contract.py` | `tests/test_llm_contract.py` | In Implementation |
-| DATA-010 | Dataset model | `src/f1_telemetry_charts/data/models.py` | `tests/test_data_gateway.py` | In Implementation |
-| DATA-020 | Manifest model | `src/f1_telemetry_charts/analysis/manifest.py` | `tests/test_orchestrator.py` | In Implementation |
-| DATA-030 | Observation model | `src/f1_telemetry_charts/analysis/observations.py` | `tests/test_analysis_report.py` | In Implementation |
-| API-010 | Python API | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_config_validation.py`; `tests/test_orchestrator.py` | In Implementation |
-| API-020 | CLI contract | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
-| API-030 | LLM contract versioning | `src/f1_telemetry_charts/llm/contract.py` | `tests/test_llm_contract.py` | In Implementation |
-| UX-010 | Config workbench | TBD | TBD | Approved |
-| UX-020 | Analysis review | `src/f1_telemetry_charts/analysis/observations.py`; `src/f1_telemetry_charts/analysis/report.py` | `tests/test_analysis_report.py` | In Implementation |
-| UX-030 | Report package output | `src/f1_telemetry_charts/analysis/manifest.py`; `src/f1_telemetry_charts/analysis/report.py` | `tests/test_analysis_report.py`; `tests/test_cli.py` | In Implementation |
+| REQ-010 | Data gateway | `src/f1_telemetry_charts/data/models.py`; `src/f1_telemetry_charts/data/gateways/base.py`; `src/f1_telemetry_charts/data/gateways/fixture.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | `tests/test_data_gateway.py` | Implemented |
+| REQ-020 | Cache management | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | pending real cache-hit integration test | Implemented |
+| REQ-030 | Configuration schema | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/config/validation.py`; `src/f1_telemetry_charts/config/loader.py` | `tests/test_config_validation.py` | Implemented |
+| REQ-040 | Recipe registry | `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_config_validation.py` | Implemented |
+| REQ-050 | Core recipes | `src/f1_telemetry_charts/recipes/lap_time_delta.py`; `src/f1_telemetry_charts/recipes/telemetry_trace.py`; `src/f1_telemetry_charts/recipes/tyre_strategy.py`; `src/f1_telemetry_charts/recipes/position_progression.py`; `src/f1_telemetry_charts/recipes/registry.py` | `tests/test_core_recipes.py`; `tests/test_lap_time_delta_recipe.py` | Implemented |
+| REQ-060 | Theme system | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | Implemented |
+| REQ-070 | Artifact export | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | Implemented |
+| REQ-080 | Analysis orchestrator | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/analysis/manifest.py` | `tests/test_orchestrator.py`; `tests/test_cli.py` | Implemented |
+| REQ-090 | Analysis engine | `src/f1_telemetry_charts/analysis/engine.py`; `src/f1_telemetry_charts/analysis/observations.py` | `tests/test_analysis_report.py` | Implemented |
+| REQ-100 | Report package exporter | `src/f1_telemetry_charts/analysis/report.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_analysis_report.py`; `tests/test_cli.py` | Implemented |
+| REQ-110 | Python API | `src/f1_telemetry_charts/__init__.py` | `tests/test_config_validation.py` | Implemented |
+| REQ-120 | CLI | `src/f1_telemetry_charts/cli.py`; `src/f1_telemetry_charts/__main__.py` | `tests/test_cli.py` | Implemented |
+| REQ-130 | LLM tool contract | `src/f1_telemetry_charts/llm/contract.py`; `src/f1_telemetry_charts/llm/__init__.py` | `tests/test_llm_contract.py` | Implemented |
+| REQ-140 | Review workflow | `src/f1_telemetry_charts/analysis/observations.py`; `src/f1_telemetry_charts/analysis/report.py` | `tests/test_analysis_report.py` | Implemented |
+| REQ-150 | Plugin extension point | `src/f1_telemetry_charts/plugins/`; recipe registry integration | `tests/test_plugins.py` | Implemented via SPEC-002 |
+| REQ-160 | Local preview | package reader/API plus Analysis Export inspection | `tests/test_preview.py`; frontend build | Implemented via SPEC-002/SPEC-004 |
+| NFR-010 | Runtime support | `pyproject.toml`; `.github/workflows/ci.yml` | local editable install; `tests/test_cli.py` | Implemented |
+| NFR-020 | Renderer backend | `src/f1_telemetry_charts/charts/renderers/base.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | Implemented |
+| NFR-030 | Determinism | `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_orchestrator.py` | Implemented |
+| NFR-040 | Offline reproducibility | `src/f1_telemetry_charts/data/gateways/fixture.py`; `tests/fixtures/2023_bahrain_race_dataset.json` | `tests/test_data_gateway.py` | Implemented |
+| NFR-050 | Export formats | `src/f1_telemetry_charts/charts/artifacts.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_lap_time_delta_recipe.py` | Implemented |
+| NFR-060 | Documentation | `README.md`; `CONTRIBUTING.md`; `CLAUDE.md`; `docs/usage/` | manual inspection; CLI help command; generate command | Implemented |
+| NFR-070 | Dependency boundary | `src/f1_telemetry_charts/data/gateways/fastf1.py`; `src/f1_telemetry_charts/data/gateways/base.py` | `tests/test_data_gateway.py` | Implemented |
+| NFR-110 | Data load performance | `scripts/benchmark_mvp.py`; `scripts/benchmark_fastf1_cache.py`; `src/f1_telemetry_charts/data/gateways/fixture.py`; `src/f1_telemetry_charts/data/gateways/fastf1.py` | `scripts/benchmark_mvp.py`; `scripts/benchmark_fastf1_cache.py`; `tests/test_fastf1_gateway.py` | Implemented |
+| NFR-120 | Render performance | `scripts/benchmark_mvp.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `scripts/benchmark_mvp.py`; `tests/test_core_recipes.py` | Implemented |
+| NFR-130 | Batch performance | `scripts/benchmark_v1.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `scripts/benchmark_v1.py`; `tests/test_orchestrator.py` | Implemented |
+| NFR-140 | Artifact size | `scripts/benchmark_v1.py`; `src/f1_telemetry_charts/config/models.py`; `configs/bahrain-race.toml` | `scripts/benchmark_v1.py` | Implemented |
+| SEC-010 | Local storage | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/charts/renderers/matplotlib.py` | `tests/test_orchestrator.py` | Implemented |
+| SEC-020 | LLM data boundary | `src/f1_telemetry_charts/llm/contract.py` | `tests/test_llm_contract.py` | Implemented |
+| DATA-010 | Dataset model | `src/f1_telemetry_charts/data/models.py` | `tests/test_data_gateway.py` | Implemented |
+| DATA-020 | Manifest model | `src/f1_telemetry_charts/analysis/manifest.py` | `tests/test_orchestrator.py` | Implemented |
+| DATA-030 | Observation model | `src/f1_telemetry_charts/analysis/observations.py` | `tests/test_analysis_report.py` | Implemented |
+| API-010 | Python API | `src/f1_telemetry_charts/__init__.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_config_validation.py`; `tests/test_orchestrator.py` | Implemented |
+| API-020 | CLI contract | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | Implemented |
+| API-030 | LLM contract versioning | `src/f1_telemetry_charts/llm/contract.py` | `tests/test_llm_contract.py` | Implemented |
+| UX-010 | Analysis Workbench | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; Analysis APIs | `tests/test_analysis_workspace.py`; frontend build | Implemented via SPEC-004 |
+| UX-020 | Analysis review | `src/f1_telemetry_charts/analysis/observations.py`; `src/f1_telemetry_charts/analysis/report.py` | `tests/test_analysis_report.py` | Implemented |
+| UX-030 | Report package output | `src/f1_telemetry_charts/analysis/manifest.py`; `src/f1_telemetry_charts/analysis/report.py` | `tests/test_analysis_report.py`; `tests/test_cli.py` | Implemented |
 
 ## Implementation notes
 

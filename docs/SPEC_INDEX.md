@@ -37,6 +37,11 @@ Terminal alternatives: `Superseded`, `Archived`, `Rejected`.
 | SPEC-006 | Analyst-Grade Chart Parameters and Renderer Semantics | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-006-analyst-grade-chart-parameters.md` |
 | SPEC-007 | Visual Track Map Range Selection and Race Playback Explorer | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-007-track-map-range-and-race-playback.md` |
 
+Requirement-level implementation and verification evidence was reconciled on
+2026-08-04. All seven specs remain formally `In Implementation` because none
+has a related PR/merged-delivery reference; see `docs/reports/SPEC_REPORT.md`
+for current lifecycle status.
+
 > Keep this table in sync with the frontmatter of each spec. `/spec-report` and
 > `scripts/validate_drift.py` help detect drift between this index and the
 > actual spec files.

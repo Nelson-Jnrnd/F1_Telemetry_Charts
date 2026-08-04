@@ -29,7 +29,7 @@ depends_on:
   - SPEC-004
   - SPEC-005
 conflicts_with: []
-last_verified_at: 2026-07-23
+last_verified_at: 2026-08-03
 ---
 
 # SPEC-006: Analyst-Grade Chart Parameters and Renderer Semantics
@@ -662,40 +662,40 @@ generated but analytically misleading.
 
 | Requirement ID | Acceptance criterion | Verification method | Test / command / manual check | Evidence location | PR reference |
 | -------------- | -------------------- | ------------------- | ----------------------------- | ----------------- | ------------ |
-| REQ-001 | Normalized sections serialize separately | model tests | TBD | TBD | |
-| REQ-002 | Basic/Advanced modes work | UI/schema tests | TBD | TBD | |
-| REQ-003 | Dependency rules enforced | backend/frontend tests | TBD | TBD | |
-| REQ-004 | Driver selection modes validate | unit/API tests | TBD | TBD | |
-| REQ-005 | All-session drivers can be loaded/selected | service/UI tests | TBD | TBD | |
-| REQ-006 | Driver ordering is separate from selection | unit tests | TBD | TBD | |
-| REQ-007 | Lap range is inclusive and validated | unit/API tests | TBD | TBD | |
-| REQ-008 | Box-lap policy replaces booleans | unit tests | TBD | TBD | |
-| REQ-009 | Lap validity reasons/counts recorded | unit tests | TBD | TBD | |
-| REQ-010 | Track-status filtering works | unit/API tests | TBD | TBD | |
-| REQ-011 | Missing-data policies are metric-safe | unit tests | TBD | TBD | |
-| REQ-012 | Series styles/highlights render | renderer tests | TBD | TBD | |
-| REQ-013 | Legend/axis/density/annotations work | renderer/UI tests | TBD | TBD | |
-| REQ-014 | Telemetry contract implemented | recipe/schema tests | TBD | TBD | |
-| REQ-015 | Lap delta contract implemented | recipe/schema tests | TBD | TBD | |
-| REQ-016 | Tyre strategy contract implemented | recipe/renderer tests | TBD | TBD | |
-| REQ-017 | Position contract implemented | recipe/renderer tests | TBD | TBD | |
-| REQ-018 | ChartSpec renderer primitives support visuals | renderer tests | TBD | TBD | |
-| REQ-019 | Active-filter summary shown/exported | UI/metadata tests | TBD | TBD | |
-| REQ-020 | Warnings/errors are structured | API/UI tests | TBD | TBD | |
-| REQ-021 | Reproducibility metadata complete | metadata tests | TBD | TBD | |
-| REQ-022 | Analyst presets available | preset tests | TBD | TBD | |
-| REQ-023 | Reset behavior scoped | UI tests | TBD | TBD | |
-| NFR-001 | Snapshot reuse during edits | service/benchmark tests | TBD | TBD | |
-| NFR-002 | UI scales to full field | screenshot/manual check | TBD | TBD | |
-| NFR-003 | Schema version/migration works | migration tests | TBD | TBD | |
-| SEC-001 | No code authoring added | API/contract inspection | TBD | TBD | |
-| DATA-001 | Normalized configuration persisted | model tests | TBD | TBD | |
-| DATA-002 | Effective configuration deterministic | metadata tests | TBD | TBD | |
-| API-001 | Rich schema payloads available | API tests | TBD | TBD | |
-| API-002 | Validation/diagnostics endpoint works | API tests | TBD | TBD | |
-| UX-001 | Dependency-aware form engine works | frontend tests/manual check | TBD | TBD | |
-| UX-002 | Preview/apply behavior works | UI tests/manual check | TBD | TBD | |
-| UX-003 | Active filters/warnings visible | frontend tests/manual check | TBD | TBD | |
+| REQ-001 | Normalized sections serialize separately | model tests | `python -m unittest tests.test_analysis_workspace tests.test_core_recipes` | `recipes/parameters.py`; `analysis/workspace.py`; tests | |
+| REQ-002 | Basic/Advanced modes work | UI/schema tests | frontend typecheck/build; schema tests | `AnalysisWorkbenchPage.tsx`; `analysis/workspace.py` | |
+| REQ-003 | Dependency rules enforced | backend/frontend tests | schema dependency test; frontend typecheck/build | `ParameterField.visible_when`; backend validation; tests | |
+| REQ-004 | Driver selection modes validate | unit/API tests | `python -m unittest tests.test_analysis_workspace tests.test_core_recipes` | `recipes/parameters.py`; `analysis/workspace.py`; tests | |
+| REQ-005 | All-session drivers can be loaded/selected | service/UI tests | data, FastF1, and workspace unit tests | data models/gateways; Analysis UI defaults; tests | |
+| REQ-006 | Driver ordering is separate from selection | unit tests | `python -m unittest tests.test_core_recipes` | `recipes/parameters.py`; schema fields; tests | |
+| REQ-007 | Lap range is inclusive and validated | unit/API tests | core recipe tests; frontend build | parameter model; UI range control; tests | |
+| REQ-008 | Box-lap policy replaces booleans | unit tests | `python -m unittest tests.test_core_recipes` | parameter model; lap recipes; tests | |
+| REQ-009 | Lap validity reasons/counts recorded | unit tests | lap-validity diagnostics test | `LapRecord`; filter diagnostics; tests | |
+| REQ-010 | Track-status filtering works | unit/API tests | track-status diagnostics test | `LapRecord.track_status`; FastF1 mapping; tests | |
+| REQ-011 | Missing-data policies are metric-safe | unit tests | categorical-interpolation rejection test | missing-series and telemetry-gap policies; tests | |
+| REQ-012 | Series styles/highlights render | renderer tests | core recipe and lap-delta tests | color overrides; presentation section; renderer metadata | |
+| REQ-013 | Legend/axis/density/annotations work | renderer/UI tests | lap-delta tests; frontend typecheck/build | `ChartSpec` primitives; Basic/Advanced controls | |
+| REQ-014 | Telemetry contract implemented | recipe/schema tests | core recipe and workspace tests | normalized telemetry parameters and gap policy | |
+| REQ-015 | Lap delta contract implemented | recipe/schema tests | core recipe and lap-delta tests | baseline, reference driver, delta mode, diagnostics | |
+| REQ-016 | Tyre strategy contract implemented | recipe/renderer tests | `python -m unittest tests.test_core_recipes` | stint bars, compound steps, pit markers | |
+| REQ-017 | Position contract implemented | recipe/renderer tests | `python -m unittest tests.test_core_recipes` | lap-end position, inversion, line mode | |
+| REQ-018 | ChartSpec renderer primitives support visuals | renderer tests | core recipe and lap-delta tests | line/step series, markers, regions, bars, inversion | |
+| REQ-019 | Active-filter summary shown/exported | UI/metadata tests | core/workspace tests; frontend build | diagnostics metadata; Chart Editor panel | |
+| REQ-020 | Warnings/errors are structured | API/UI tests | workspace tests; full unittest discovery | diagnostics endpoint; metadata warnings/errors | |
+| REQ-021 | Reproducibility metadata complete | metadata tests | core recipe and lap-delta tests | requested/effective configuration metadata | |
+| REQ-022 | Analyst presets available | preset tests | built-in preset schema test | global preset definitions; tests | |
+| REQ-023 | Reset behavior scoped | UI tests | frontend typecheck/build; code inspection | reset chart/section, restore preset, clear overrides | |
+| NFR-001 | Snapshot reuse during edits | service/benchmark tests | workspace tests; full unittest discovery | snapshot-backed diagnostics/generation | |
+| NFR-002 | UI scales to full field | screenshot/manual check | frontend typecheck/build; SPEC-003 responsive browser evidence | searchable driver selector; grouped Basic/Advanced forms | |
+| NFR-003 | Schema version/migration works | migration tests | workspace and LLM contract tests | flat-to-normalized migration; legacy acceptance | |
+| SEC-001 | No code authoring added | API/contract inspection | LLM contract and API tests | structured schema/API parameters only | |
+| DATA-001 | Normalized configuration persisted | model tests | normalized-save workspace test | `normalize_chart_parameters`; save/update/preset paths | |
+| DATA-002 | Effective configuration deterministic | metadata tests | core recipe and lap-delta tests | shared effective-configuration resolver | |
+| API-001 | Rich schema payloads available | API tests | workspace and LLM contract tests | template field mode/dependency/reset metadata | |
+| API-002 | Validation/diagnostics endpoint works | API tests | diagnostics workspace test | `/api/analysis/charts/diagnostics`; `ParameterDiagnosticsView` | |
+| UX-001 | Dependency-aware form engine works | frontend tests/manual check | frontend typecheck/build | dependency-aware Basic/Advanced form renderer | |
+| UX-002 | Preview/apply behavior works | UI tests/manual check | frontend typecheck/build; API diagnostics tests | debounced diagnostics; explicit Save/Generate | |
+| UX-003 | Active filters/warnings visible | frontend tests/manual check | frontend typecheck/build; diagnostics tests | Chart Editor diagnostics panel and metadata summaries | |
 
 ## Test plan
 
@@ -743,7 +743,13 @@ generated but analytically misleading.
   Apply/regenerate satisfy the first implementation slice?
 - [x] Should the first implementation target all four built-ins together, or
   ship telemetry/lap-delta first and tyre/position renderer primitives second?
-- [ ] What is the canonical full-field fixture for tests?
+- [x] What is the canonical full-field fixture for tests? Answer: the cached,
+      normalized 2023 Bahrain Grand Prix Race session. It is the shared
+      full-field baseline for SPEC-006 and SPEC-007 verification. Smaller
+      synthetic fixtures remain authoritative for missing-data, degraded-state,
+      and narrowly isolated unit-test scenarios. The current 20-driver
+      normalized dataset is
+      `analyses/race-analysis/sessions/session-6129e831b8/dataset.json`.
 
 ## Human decisions required
 
@@ -755,6 +761,9 @@ generated but analytically misleading.
   pass.
 - [x] Decide whether full-session driver loading should default to all drivers
   or remain opt-in per Analysis session.
+- [x] Choose the canonical full-field verification fixture. Answer: the cached,
+      normalized 2023 Bahrain Grand Prix Race session, approved by Nelson
+      Jeanrenaud on 2026-08-03 in the Codex task conversation.
 
 ## Conflict check
 
@@ -819,6 +828,11 @@ preview only for its implementation pass.
   Basic/Advanced dependency-aware schema/UI metadata, shared filter and
   diagnostics policies, built-in analyst presets, renderer primitives, and
   full backend/frontend validation.
+- 2026-08-03: The remaining verification-fixture question was resolved. The
+  cached, normalized 2023 Bahrain Grand Prix Race session is the canonical
+  full-field baseline shared with SPEC-007. Synthetic fixtures continue to
+  cover degraded and missing-data cases. This verification-only decision does
+  not change product behavior and requires no spec amendment.
 
 ## Spec amendments
 

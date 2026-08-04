@@ -99,7 +99,7 @@ def _read_manifest(root: Path, findings: list[IntegrityFinding]) -> ArtifactMani
         return None
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-        return ArtifactManifest.model_validate(raw)
+        manifest = ArtifactManifest.model_validate(raw)
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         findings.append(
             IntegrityFinding(
@@ -110,6 +110,15 @@ def _read_manifest(root: Path, findings: list[IntegrityFinding]) -> ArtifactMani
             )
         )
         return None
+    findings.append(
+        IntegrityFinding(
+            severity="info",
+            code="manifest_present",
+            message="Package manifest.json is present and valid.",
+            path="manifest.json",
+        )
+    )
+    return manifest
 
 
 def _check_artifacts(
@@ -138,12 +147,36 @@ def _check_artifacts(
             if not path.exists():
                 findings.append(
                     IntegrityFinding(
-                        severity="error",
+                        severity="warning",
                         code=f"{field_name}_missing",
                         message=f"Referenced artifact file is missing: {relative_path}",
                         path=relative_path,
                     )
                 )
+                continue
+
+            if field_name == "metadata_path":
+                try:
+                    json.loads(path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    findings.append(
+                        IntegrityFinding(
+                            severity="error",
+                            code="metadata_path_invalid",
+                            message=f"Referenced artifact metadata is invalid: {exc}",
+                            path=relative_path,
+                        )
+                    )
+                    continue
+
+            findings.append(
+                IntegrityFinding(
+                    severity="info",
+                    code=f"{field_name}_present",
+                    message=f"Referenced artifact file is present: {relative_path}",
+                    path=relative_path,
+                )
+            )
 
 
 def _read_optional_json_list(
@@ -205,6 +238,14 @@ def _read_optional_json_list(
             )
         )
         return []
+    findings.append(
+        IntegrityFinding(
+            severity="info",
+            code=f"{label}_present",
+            message=f"Referenced {label} file is present and valid: {relative_path}",
+            path=relative_path,
+        )
+    )
     return [item for item in raw if isinstance(item, dict)]
 
 
@@ -245,7 +286,27 @@ def _read_optional_text(
             )
         )
         return None
-    return path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        findings.append(
+            IntegrityFinding(
+                severity="error",
+                code=f"{label}_invalid",
+                message=f"Referenced {label} file cannot be read: {exc}",
+                path=relative_path,
+            )
+        )
+        return None
+    findings.append(
+        IntegrityFinding(
+            severity="info",
+            code=f"{label}_present",
+            message=f"Referenced {label} file is present: {relative_path}",
+            path=relative_path,
+        )
+    )
+    return text
 
 
 def _check_review_observation_links(

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type ReactNode, type WheelEvent } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { BarChart3, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Edit3, FilePlus2, FolderOpen, Image, LineChart, Loader2, Map as MapIcon, Maximize2, Play, Plus, RefreshCw, RotateCcw, RotateCw, Save, Trash2, XCircle, ZoomIn, ZoomOut } from "lucide-react";
 import * as api from "../api";
 import type { AnalysisSession, AnalysisView, Artifact, ChartInstance, Observation, PackageView, ParameterDiagnostics, ParameterField, ParameterPreset, PlaybackMarker, PlaybackMode, PlaybackPayload, ReviewStatus, TrackMapCorner, TrackMapPayload, TrackMapPoint } from "../types";
@@ -11,6 +13,7 @@ import { Field, TextAreaField } from "../components/ui/Field";
 import { Panel } from "../components/ui/Panel";
 import { SelectField } from "../components/ui/SelectField";
 import { StatusBadge } from "../components/ui/StatusBadge";
+import { TabContent, Tabs } from "../components/ui/Tabs";
 import type { AppToast } from "../components/ui/Toast";
 
 type AnalysisSelection =
@@ -3045,14 +3048,14 @@ function ObservationCard({
         <StatusBadge value={observation.review_status} />
         <div className="flex flex-wrap gap-2">
           {observation.review_status !== "accepted" && (
-            <Button icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => updateObservation(observation.observation_id, "accepted")} disabled={pending && pendingAction !== "accepting"} loading={pendingAction === "accepting"}>Accept</Button>
+            <Button aria-label={`Accept ${observation.observation_id}`} icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => updateObservation(observation.observation_id, "accepted")} disabled={pending && pendingAction !== "accepting"} loading={pendingAction === "accepting"}>Accept</Button>
           )}
           {observation.review_status !== "rejected" && (
-            <Button icon={<XCircle className="h-4 w-4" />} onClick={() => updateObservation(observation.observation_id, "rejected")} disabled={pending && pendingAction !== "rejecting"} loading={pendingAction === "rejecting"}>Reject</Button>
+            <Button aria-label={`Reject ${observation.observation_id}`} icon={<XCircle className="h-4 w-4" />} onClick={() => updateObservation(observation.observation_id, "rejected")} disabled={pending && pendingAction !== "rejecting"} loading={pendingAction === "rejecting"}>Reject</Button>
           )}
-          <Button icon={<Edit3 className="h-4 w-4" />} onClick={() => setEditing(true)} disabled={pending}>Edit</Button>
+          <Button aria-label={`Edit ${observation.observation_id}`} icon={<Edit3 className="h-4 w-4" />} onClick={() => setEditing(true)} disabled={pending}>Edit</Button>
           {observation.review_status !== "unreviewed" && (
-            <Button icon={<RotateCcw className="h-4 w-4" />} onClick={() => updateObservation(observation.observation_id, "unreviewed", null)} disabled={pending && pendingAction !== "clearing"} loading={pendingAction === "clearing"}>Clear</Button>
+            <Button aria-label={`Clear ${observation.observation_id}`} icon={<RotateCcw className="h-4 w-4" />} onClick={() => updateObservation(observation.observation_id, "unreviewed", null)} disabled={pending && pendingAction !== "clearing"} loading={pendingAction === "clearing"}>Clear</Button>
           )}
         </div>
       </div>
@@ -3060,20 +3063,20 @@ function ObservationCard({
         <div className="grid gap-2">
           <TextAreaField label="Observation" value={draft} onChange={(event) => setDraft(event.target.value)} />
           <div className="flex justify-end gap-2">
-            <Button onClick={() => {
+            <Button aria-label={`Cancel edit ${observation.observation_id}`} onClick={() => {
               setDraft(observation.edited_text ?? observation.text);
               setEditing(false);
             }}>Cancel</Button>
-            <Button variant="primary" icon={<Save className="h-4 w-4" />} onClick={() => updateObservation(observation.observation_id, "edited", draft)} loading={pendingAction === "saving"}>Save</Button>
+            <Button aria-label={`Save edit ${observation.observation_id}`} variant="primary" icon={<Save className="h-4 w-4" />} onClick={() => updateObservation(observation.observation_id, "edited", draft)} loading={pendingAction === "saving"}>Save</Button>
           </div>
         </div>
       ) : (
         <p className="text-sm leading-6 text-ink">{observation.edited_text ?? observation.text}</p>
       )}
-      {observation.evidence_artifact_ids && observation.evidence_artifact_ids.length > 0 && (
+      {observation.evidence && observation.evidence.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {observation.evidence_artifact_ids.map((artifactId) => (
-            <span key={artifactId} className="rounded border border-line px-2 py-1 text-xs text-muted">{artifactId}</span>
+          {observation.evidence.map((evidence) => (
+            <span key={`${evidence.artifact_id}-${evidence.metadata_path}`} className="rounded border border-line px-2 py-1 text-xs text-muted">{evidence.artifact_id}</span>
           ))}
         </div>
       )}
@@ -3096,6 +3099,7 @@ function ExportEditor({
   pending: boolean;
   packageLoading: boolean;
 }) {
+  const [previewTab, setPreviewTab] = useState<"overview" | "charts" | "draft" | "integrity">("overview");
   return (
     <div className="grid gap-4">
       <Panel title="Export" actions={<Button variant="primary" icon={<Download className="h-4 w-4" />} onClick={exportAnalysis} disabled={!analysis} loading={pending}>Export</Button>}>
@@ -3108,30 +3112,145 @@ function ExportEditor({
       {packageLoading ? (
         <LoadingBlock label="Loading package" />
       ) : packageView && (
-        <Panel title="Export Preview">
-          <div className="grid gap-4">
-            {packageView.manifest?.artifacts.length ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                {packageView.manifest.artifacts.map((artifact) => (
-                  <button key={artifact.artifact_id} className="overflow-hidden rounded-md border border-line bg-slate-50 text-left" onClick={() => openArtifact(artifact, "/api/package/assets")}>
-                    <img src={`/api/package/assets/${artifact.image_path}`} alt={artifact.artifact_id} className="aspect-video w-full object-contain" />
-                    <div className="border-t border-line p-3 text-sm font-medium text-ink">{artifact.artifact_id}</div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-md border border-dashed border-line bg-slate-50 p-6 text-sm text-muted">No charts</div>
-            )}
-            <dl className="grid gap-3 sm:grid-cols-3">
-              <Metric label="Health" value={packageView.health.status} />
-              <Metric label="Observations" value={packageView.observations.length} />
-              <Metric label="Draft" value={packageView.draft_markdown ? "Ready" : "None"} />
-            </dl>
-          </div>
+        <Panel title="Export Preview" actions={<StatusBadge value={packageView.health.status} />}>
+          <Tabs
+            value={previewTab}
+            onValueChange={setPreviewTab}
+            items={[
+              { value: "overview", label: "Overview" },
+              { value: "charts", label: `Charts (${packageView.manifest?.artifacts.length ?? 0})` },
+              { value: "draft", label: "Draft" },
+              { value: "integrity", label: `Integrity (${packageView.health.findings.length})` }
+            ]}
+          >
+            <TabContent value="overview" className="grid gap-4 outline-none">
+              <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Metric label="Health" value={packageView.health.status} />
+                <Metric label="Charts" value={packageView.manifest?.artifacts.length ?? 0} />
+                <Metric label="Observations" value={packageView.observations.length} />
+                <Metric label="Draft" value={packageView.draft_markdown ? "Ready" : "None"} />
+              </dl>
+              <dl className="grid gap-3 sm:grid-cols-2">
+                <Metric label="Package" value={compactPath(packageView.package_path)} />
+                <Metric label="Created" value={packageView.manifest?.created_at ?? "Unknown"} />
+              </dl>
+            </TabContent>
+            <TabContent value="charts" className="outline-none">
+              {packageView.manifest?.artifacts.length ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {packageView.manifest.artifacts.map((artifact) => (
+                    <button key={artifact.artifact_id} className="overflow-hidden rounded-md border border-line bg-slate-50 text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-100" onClick={() => openArtifact(artifact, "/api/package/assets")}>
+                      <img src={`/api/package/assets/${artifact.image_path}`} alt={artifact.title ?? artifact.artifact_id} className="aspect-video w-full object-contain" />
+                      <div className="grid gap-1 border-t border-line p-3">
+                        <span className="text-sm font-medium text-ink">{artifact.title ?? artifact.artifact_id}</span>
+                        <span className="text-xs text-muted">{artifact.recipe_id}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed border-line bg-slate-50 p-6 text-sm text-muted">No charts</div>
+              )}
+            </TabContent>
+            <TabContent value="draft" className="outline-none">
+              <DraftPreview markdown={packageView.draft_markdown ?? null} />
+            </TabContent>
+            <TabContent value="integrity" className="outline-none">
+              <IntegrityPreview findings={packageView.health.findings} />
+            </TabContent>
+          </Tabs>
         </Panel>
       )}
     </div>
   );
+}
+
+function DraftPreview({ markdown }: { markdown: string | null }) {
+  const [view, setView] = useState<"rendered" | "raw">("rendered");
+  if (!markdown) {
+    return <div className="rounded-md border border-dashed border-line bg-slate-50 p-6 text-sm text-muted">No draft</div>;
+  }
+  return (
+    <div className="grid gap-4">
+      <div className="flex gap-2" role="group" aria-label="Draft view">
+        <Button variant={view === "rendered" ? "primary" : "secondary"} onClick={() => setView("rendered")} aria-pressed={view === "rendered"}>Rendered</Button>
+        <Button variant={view === "raw" ? "primary" : "secondary"} onClick={() => setView("raw")} aria-pressed={view === "raw"}>Raw</Button>
+      </div>
+      {view === "raw" ? (
+        <pre className="max-h-[36rem] overflow-auto whitespace-pre-wrap rounded-md border border-line bg-slate-950 p-4 text-xs leading-6 text-slate-100"><code>{markdown}</code></pre>
+      ) : (
+        <article className="max-h-[36rem] overflow-auto rounded-md border border-line bg-white p-5 text-sm leading-7 text-ink">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            skipHtml
+            components={{
+              h1: ({ children }) => <h1 className="mb-4 text-2xl font-semibold">{children}</h1>,
+              h2: ({ children }) => <h2 className="mb-3 mt-6 text-xl font-semibold">{children}</h2>,
+              h3: ({ children }) => <h3 className="mb-2 mt-5 text-lg font-semibold">{children}</h3>,
+              p: ({ children }) => <p className="my-3">{children}</p>,
+              ul: ({ children }) => <ul className="my-3 list-disc space-y-1 pl-6">{children}</ul>,
+              ol: ({ children }) => <ol className="my-3 list-decimal space-y-1 pl-6">{children}</ol>,
+              blockquote: ({ children }) => <blockquote className="my-4 border-l-4 border-line pl-4 text-muted">{children}</blockquote>,
+              code: ({ children }) => <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs">{children}</code>,
+              table: ({ children }) => <div className="my-4 overflow-x-auto"><table className="w-full border-collapse text-left">{children}</table></div>,
+              th: ({ children }) => <th className="border border-line bg-slate-50 px-3 py-2 font-semibold">{children}</th>,
+              td: ({ children }) => <td className="border border-line px-3 py-2 align-top">{children}</td>
+            }}
+          >
+            {markdown}
+          </ReactMarkdown>
+        </article>
+      )}
+    </div>
+  );
+}
+
+function IntegrityPreview({ findings }: { findings: PackageView["health"]["findings"] }) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const selected = selectedIndex === null ? null : findings[selectedIndex] ?? null;
+  const errors = findings.filter((finding) => finding.severity === "error").length;
+  const warnings = findings.filter((finding) => finding.severity === "warning").length;
+  const present = findings.filter((finding) => finding.severity === "info").length;
+  return (
+    <div className="grid gap-4">
+      <dl className="grid gap-3 sm:grid-cols-3">
+        <Metric label="Errors" value={errors} />
+        <Metric label="Warnings" value={warnings} />
+        <Metric label="Present" value={present} />
+      </dl>
+      <div className="overflow-x-auto rounded-md border border-line">
+        <table className="w-full min-w-[42rem] border-collapse text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-muted">
+            <tr><th className="px-3 py-2">Severity</th><th className="px-3 py-2">Code</th><th className="px-3 py-2">Path</th><th className="px-3 py-2">Message</th></tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {findings.map((finding, index) => (
+              <tr key={`${finding.code}-${finding.path ?? index}`} className={selectedIndex === index ? "bg-blue-50" : "bg-white"}>
+                <td className="px-3 py-2"><StatusBadge value={finding.severity} /></td>
+                <td className="px-3 py-2 font-mono text-xs text-ink">{finding.code}</td>
+                <td className="px-3 py-2 text-muted">{finding.path ?? "Package"}</td>
+                <td className="px-3 py-2"><button className="text-left text-ink underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-100" onClick={() => setSelectedIndex(index)}>{finding.message}</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {selected && (
+        <Panel title="Integrity Finding" actions={<StatusBadge value={selected.severity} />}>
+          <dl className="grid gap-3 sm:grid-cols-2">
+            <Metric label="Area" value={integrityArea(selected.code)} />
+            <Metric label="Path" value={selected.path ?? "Package"} />
+            <div className="sm:col-span-2"><Metric label="Message" value={selected.message} /></div>
+          </dl>
+        </Panel>
+      )}
+    </div>
+  );
+}
+
+function integrityArea(code: string) {
+  const area = code.split("_")[0] ?? "package";
+  return area.charAt(0).toUpperCase() + area.slice(1);
 }
 
 function ParameterControl({

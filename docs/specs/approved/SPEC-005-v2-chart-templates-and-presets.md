@@ -28,7 +28,7 @@ depends_on:
   - SPEC-003
   - SPEC-004
 conflicts_with: []
-last_verified_at: 2026-07-22
+last_verified_at: 2026-08-03
 ---
 
 # SPEC-005: V2 Chart Templates and Parameter Presets

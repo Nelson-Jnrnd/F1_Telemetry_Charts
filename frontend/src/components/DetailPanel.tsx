@@ -34,7 +34,8 @@ export function DetailPanel({ selected }: { selected: SelectedDetail | null }) {
           <Field label="Confidence" value={observation.confidence} />
           <Field label="Text" value={observation.text} />
           <Field label="Edited Text" value={observation.edited_text} />
-          <Field label="Evidence" value={observation.evidence_artifact_ids ?? []} />
+          <Field label="Evidence" value={observation.evidence?.map((evidence) => evidence.artifact_id) ?? []} />
+          <Field label="Metrics" value={observation.metrics?.map((metric) => `${metric.name}: ${metric.value}${metric.unit ? ` ${metric.unit}` : ""}`) ?? []} />
           <Field label="Limitations" value={observation.limitations ?? []} />
         </dl>
       </Panel>

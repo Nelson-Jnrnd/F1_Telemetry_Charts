@@ -24,7 +24,7 @@ superseded_by:
 depends_on:
   - SPEC-001
 conflicts_with: []
-last_verified_at:
+last_verified_at: 2026-08-04
 ---
 
 # SPEC-002: V2 Plugin, Preview, and Configuration Workbench
@@ -916,11 +916,11 @@ Configuration defaults:
 | REQ-015 | Plugin recipe runs through package pipeline. | End-to-end plugin fixture test | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/analysis/orchestrator.py`; `src/f1_telemetry_charts/plugins/manager.py`; `tests/test_plugins.py` | TBD |
 | REQ-016 | Plugin UI lists plugin status and recipes. | UI smoke test | `pnpm build`; `python -m unittest tests.test_plugins -v` | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_plugins.py` | TBD |
 | REQ-017 | Run history lists recent opened and generated packages. | UI flow test | `python -m unittest tests.test_workbench_api -v` | `src/f1_telemetry_charts/ui/server.py`; `frontend/src/main.tsx`; `tests/test_workbench_api.py` | TBD |
-| NFR-001 | UI works offline for local fixture package. | Offline smoke test | TBD | To be filled during implementation | TBD |
-| NFR-002 | Preview loads representative package within 3 seconds. | Scripted benchmark | TBD | To be filled during implementation | TBD |
-| NFR-003 | UI handles 20 charts and 50 observations. | Responsive UI smoke test | TBD | To be filled during implementation | TBD |
+| NFR-001 | UI works offline for local fixture package. | Offline smoke test | `python -m unittest tests.test_preview tests.test_workbench_api -v` | fixture-backed package and Analysis API tests; local loopback UI | TBD |
+| NFR-002 | Preview loads representative package within 3 seconds. | Scripted benchmark | `python scripts/benchmark_package_preview.py` (0.0813 seconds on the final clean run, 2026-08-04) | `scripts/benchmark_package_preview.py`; closeout evidence report | TBD |
+| NFR-003 | UI handles 20 charts and 50 observations. | Responsive UI smoke test | Generated 20-chart/50-observation fixture in Chromium at desktop and mobile widths on 2026-08-04 | Analysis Export inspection; benchmark fixture script; closeout evidence report | TBD |
 | NFR-004 | Core imports do not import FastAPI. | Import boundary test | `python -m unittest tests.test_dependency_boundaries -v` | `tests/test_dependency_boundaries.py` | TBD |
-| NFR-005 | UI supports current Chromium. | Browser smoke test | Browser connector setup attempted; blocked by connector runtime error | Visual browser evidence pending | TBD |
+| NFR-005 | UI supports current Chromium. | Browser smoke test | In-app Chromium at 1440x900, 768x1024, and 390x844 on 2026-08-03 | `docs/reports/SPEC-003-UX-007-responsive-evidence.md` | TBD |
 | NFR-006 | Frontend build is reproducible from checked source. | Frontend build command | `pnpm install`; `pnpm build` | `frontend/package.json`; `frontend/pnpm-lock.yaml`; `src/f1_telemetry_charts/ui/static/` | TBD |
 | SEC-001 | Server binds to loopback by default. | CLI/server test | `python -m unittest tests.test_cli -v` | `src/f1_telemetry_charts/cli.py`; `tests/test_cli.py` | TBD |
 | SEC-002 | Backend rejects path traversal and unexpected absolute package paths. | Security tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/preview/reader.py`; `tests/test_preview.py` | TBD |
@@ -934,13 +934,13 @@ Configuration defaults:
 | API-002 | Package preview endpoints serve package state and assets. | FastAPI test client tests | `python -m unittest tests.test_preview -v` | `src/f1_telemetry_charts/ui/server.py`; `tests/test_preview.py` | TBD |
 | API-003 | Workbench endpoints load, validate, save, and run configs. | FastAPI test client tests | `python -m unittest tests.test_workbench_api -v` | `src/f1_telemetry_charts/ui/server.py`; `tests/test_workbench_api.py` | TBD |
 | API-004 | Plugin manager functions are testable independent of UI. | Plugin manager tests | `python -m unittest tests.test_plugins -v` | `src/f1_telemetry_charts/plugins/manager.py`; `tests/test_plugins.py` | TBD |
-| UX-001 | App layout is work-focused and navigable. | Design inspection and screenshot smoke test | TBD | To be filled during implementation | TBD |
-| UX-002 | Package preview view supports overview/charts/observations/draft/integrity. | UI smoke test | TBD | To be filled during implementation | TBD |
-| UX-003 | Workbench exposes all required config controls. | UI smoke test and design inspection | TBD | To be filled during implementation | TBD |
-| UX-004 | Plugin management view exposes plugin state. | UI smoke test | TBD | To be filled during implementation | TBD |
-| UX-005 | Errors are actionable and tied to source items. | UI smoke test | TBD | To be filled during implementation | TBD |
-| UX-006 | UI remains usable at desktop and tablet widths. | Browser screenshot smoke test | TBD | To be filled during implementation | TBD |
-| UX-007 | Run History view exposes recent package activity without deleting files. | UI flow test | TBD | To be filled during implementation | TBD |
+| UX-001 | App layout is work-focused and navigable. | Design inspection and screenshot smoke test | `pnpm --dir frontend build`; responsive browser smoke on 2026-08-03 | `frontend/src/components/AppShell.tsx`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; responsive evidence report | TBD |
+| UX-002 | Package inspection supports overview/charts/observations/draft/integrity inside Analysis Export. | UI/API smoke test | `python -m unittest tests.test_preview tests.test_analysis_workspace -v`; frontend build | `AnalysisWorkbenchPage.tsx` Export editor; package preview APIs; AMEND-001 | TBD |
+| UX-003 | Analysis Workbench exposes session, chart, review, and export controls. | UI smoke test and design inspection | `python -m unittest tests.test_analysis_workspace -v`; frontend build | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; AMEND-001 | TBD |
+| UX-004 | Plugin management view exposes plugin state. | UI/API smoke test | `python -m unittest tests.test_plugins -v`; frontend build | `frontend/src/pages/PluginsPage.tsx`; `tests/test_plugins.py` | TBD |
+| UX-005 | Errors are actionable and tied to source items. | UI/API smoke test | targeted API tests; frontend build | Analysis diagnostics, plugin status, package integrity, and notification surfaces | TBD |
+| UX-006 | UI remains usable at desktop and tablet widths. | Browser screenshot smoke test | In-app Chromium at 1440x900 and 768x1024 on 2026-08-03 | `docs/reports/SPEC-003-UX-007-responsive-evidence.md` | TBD |
+| UX-007 | Run History view exposes recent package activity without deleting files. | UI flow test | `python -m unittest tests.test_workbench_api -v`; frontend build | `frontend/src/pages/RunHistoryPage.tsx`; `tests/test_workbench_api.py` | TBD |
 
 ## Test plan
 
@@ -1010,48 +1010,48 @@ resolved by amendment or human decision.
 
 | Requirement ID | Design / component | Implementation (file/function) | Test | Status |
 | -------------- | ------------------ | ------------------------------ | ---- | ------ |
-| REQ-001 | UI server launch | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
-| REQ-002 | Package open flow | `src/f1_telemetry_charts/preview/reader.py`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | In Implementation |
-| REQ-003 | Package integrity checker | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | In Implementation |
-| REQ-004 | Package overview UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/static/` | `pnpm build`; `tests/test_preview.py` | In Implementation |
-| REQ-005 | Chart gallery UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `pnpm build`; `tests/test_preview.py` | In Implementation |
-| REQ-006 | Observation panel UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `pnpm build`; `tests/test_preview.py` | In Implementation |
-| REQ-007 | Review editing | `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | In Implementation |
-| REQ-008 | Markdown preview | `frontend/src/main.tsx`; `frontend/package.json` | `pnpm build` | In Implementation |
-| REQ-009 | Markdown regeneration | `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | In Implementation |
-| REQ-010 | Configuration workbench | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py`; `pnpm build` | In Implementation |
-| REQ-011 | Workbench run flow | `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py` | In Implementation |
-| REQ-012 | Local plugin discovery | `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
-| REQ-013 | Entry-point plugin discovery | `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
-| REQ-014 | Plugin metadata validation | `src/f1_telemetry_charts/plugins/models.py`; `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
-| REQ-015 | Plugin recipe execution | `src/f1_telemetry_charts/plugins/manager.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_plugins.py` | In Implementation |
-| REQ-016 | Plugin management UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_plugins.py`; `pnpm build` | In Implementation |
-| REQ-017 | Run history UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py` | In Implementation |
-| NFR-001 | Local-only operation | TBD | TBD | Draft |
-| NFR-002 | Preview load time | TBD | TBD | Draft |
-| NFR-003 | Package preview scale | TBD | TBD | Draft |
-| NFR-004 | Dependency boundary | `src/f1_telemetry_charts/ui/server.py`; core package imports | `tests/test_dependency_boundaries.py` | In Implementation |
-| NFR-005 | Browser support | `frontend/src/main.tsx`; `frontend/src/styles.css` | Browser connector verification pending | In Implementation |
-| NFR-006 | Frontend build reproducibility | `frontend/package.json`; `frontend/pnpm-lock.yaml`; `frontend/vite.config.ts` | `pnpm build` | In Implementation |
-| SEC-001 | Loopback binding | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
-| SEC-002 | Explicit package roots | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | In Implementation |
-| SEC-003 | Trusted plugin execution | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
-| SEC-004 | UI and LLM data boundary | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py`; `tests/test_workbench_api.py` | In Implementation |
-| DATA-001 | Plugin metadata model | `src/f1_telemetry_charts/plugins/models.py` | `tests/test_plugins.py` | In Implementation |
-| DATA-002 | Package view model | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | In Implementation |
-| DATA-003 | Workbench draft model | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/config/models.py` | `tests/test_workbench_api.py` | In Implementation |
-| DATA-004 | Integrity finding model | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | In Implementation |
-| API-001 | UI server CLI | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | In Implementation |
-| API-002 | Package preview API | `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | In Implementation |
-| API-003 | Configuration workbench API | `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py` | In Implementation |
-| API-004 | Plugin manager API | `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | In Implementation |
-| UX-001 | Application layout | `frontend/src/main.tsx`; `frontend/src/styles.css` | `pnpm build`; browser verification pending | In Implementation |
-| UX-002 | Package preview view | `frontend/src/main.tsx` | `pnpm build`; `tests/test_preview.py` | In Implementation |
-| UX-003 | Configuration workbench view | `frontend/src/main.tsx` | `pnpm build`; `tests/test_workbench_api.py` | In Implementation |
-| UX-004 | Plugin management view | `frontend/src/main.tsx` | `pnpm build`; `tests/test_plugins.py` | In Implementation |
-| UX-005 | Error presentation | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `pnpm build`; API tests | In Implementation |
-| UX-006 | Responsive behavior | `frontend/src/styles.css` | `pnpm build`; browser verification pending | In Implementation |
-| UX-007 | Run history view | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py`; `pnpm build` | In Implementation |
+| REQ-001 | UI server launch | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | Implemented |
+| REQ-002 | Package open flow | `src/f1_telemetry_charts/preview/reader.py`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | Implemented |
+| REQ-003 | Package integrity checker | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | Implemented |
+| REQ-004 | Package overview UI | Analysis Export editor; package preview APIs | frontend build; `tests/test_preview.py`; `tests/test_analysis_workspace.py` | Implemented via SPEC-004 |
+| REQ-005 | Chart gallery UI | Analysis Export editor and `ChartLightbox` | frontend build; package/Analysis tests | Implemented via SPEC-004 |
+| REQ-006 | Observation panel UI | Analysis Review and Export editors | frontend build; package/Analysis tests | Implemented via SPEC-004 |
+| REQ-007 | Review editing | `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | Implemented |
+| REQ-008 | Markdown preview | Analysis Export Draft tab with rendered/raw modes using `react-markdown` and `remark-gfm` | frontend typecheck/build; Chromium rendered/raw and raw-HTML safety check | Implemented and verified |
+| REQ-009 | Markdown regeneration | `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | Implemented |
+| REQ-010 | Configuration workbench | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; Analysis APIs | `tests/test_analysis_workspace.py`; `pnpm build` | Superseded by SPEC-004 Analysis Workbench |
+| REQ-011 | Workbench run flow | Analysis staged session/chart generation and export APIs | `tests/test_analysis_workspace.py`; full discovery | Superseded by SPEC-004 staged pipeline |
+| REQ-012 | Local plugin discovery | `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | Implemented |
+| REQ-013 | Entry-point plugin discovery | `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | Implemented |
+| REQ-014 | Plugin metadata validation | `src/f1_telemetry_charts/plugins/models.py`; `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | Implemented |
+| REQ-015 | Plugin recipe execution | `src/f1_telemetry_charts/plugins/manager.py`; `src/f1_telemetry_charts/analysis/orchestrator.py` | `tests/test_plugins.py` | Implemented |
+| REQ-016 | Plugin management UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_plugins.py`; `pnpm build` | Implemented |
+| REQ-017 | Run history UI | `frontend/src/main.tsx`; `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py` | Implemented |
+| NFR-001 | Local-only operation | loopback FastAPI UI; fixture-backed package and Analysis paths | preview/workbench/API tests | Implemented |
+| NFR-002 | Preview load time | package reader and Analysis Export inspection | `scripts/benchmark_package_preview.py` (0.0813 seconds) | Implemented and verified |
+| NFR-003 | Package preview scale | Analysis Export inspection | generated 20-chart/50-observation fixture at desktop/mobile widths | Implemented and verified |
+| NFR-004 | Dependency boundary | `src/f1_telemetry_charts/ui/server.py`; core package imports | `tests/test_dependency_boundaries.py` | Implemented |
+| NFR-005 | Browser support | `frontend/src/App.tsx`; `frontend/src/styles.css` | `docs/reports/SPEC-003-UX-007-responsive-evidence.md` | Implemented and verified |
+| NFR-006 | Frontend build reproducibility | `frontend/package.json`; `frontend/pnpm-lock.yaml`; `frontend/vite.config.ts` | `pnpm build` | Implemented |
+| SEC-001 | Loopback binding | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | Implemented |
+| SEC-002 | Explicit package roots | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | Implemented |
+| SEC-003 | Trusted plugin execution | `src/f1_telemetry_charts/config/models.py`; `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | Implemented |
+| SEC-004 | UI and LLM data boundary | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py`; `tests/test_workbench_api.py` | Implemented |
+| DATA-001 | Plugin metadata model | `src/f1_telemetry_charts/plugins/models.py` | `tests/test_plugins.py` | Implemented |
+| DATA-002 | Package view model | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | Implemented |
+| DATA-003 | Workbench draft model | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/config/models.py` | `tests/test_workbench_api.py` | Implemented |
+| DATA-004 | Integrity finding model | `src/f1_telemetry_charts/preview/reader.py` | `tests/test_preview.py` | Implemented |
+| API-001 | UI server CLI | `src/f1_telemetry_charts/cli.py` | `tests/test_cli.py` | Implemented |
+| API-002 | Package preview API | `src/f1_telemetry_charts/ui/server.py` | `tests/test_preview.py` | Implemented |
+| API-003 | Configuration workbench API | `src/f1_telemetry_charts/ui/server.py` | `tests/test_workbench_api.py` | Implemented |
+| API-004 | Plugin manager API | `src/f1_telemetry_charts/plugins/manager.py` | `tests/test_plugins.py` | Implemented |
+| UX-001 | Application layout | `AppShell`; `AnalysisWorkbenchPage` | frontend build; responsive browser evidence | Implemented via SPEC-003/SPEC-004 |
+| UX-002 | Package inspection view | Analysis Review and Export editors with Overview, Charts, Draft, and Integrity tabs | package/Analysis tests; frontend build; Chromium closeout check | Implemented and verified |
+| UX-003 | Configuration workbench view | `AnalysisWorkbenchPage` | Analysis API tests; frontend build | Superseded by SPEC-004 Analysis Workbench |
+| UX-004 | Plugin management view | `PluginsPage` | `tests/test_plugins.py`; frontend build | Implemented |
+| UX-005 | Error presentation | Analysis diagnostics; plugin/package errors; notifications | targeted API tests; frontend build | Implemented |
+| UX-006 | Responsive behavior | `AppShell`; responsive Tailwind layout | responsive evidence report | Implemented and verified |
+| UX-007 | Run history view | `RunHistoryPage`; history API | `tests/test_workbench_api.py`; frontend build | Implemented |
 
 ## Implementation notes
 
@@ -1064,8 +1064,10 @@ Implementation started on 2026-07-21. Current implementation notes:
 - Markdown preview should use `react-markdown` with `remark-gfm`; raw HTML
   should be disabled or sanitized.
 - Plugins are trusted Python code; this spec does not promise sandboxing.
-- Browser visual verification is pending because the Codex in-app browser
-  connector failed to initialize with `Cannot redefine property: process`.
+- Browser verification completed on 2026-08-04. The generated representative
+  fixture covered 20 charts, 50 observations, rendered/raw Markdown, integrity
+  detail, chart inspection, and Review save/cancel behavior at desktop and
+  mobile widths. See `docs/reports/SPEC-002-003-004-closeout-evidence.md`.
 
 ## Spec amendments
 
@@ -1073,12 +1075,27 @@ Implementation started on 2026-07-21. Current implementation notes:
 
 ### AMEND-001
 
-- **Date:**
-- **Reason:**
-- **Changed requirements:**
-- **Behavioral impact:**
-- **Test impact:**
-- **Human approval reference:**
+- **Date:** 2026-08-03
+- **Reason:** SPEC-004 replaced the package-first/configuration-workbench
+  product model with an Analysis-first staged workflow, but SPEC-002 still
+  described Package Preview and Configuration Workbench as peer top-level
+  pages. The implementation and authoritative specs needed an explicit
+  relationship before traceability could be reconciled.
+- **Changed requirements:** REQ-004 through REQ-011, NFR-002, NFR-003, UX-001,
+  UX-002, UX-003, and UX-006.
+- **Behavioral impact:** Package inspection moves inside the SPEC-004 Analysis
+  Export workflow. Configuration Workbench and its direct run flow are
+  superseded by the Analysis Workbench session/chart/review/export pipeline.
+  SPEC-002 package reader, preview APIs, review/regeneration APIs, plugin
+  discovery/validation, Run History, loopback binding, and security boundaries
+  remain applicable and implemented.
+- **Test impact:** Preserve SPEC-002 API, preview, plugin, history, CLI, and
+  dependency-boundary tests; use SPEC-004 Analysis tests for replacement UI
+  flows; use SPEC-003 responsive browser evidence for shared layout behavior.
+  Refreshed preview-load and 20-chart/50-observation scale evidence remain
+  explicit verification gaps.
+- **Human approval reference:** Nelson Jeanrenaud approved amending SPEC-002
+  and SPEC-003 in the Codex task conversation on 2026-08-03.
 
 ## Review checklist
 

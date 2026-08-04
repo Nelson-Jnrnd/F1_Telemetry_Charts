@@ -34,6 +34,16 @@ class PackagePreviewTests(unittest.TestCase):
         self.assertIsNotNone(view.manifest)
         self.assertGreaterEqual(len(view.observations), 1)
         self.assertIsNotNone(view.draft_markdown)
+        self.assertTrue(
+            {
+                "manifest_present",
+                "image_path_present",
+                "metadata_path_present",
+                "observations_present",
+                "review_present",
+                "draft_present",
+            }.issubset({finding.code for finding in view.health.findings})
+        )
 
     def test_read_package_view_reports_missing_chart_asset(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -44,8 +54,20 @@ class PackagePreviewTests(unittest.TestCase):
 
             view = read_package_view(result.output_dir)
 
-        self.assertEqual(view.health.status, "unhealthy")
+        self.assertEqual(view.health.status, "warning")
         self.assertIn("image_path_missing", {finding.code for finding in view.health.findings})
+
+    def test_read_package_view_reports_invalid_chart_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = run_analysis(_config(Path(temp_dir)))
+            manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+            metadata_path = result.output_dir / manifest["artifacts"][0]["metadata_path"]
+            metadata_path.write_text("{invalid", encoding="utf-8")
+
+            view = read_package_view(result.output_dir)
+
+        self.assertEqual(view.health.status, "unhealthy")
+        self.assertIn("metadata_path_invalid", {finding.code for finding in view.health.findings})
 
     def test_resolve_package_asset_rejects_path_traversal(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
