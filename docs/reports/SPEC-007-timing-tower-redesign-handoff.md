@@ -1,6 +1,6 @@
 # SPEC-007 Timing Tower Redesign Handoff
 
-This is an agent handoff artifact. `docs/specs/approved/SPEC-007-track-map-range-and-race-playback.md` remains the product source of truth. Before implementing the redesign below, add a new SPEC-007 amendment or update the current approved requirement trail according to the repository workflow.
+This is an agent handoff artifact. `docs/specs/implemented/SPEC-007-track-map-range-and-race-playback.md` remains the product source of truth. Before implementing the redesign below, add a new SPEC-007 amendment or update the current implemented requirement trail according to the repository workflow.
 
 ## Handoff
 

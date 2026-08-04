@@ -17,9 +17,13 @@ approved spec wins. See
 ## Start Here
 
 - Agents: read [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md).
-- Current specs: [`SPEC-001`](docs/specs/approved/SPEC-001-f1-analysis-framework.md),
-  [`SPEC-002`](docs/specs/approved/SPEC-002-v2-plugin-preview-workbench.md),
-  and [`SPEC-003`](docs/specs/approved/SPEC-003-v2-tailwind-ui-system.md).
+- Implemented specs: [`SPEC-001`](docs/specs/implemented/SPEC-001-f1-analysis-framework.md),
+  [`SPEC-002`](docs/specs/implemented/SPEC-002-v2-plugin-preview-workbench.md),
+  [`SPEC-003`](docs/specs/implemented/SPEC-003-v2-tailwind-ui-system.md),
+  [`SPEC-004`](docs/specs/implemented/SPEC-004-v2-analysis-workbench-pipeline.md),
+  [`SPEC-005`](docs/specs/implemented/SPEC-005-v2-chart-templates-and-presets.md),
+  [`SPEC-006`](docs/specs/implemented/SPEC-006-analyst-grade-chart-parameters.md),
+  and [`SPEC-007`](docs/specs/implemented/SPEC-007-track-map-range-and-race-playback.md).
 - Workflow: [`AGENT_WORKFLOW.md`](docs/workflow/AGENT_WORKFLOW.md).
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

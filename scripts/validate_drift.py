@@ -6,7 +6,7 @@ Checks (project-agnostic):
   - Duplicate requirement IDs within a single spec.
   - Approved/Implemented specs modified without an amendment marker.
   - Requirement IDs introduced outside specs (reports / README).
-  - Implemented specs without a PR reference (where detectable).
+  - Implemented specs without a PR or direct-delivery reference.
 
 Blocking issues exit non-zero; weaker signals are warnings.
 Dependency-free.
@@ -141,7 +141,7 @@ def main() -> int:
                 "references, not definitions."
             )
 
-    # 5. Implemented specs without a PR reference.
+    # 5. Implemented specs without a delivery reference.
     for path in specs:
         text = path.read_text(encoding="utf-8")
         rel = str(path.relative_to(REPO_ROOT))
@@ -149,10 +149,17 @@ def main() -> int:
         status = status_m.group(1).strip() if status_m else ""
         if status == "Implemented":
             prs_m = re.search(r"^related_prs:\s*(.+)$", text, flags=re.MULTILINE)
-            raw = prs_m.group(1).strip() if prs_m else "[]"
-            if raw in {"", "[]"}:
+            deliveries_m = re.search(
+                r"^delivery_refs:\s*(.+)$", text, flags=re.MULTILINE
+            )
+            prs_raw = prs_m.group(1).strip() if prs_m else "[]"
+            deliveries_raw = (
+                deliveries_m.group(1).strip() if deliveries_m else "[]"
+            )
+            if prs_raw in {"", "[]"} and deliveries_raw in {"", "[]"}:
                 blocking.append(
-                    f"{rel} is 'Implemented' but has no related_prs reference."
+                    f"{rel} is 'Implemented' but has no related_prs or "
+                    "delivery_refs reference."
                 )
 
     print("== Drift validation ==")

@@ -1,9 +1,9 @@
 # User Manual
 
 This page is derived documentation. Authoritative requirements live in
-`docs/specs/approved/SPEC-001-f1-analysis-framework.md` and
-`docs/specs/approved/SPEC-002-v2-plugin-preview-workbench.md` plus the UI
-specification in `docs/specs/approved/SPEC-003-v2-tailwind-ui-system.md`.
+`docs/specs/implemented/SPEC-001-f1-analysis-framework.md` and
+`docs/specs/implemented/SPEC-002-v2-plugin-preview-workbench.md` plus the UI
+specification in `docs/specs/implemented/SPEC-003-v2-tailwind-ui-system.md`.
 
 ## What You Can Test
 

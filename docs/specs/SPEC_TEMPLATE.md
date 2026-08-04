@@ -6,6 +6,7 @@ status:
 owner:
 related_issue:
 related_prs: []
+delivery_refs: []
 affected_components: []
 affected_interfaces: []
 supersedes: []

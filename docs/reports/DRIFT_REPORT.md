@@ -13,13 +13,13 @@ _Last updated: 2026-08-04._
 Drift check
 
 Blocking issues:      none
-Warnings:             all seven specs have empty related_prs; remote PR state could not be verified locally
+Warnings:             none
 Conflicting specs:    none
 Untracked requirements: none
-Recommended fix:      record the delivery PR, merge, then advance lifecycle status
+Recommended fix:      none
 ```
 
-Seven approved specs exist. The approved SPEC-002 AMEND-001 and SPEC-003
+Seven implemented specs exist. The approved SPEC-002 AMEND-001 and SPEC-003
 AMEND-003 remove the prior navigation conflict with SPEC-004 by making the
 Analysis Workbench Review/Export workflow authoritative. No blocking
 requirements conflict remains. Requirement trace tables and verification
@@ -33,6 +33,7 @@ behavioral revisions as amendments; later amendments explicitly supersede the
 automatic-playback experiment and the earlier slower-state color. Its
 dependencies on SPEC-004, SPEC-005, and SPEC-006 are declared.
 
-All seven lifecycle statuses correctly remain `In Implementation`. Empty PR
-references are a delivery warning, not documentation drift; they become the
-blocking lifecycle gate only when a spec is proposed for `Implemented`.
+All seven lifecycle statuses are `Implemented`. Empty PR references are valid
+because Nelson Jeanrenaud explicitly approved direct delivery on the shared
+branch and pushed commit `d070f5e` is recorded under each spec's
+`delivery_refs`.

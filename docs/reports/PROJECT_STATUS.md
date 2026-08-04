@@ -12,29 +12,25 @@ _Last updated: 2026-08-04._
 ## Snapshot
 
 - **Current branch:** chatbot
-- **Current phase:** Verification and delivery closeout. All seven specs are
-  `In Implementation`; implementation evidence is complete, but
-  the PR/merge lifecycle gate has not been met.
+- **Current phase:** Delivered. All seven specs are `Implemented`.
 - **Linked issue:** unknown
 - **Linked specs:** SPEC-001 through SPEC-007. SPEC-007 is current through
   AMEND-024 and covers the delivered track selector, race playback/timing
   explorer, Minis comparisons, multi-driver sector comparison, and median
   session track geometry.
-- **Open PR:** unknown. All spec `related_prs` lists are empty and the private
-  remote PR state is not available from this workspace.
+- **Open PR:** none required. Nelson Jeanrenaud explicitly approved direct
+  delivery on the shared `chatbot` branch.
 - **Checks:** Latest recorded local run: 102 Python tests passed; frontend
   typecheck and production build passed; representative 20-chart/50-observation
   package preview completed in 0.0813 seconds against the 3-second limit;
   responsive and targeted interaction evidence passed in current Chromium.
-- **Changed files:** The working tree contains the existing cross-spec
-  traceability/report refresh plus preview-reader tests, Analysis Export UI and
-  type fixes, generated static assets, a reproducible scale benchmark, and two
-  browser-evidence reports. `beta-test-screenshots/` is an unrelated untracked
-  directory.
+- **Delivery:** Commit `d070f5e` is pushed to `origin/chatbot`; each spec records
+  its direct-delivery URL under `delivery_refs`.
+- **Changed files:** Only lifecycle/status documentation remains in the follow-
+  up commit. `beta-test-screenshots/` is unrelated and remains untracked.
 - **Remaining evidence:** No implementation evidence gaps are identified.
   SPEC-007's chart-range handoff UI is intentionally deferred
   by AMEND-010 rather than accidentally missing.
-- **Lifecycle gate:** all specs correctly remain `In Implementation` until a
-  related PR is recorded and the change is merged.
-- **Recommended next action:** review the working-tree diff, then create and
-  merge a traceable PR before moving specs to `Implemented`.
+- **Lifecycle gate:** satisfied by the explicitly approved direct-delivery path
+  and pushed commit evidence.
+- **Recommended next action:** choose the next product task.

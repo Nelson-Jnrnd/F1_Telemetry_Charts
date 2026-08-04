@@ -2,10 +2,11 @@
 doc_type: spec
 spec_id: SPEC-006
 title: Analyst-Grade Chart Parameters and Renderer Semantics
-status: In Implementation
+status: Implemented
 owner: Nelson Jeanrenaud
 related_issue:
 related_prs: []
+delivery_refs: ["https://github.com/Nelson-Jnrnd/F1_Telemetry_Charts/commit/d070f5e519349d0eae20fc445b45de8926721868"]
 affected_components:
   - chart_templates
   - parameter_schema

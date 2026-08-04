@@ -34,15 +34,20 @@ solo personal project — but the ordering is not optional.
    tests, fills the verification matrix with evidence locations, and updates the
    traceability table.
 
-8. **PR creation** — The agent opens a PR using the template, linking the issue
-   and spec, listing requirement IDs, and attaching verification evidence.
+8. **Delivery creation** — By default, the agent opens a PR using the template,
+   linking the issue and spec, listing requirement IDs, and attaching
+   verification evidence. For a solo branch already chosen as the delivery
+   branch, the human may explicitly approve direct push instead; record the
+   pushed commit under the spec's `delivery_refs`.
 
-9. **Human review** — The human reviews using `HUMAN_REVIEW_GUIDE.md`. The
-   agent responds to comments within the approved scope.
+9. **Human review** — The human reviews using `HUMAN_REVIEW_GUIDE.md`, either
+   through the PR or by explicitly approving direct delivery on the current
+   branch. The agent responds to comments within the approved scope.
 
-10. **Merge** — After approval and green checks, the change is merged. The spec
-    moves to `docs/specs/implemented/` with status `Implemented` and PR
-    references recorded.
+10. **Delivery** — After approval and green checks, the PR is merged or the
+    explicitly approved commit is pushed to the delivery branch. The spec moves
+    to `docs/specs/implemented/` with status `Implemented` and its PR or direct-
+    delivery references recorded.
 
 11. **Handoff** — The agent runs `/handoff` to leave a clear state for the next
     session: branch, task, completed work, checks, assumptions, open decisions,

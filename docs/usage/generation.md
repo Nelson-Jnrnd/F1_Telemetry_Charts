@@ -1,7 +1,7 @@
 # Package Generation Usage
 
 This page is derived documentation. Authoritative requirements live in
-`docs/specs/approved/SPEC-001-f1-analysis-framework.md`.
+`docs/specs/implemented/SPEC-001-f1-analysis-framework.md`.
 
 ## Generate A Fixture-Backed Package
 

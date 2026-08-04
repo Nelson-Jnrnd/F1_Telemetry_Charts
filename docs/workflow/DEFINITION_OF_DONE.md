@@ -3,7 +3,8 @@
 Work is **not complete** unless all of the following are true. This gate
 protects against half-finished or untraceable changes.
 
-- [ ] The PR references an approved spec (`SPEC-XXX`).
+- [ ] The delivery reference—PR, or an explicitly approved direct-push
+      commit—references an approved spec (`SPEC-XXX`).
 - [ ] The change maps to specific requirement IDs (REQ/NFR/SEC/UX/DATA/API).
 - [ ] Tests or verification evidence are provided for each requirement.
 - [ ] Relevant checks pass (governance scripts and any project tests).

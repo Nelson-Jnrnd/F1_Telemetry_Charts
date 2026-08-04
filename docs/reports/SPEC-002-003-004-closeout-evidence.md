@@ -7,9 +7,9 @@ _Verified: 2026-08-04._
 ## Result
 
 The previously recorded package-inspection, performance, scale, Markdown
-safety, lightbox, keyboard, and Review interaction gaps are closed. Formal spec
-lifecycle status remains `In Implementation` because no delivery PR or merge is
-recorded.
+safety, lightbox, keyboard, and Review interaction gaps are closed. The change
+was delivered directly to the explicitly approved shared `chatbot` branch in
+commit `d070f5e`.
 
 ## Automated evidence
 
@@ -53,5 +53,4 @@ layout remain in `docs/reports/SPEC-003-UX-007-responsive-evidence.md`.
 ## Verification boundary
 
 This closes the evidence gaps named in the 2026-08-03 status/spec/drift
-reports. It does not satisfy the separate delivery lifecycle gate: a related PR
-must still be recorded and merged before the specs can move to `Implemented`.
+reports. Direct-delivery evidence is recorded in every implemented spec.

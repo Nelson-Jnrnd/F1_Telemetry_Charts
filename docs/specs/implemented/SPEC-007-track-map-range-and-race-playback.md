@@ -2,10 +2,11 @@
 doc_type: spec
 spec_id: SPEC-007
 title: Visual Track Map Range Selection and Race Playback Explorer
-status: In Implementation
+status: Implemented
 owner: Nelson Jeanrenaud
 related_issue:
 related_prs: []
+delivery_refs: ["https://github.com/Nelson-Jnrnd/F1_Telemetry_Charts/commit/d070f5e519349d0eae20fc445b45de8926721868"]
 affected_components:
   - data_gateway
   - chart_templates

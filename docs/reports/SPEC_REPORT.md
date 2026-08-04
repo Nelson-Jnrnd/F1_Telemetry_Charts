@@ -15,35 +15,35 @@ Spec report
 Draft:               none
 In review:           none
 Approved:            none
-In implementation:   SPEC-001; SPEC-002; SPEC-003; SPEC-004; SPEC-005; SPEC-006; SPEC-007
-Implemented:         none
+In implementation:   none
+Implemented:         SPEC-001; SPEC-002; SPEC-003; SPEC-004; SPEC-005; SPEC-006; SPEC-007
 Needs human decision: none
 Missing verification: none identified
-Potential blockers:   related PR references and merged-delivery evidence are absent for every spec
+Potential blockers:   none
 ```
 
 ## Roadmap snapshot
 
-- **SPEC-001 — F1 Data Analysis Charting Framework:** In Implementation, one
+- **SPEC-001 — F1 Data Analysis Charting Framework:** Implemented, one
   amendment, no unresolved decisions, and all trace rows implemented.
-- **SPEC-002 — V2 Plugin, Preview, and Configuration Workbench:** In
-  Implementation, one amendment. The plugin, preview, run-history, and package
+- **SPEC-002 — V2 Plugin, Preview, and Configuration Workbench:** Implemented,
+  one amendment. The plugin, preview, run-history, and package
   contracts are traced to current surfaces. Export draft/integrity behavior and
   refreshed preview performance/scale evidence are complete.
-- **SPEC-003 — V2 Tailwind UI System and Application Rebuild:** In
-  Implementation, three amendments. Responsive, lightbox/review interaction,
+- **SPEC-003 — V2 Tailwind UI System and Application Rebuild:** Implemented,
+  three amendments. Responsive, lightbox/review interaction,
   keyboard, package-scale, and Markdown safety evidence are complete.
-- **SPEC-004 — V2 Analysis Workbench and Staged Run Pipeline:** In
-  Implementation, one amendment. Backend, frontend, persistence, snapshots,
+- **SPEC-004 — V2 Analysis Workbench and Staged Run Pipeline:** Implemented,
+  one amendment. Backend, frontend, persistence, snapshots,
   generation, review, and export are traced; Review/Export interaction evidence
   is complete.
-- **SPEC-005 — V2 Chart Templates and Parameter Presets:** In Implementation,
+- **SPEC-005 — V2 Chart Templates and Parameter Presets:** Implemented,
   one amendment, no unresolved decisions, and a populated verification matrix.
-- **SPEC-006 — Analyst-Grade Chart Parameters and Renderer Semantics:** In
-  Implementation, one amendment, no unresolved decisions, and a populated
+- **SPEC-006 — Analyst-Grade Chart Parameters and Renderer Semantics:**
+  Implemented, one amendment, no unresolved decisions, and a populated
   verification matrix.
 - **SPEC-007 — Visual Track Map Range Selection and Race Playback Explorer:**
-  In Implementation, 24 amendments, no unresolved decisions, and a populated
+  Implemented, 24 amendments, no unresolved decisions, and a populated
   verification matrix. All 40 trace rows are implemented or intentionally
   deferred by an approved amendment.
 
@@ -81,7 +81,7 @@ Analysis-first navigation. The surviving package review behavior belongs in the
 Analysis Workbench Review/Export workflow; plugin, run-history, notification,
 security, and reusable UI contracts remain in force.
 
-Formal lifecycle state is deliberately separate from requirement delivery.
-Every spec remains in the approved folder with status `In Implementation`
-because `related_prs` is empty and merged-delivery evidence has not been
-recorded. No spec should move to `Implemented` until that gate is satisfied.
+Formal lifecycle state is now complete. Nelson Jeanrenaud explicitly approved
+direct delivery on the shared `chatbot` branch; pushed commit `d070f5e` is
+recorded under each spec's `delivery_refs`, and all specs are in the implemented
+folder.

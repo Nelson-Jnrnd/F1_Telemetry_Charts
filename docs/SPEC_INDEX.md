@@ -27,20 +27,20 @@ Terminal alternatives: `Superseded`, `Archived`, `Rejected`.
 
 ## Index
 
-| Spec ID | Title | Status | Owner | Related issue | Related PRs | Location |
-| ------- | ----- | ------ | ----- | ------------- | ----------- | -------- |
-| SPEC-001 | F1 Data Analysis Charting Framework | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-001-f1-analysis-framework.md` |
-| SPEC-002 | V2 Plugin, Preview, and Configuration Workbench | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-002-v2-plugin-preview-workbench.md` |
-| SPEC-003 | V2 Tailwind UI System and Application Rebuild | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-003-v2-tailwind-ui-system.md` |
-| SPEC-004 | V2 Analysis Workbench and Staged Run Pipeline | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-004-v2-analysis-workbench-pipeline.md` |
-| SPEC-005 | V2 Chart Templates and Parameter Presets | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-005-v2-chart-templates-and-presets.md` |
-| SPEC-006 | Analyst-Grade Chart Parameters and Renderer Semantics | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-006-analyst-grade-chart-parameters.md` |
-| SPEC-007 | Visual Track Map Range Selection and Race Playback Explorer | In Implementation | Nelson Jeanrenaud | | [] | `docs/specs/approved/SPEC-007-track-map-range-and-race-playback.md` |
+| Spec ID | Title | Status | Owner | Related issue | Related PRs | Delivery ref | Location |
+| ------- | ----- | ------ | ----- | ------------- | ----------- | ------------ | -------- |
+| SPEC-001 | F1 Data Analysis Charting Framework | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-001-f1-analysis-framework.md` |
+| SPEC-002 | V2 Plugin, Preview, and Configuration Workbench | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-002-v2-plugin-preview-workbench.md` |
+| SPEC-003 | V2 Tailwind UI System and Application Rebuild | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-003-v2-tailwind-ui-system.md` |
+| SPEC-004 | V2 Analysis Workbench and Staged Run Pipeline | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-004-v2-analysis-workbench-pipeline.md` |
+| SPEC-005 | V2 Chart Templates and Parameter Presets | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-005-v2-chart-templates-and-presets.md` |
+| SPEC-006 | Analyst-Grade Chart Parameters and Renderer Semantics | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-006-analyst-grade-chart-parameters.md` |
+| SPEC-007 | Visual Track Map Range Selection and Race Playback Explorer | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-007-track-map-range-and-race-playback.md` |
 
 Requirement-level implementation and verification evidence was reconciled on
-2026-08-04. All seven specs remain formally `In Implementation` because none
-has a related PR/merged-delivery reference; see `docs/reports/SPEC_REPORT.md`
-for current lifecycle status.
+2026-08-04. Nelson Jeanrenaud explicitly approved direct delivery on the shared
+`chatbot` branch; commit `d070f5e` was pushed and is recorded as the delivery
+reference for all seven implemented specs.
 
 > Keep this table in sync with the frontmatter of each spec. `/spec-report` and
 > `scripts/validate_drift.py` help detect drift between this index and the
