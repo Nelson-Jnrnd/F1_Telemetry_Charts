@@ -24,10 +24,11 @@ _Last updated: 2026-08-04._
   typecheck and production build passed; representative 20-chart/50-observation
   package preview completed in 0.0813 seconds against the 3-second limit;
   responsive and targeted interaction evidence passed in current Chromium.
-- **Delivery:** Commit `d070f5e` is pushed to `origin/chatbot`; each spec records
-  its direct-delivery URL under `delivery_refs`.
-- **Changed files:** Only lifecycle/status documentation remains in the follow-
-  up commit. `beta-test-screenshots/` is unrelated and remains untracked.
+- **Delivery:** Implementation commit `d070f5e` and lifecycle commit `bc37036`
+  are pushed to `origin/chatbot`; each spec records the implementation commit's
+  direct-delivery URL under `delivery_refs`.
+- **Changed files:** No tracked changes. `beta-test-screenshots/` is unrelated
+  and remains untracked.
 - **Remaining evidence:** No implementation evidence gaps are identified.
   SPEC-007's chart-range handoff UI is intentionally deferred
   by AMEND-010 rather than accidentally missing.
