@@ -2,11 +2,11 @@
 doc_type: spec
 spec_id: SPEC-008
 title: Race Strategy and Pace Chart Templates
-status: In Implementation
+status: Implemented
 owner: Nelson Jeanrenaud
 related_issue:
 related_prs: []
-delivery_refs: []
+delivery_refs: ["https://github.com/Nelson-Jnrnd/F1_Telemetry_Charts/commit/a186caa63ddf7048f6088edff14101c6eed1311f"]
 affected_components:
   - analysis workspace
   - recipe registry
@@ -29,7 +29,7 @@ depends_on:
   - SPEC-006
   - SPEC-007
 conflicts_with: []
-last_verified_at: 2026-08-05
+last_verified_at: 2026-08-10
 ---
 
 # SPEC-008: Race Strategy and Pace Chart Templates

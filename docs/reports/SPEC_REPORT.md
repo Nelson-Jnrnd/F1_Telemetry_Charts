@@ -7,7 +7,7 @@
 Reports may be updated by agents when useful, but they must not become the
 authoritative source of project truth. Regenerate this with `/spec-report`.
 
-_Last updated: 2026-08-04._
+_Last updated: 2026-08-10._
 
 ```
 Spec report
@@ -16,7 +16,7 @@ Draft:               none
 In review:           none
 Approved:            none
 In implementation:   none
-Implemented:         SPEC-001; SPEC-002; SPEC-003; SPEC-004; SPEC-005; SPEC-006; SPEC-007
+Implemented:         SPEC-001; SPEC-002; SPEC-003; SPEC-004; SPEC-005; SPEC-006; SPEC-007; SPEC-008
 Needs human decision: none
 Missing verification: none identified
 Potential blockers:   none
@@ -46,6 +46,10 @@ Potential blockers:   none
   Implemented, 24 amendments, no unresolved decisions, and a populated
   verification matrix. All 40 trace rows are implemented or intentionally
   deferred by an approved amendment.
+- **SPEC-008 â€” Race Strategy and Pace Chart Templates:** Implemented, 12
+  amendments, no unresolved decisions, and populated verification and
+  traceability matrices. All seven primary templates and three reviewed
+  advanced variants are human-approved.
 
 ## SPEC-007 effective amendment state
 
@@ -72,8 +76,8 @@ AMEND-024 is the latest amendment.
 ## Cross-spec reconciliation
 
 Traceability is reconciled at requirement level. SPEC-001, SPEC-005, SPEC-006,
-and SPEC-007 have complete implementation/verification mappings, subject to the
-intentional SPEC-007 deferral noted above.
+SPEC-007, and SPEC-008 have complete implementation/verification mappings,
+subject to the intentional SPEC-007 deferral noted above.
 
 AMEND-001 in SPEC-002 and AMEND-003 in SPEC-003 reconcile their original peer
 Package Preview/Configuration Workbench page model with SPEC-004's approved
@@ -83,5 +87,5 @@ security, and reusable UI contracts remain in force.
 
 Formal lifecycle state is now complete. `chatbot` is the canonical delivery
 branch, so PR/direct-delivery references are not required there. Existing
-commit `d070f5e` remains recorded for traceability, and all specs are in the
-implemented folder.
+commit `d070f5e` remains recorded for SPEC-001 through SPEC-007, SPEC-008 records
+implementation commit `a186caa`, and all specs are in the implemented folder.
