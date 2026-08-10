@@ -48,6 +48,14 @@ class ArtifactManifest(BaseModel):
     observations_path: str | None = None
     review_path: str | None = None
     markdown_path: str | None = None
+    results_path: str | None = None
+    assessments_path: str | None = None
+    findings_path: str | None = None
+    report_path: str | None = None
+    report_review_path: str | None = None
+    report_schema_version: int | None = None
+    report_evidence_fingerprint: str | None = None
+    report_draft_fingerprint: str | None = None
     warnings: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
     analysis_id: str | None = None

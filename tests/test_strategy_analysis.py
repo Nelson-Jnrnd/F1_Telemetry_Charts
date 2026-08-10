@@ -1067,6 +1067,22 @@ class StrategyAnalysisTests(unittest.TestCase):
                 )
             analysis = service.generate_charts(analysis)
             self.assertTrue(all(chart.generation_state == "generated" for chart in analysis.charts))
+            analysis = service.refresh_observations(analysis)
+            self.assertIsNotNone(analysis.report_content)
+            self.assertEqual(len(analysis.report_content.results), 7)
+            with self.assertRaisesRegex(ValueError, "Review included report claims"):
+                service.export_package(analysis)
+            for claim in [
+                *analysis.report_content.findings,
+                *analysis.report_content.conclusions,
+            ]:
+                analysis = service.review_report_item(
+                    analysis,
+                    item_id=claim.finding_id,
+                    review_status="accepted",
+                    evidence_fingerprint=claim.evidence_fingerprint,
+                )
+            analysis = service.regenerate_report_draft(analysis)
             analysis = service.export_package(analysis)
             self.assertTrue((root / "package" / "manifest.json").exists())
             inspected = inspect_analysis(
@@ -1074,6 +1090,12 @@ class StrategyAnalysisTests(unittest.TestCase):
             )
             self.assertEqual(inspected["status"], "succeeded")
             self.assertEqual(len(inspected["strategy_summaries"]), 7)
+            self.assertIsNotNone(inspected["report_summary"])
+            self.assertEqual(
+                inspected["report_summary"]["target_session_id"], session_id
+            )
+            self.assertNotIn("payload", inspected["report_summary"])
+            self.assertNotIn("report_content", inspected["analysis"])
             self.assertTrue(
                 all("strategy_laps" not in summary for summary in inspected["strategy_summaries"])
             )

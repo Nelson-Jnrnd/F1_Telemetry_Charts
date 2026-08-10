@@ -42,6 +42,11 @@ class PackageView(BaseModel):
     health: PackageHealth
     observations: list[dict[str, Any]]
     review: list[dict[str, Any]]
+    results: list[dict[str, Any]]
+    assessments: list[dict[str, Any]]
+    findings: list[dict[str, Any]]
+    report: dict[str, Any] | None
+    report_review: list[dict[str, Any]]
     draft_markdown: str | None
 
 
@@ -56,19 +61,46 @@ def read_package_view(package_path: str | Path) -> PackageView:
     manifest = _read_manifest(root, findings)
     observations: list[dict[str, Any]] = []
     review: list[dict[str, Any]] = []
+    results: list[dict[str, Any]] = []
+    assessments: list[dict[str, Any]] = []
+    report_findings: list[dict[str, Any]] = []
+    report: dict[str, Any] | None = None
+    report_review: list[dict[str, Any]] = []
     draft_markdown: str | None = None
 
     if manifest is not None:
         _check_artifacts(root, manifest, findings)
-        observations = _read_optional_json_list(
-            root,
-            manifest.observations_path,
-            "observations",
-            findings,
-        )
-        review = _read_optional_json_list(root, manifest.review_path, "review", findings)
         draft_markdown = _read_optional_text(root, manifest.markdown_path, "draft", findings)
-        _check_review_observation_links(observations, review, findings)
+        if manifest.report_schema_version is not None:
+            results = _read_optional_json_list(
+                root, manifest.results_path, "results", findings
+            )
+            assessments = _read_optional_json_list(
+                root, manifest.assessments_path, "assessments", findings
+            )
+            report_findings = _read_optional_json_list(
+                root, manifest.findings_path, "findings", findings
+            )
+            report = _read_optional_json_object(
+                root, manifest.report_path, "report", findings
+            )
+            report_review = _read_optional_json_list(
+                root, manifest.report_review_path, "report_review", findings
+            )
+            _check_report_links(
+                results, assessments, report_findings, report, report_review, findings
+            )
+        else:
+            observations = _read_optional_json_list(
+                root,
+                manifest.observations_path,
+                "observations",
+                findings,
+            )
+            review = _read_optional_json_list(
+                root, manifest.review_path, "review", findings
+            )
+            _check_review_observation_links(observations, review, findings)
 
     return PackageView(
         package_path=str(root),
@@ -76,6 +108,11 @@ def read_package_view(package_path: str | Path) -> PackageView:
         health=PackageHealth(status=_health_status(findings), findings=findings),
         observations=observations,
         review=review,
+        results=results,
+        assessments=assessments,
+        findings=report_findings,
+        report=report,
+        report_review=report_review,
         draft_markdown=draft_markdown,
     )
 
@@ -307,6 +344,114 @@ def _read_optional_text(
         )
     )
     return text
+
+
+def _read_optional_json_object(
+    root: Path,
+    relative_path: str | None,
+    label: str,
+    findings: list[IntegrityFinding],
+) -> dict[str, Any] | None:
+    if relative_path is None:
+        findings.append(
+            IntegrityFinding(
+                severity="warning",
+                code=f"{label}_missing_reference",
+                message=f"Manifest does not reference {label} data.",
+            )
+        )
+        return None
+    try:
+        path = _resolve_package_relative(root, relative_path)
+    except PackagePreviewError as exc:
+        findings.append(
+            IntegrityFinding(
+                severity="error",
+                code=f"{label}_path_invalid",
+                message=str(exc),
+                path=relative_path,
+            )
+        )
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        findings.append(
+            IntegrityFinding(
+                severity="error",
+                code=f"{label}_invalid",
+                message=f"Referenced {label} file is invalid: {exc}",
+                path=relative_path,
+            )
+        )
+        return None
+    if not isinstance(raw, dict):
+        findings.append(
+            IntegrityFinding(
+                severity="error",
+                code=f"{label}_invalid_shape",
+                message=f"Referenced {label} file must contain a JSON object.",
+                path=relative_path,
+            )
+        )
+        return None
+    findings.append(
+        IntegrityFinding(
+            severity="info",
+            code=f"{label}_present",
+            message=f"Referenced {label} file is present and valid: {relative_path}",
+            path=relative_path,
+        )
+    )
+    return raw
+
+
+def _check_report_links(
+    results: list[dict[str, Any]],
+    assessments: list[dict[str, Any]],
+    report_findings: list[dict[str, Any]],
+    report: dict[str, Any] | None,
+    report_review: list[dict[str, Any]],
+    findings: list[IntegrityFinding],
+) -> None:
+    result_fingerprints = {
+        item.get("result_fingerprint") for item in results if item.get("result_fingerprint")
+    }
+    finding_ids = {
+        item.get("finding_id") for item in report_findings if item.get("finding_id")
+    }
+    for assessment in assessments:
+        if assessment.get("result_fingerprint") not in result_fingerprints:
+            findings.append(
+                IntegrityFinding(
+                    severity="error",
+                    code="assessment_unknown_result",
+                    message="A report assessment references an unknown analytical result.",
+                    path="assessments.json",
+                )
+            )
+    for review in report_review:
+        if review.get("item_id") not in finding_ids:
+            findings.append(
+                IntegrityFinding(
+                    severity="warning",
+                    code="report_review_unknown_finding",
+                    message="A report review entry references an unknown finding.",
+                    path="report-review.json",
+                )
+            )
+    if report is not None:
+        for section in report.get("sections") or []:
+            for item in section.get("items") or []:
+                if item.get("item_type") == "claim" and item.get("reference_id") not in finding_ids:
+                    findings.append(
+                        IntegrityFinding(
+                            severity="error",
+                            code="report_unknown_finding",
+                            message="The report plan references an unknown finding.",
+                            path="report.json",
+                        )
+                    )
 
 
 def _check_review_observation_links(

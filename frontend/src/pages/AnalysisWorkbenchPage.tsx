@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { BarChart3, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Edit3, FilePlus2, FolderOpen, Image, LineChart, Loader2, Map as MapIcon, Maximize2, Play, Plus, RefreshCw, RotateCcw, RotateCw, Save, Trash2, XCircle, ZoomIn, ZoomOut } from "lucide-react";
 import * as api from "../api";
-import type { AnalysisSession, AnalysisView, Artifact, ChartInstance, Observation, PackageView, ParameterDiagnostics, ParameterField, ParameterPreset, PlaybackMarker, PlaybackMode, PlaybackPayload, ReviewStatus, TrackMapCorner, TrackMapPayload, TrackMapPoint } from "../types";
+import type { AnalysisSession, AnalysisView, Artifact, ChartInstance, Observation, PackageView, ParameterDiagnostics, ParameterField, ParameterPreset, PlaybackMarker, PlaybackMode, PlaybackPayload, ReportClaim, ReportEvidence, ReportPlan, ReportReviewEntry, ReviewStatus, TrackMapCorner, TrackMapPayload, TrackMapPoint } from "../types";
 import { compactPath, cn } from "../lib/utils";
 import type { SidebarRenderer } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
@@ -96,8 +96,8 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
         setView(payload);
         setAnalysisPath(payload.analysis.root_path);
         setAnalysisName(payload.analysis.name);
-        if (payload.analysis.exported_package_path) {
-          loadExportedPackage(payload.analysis.exported_package_path);
+        if (payload.analysis.report_package_path || payload.analysis.exported_package_path) {
+          loadExportedPackage(payload.analysis.report_package_path ?? payload.analysis.exported_package_path);
         }
       })
       .catch(() => undefined)
@@ -469,8 +469,8 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
     try {
       const payload = await api.refreshAnalysisReview();
       setView(payload);
-      await loadExportedPackage(payload.analysis.exported_package_path);
-      notify("Review refreshed", payload.analysis.exported_package_path ?? undefined, "success");
+      await loadExportedPackage(payload.analysis.report_package_path);
+      notify("Report evidence refreshed", payload.analysis.report_package_path ?? undefined, "success");
     } catch (error) {
       notify("Refresh failed", message(error), "error");
     } finally {
@@ -521,6 +521,52 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
       notify("Review failed", message(error), "error");
     } finally {
       setObservationPending(observationId, null);
+    }
+  }
+
+  async function updateReportClaim(
+    claim: ReportClaim,
+    reviewStatus: "pending" | "accepted" | "edited" | "rejected",
+    editedText?: string | null
+  ) {
+    const action: ObservationPendingAction =
+      reviewStatus === "accepted" ? "accepting" : reviewStatus === "rejected" ? "rejecting" : reviewStatus === "pending" ? "clearing" : "saving";
+    setObservationPending(claim.finding_id, action);
+    try {
+      let payload = await api.reviewAnalysisReportItem(claim.finding_id, {
+        review_status: reviewStatus,
+        evidence_fingerprint: claim.evidence_fingerprint,
+        edited_text: reviewStatus === "edited" ? editedText : null
+      });
+      if (payload.analysis.report_freshness.review.status === "current") {
+        payload = await api.regenerateAnalysisReportDraft();
+      }
+      setView(payload);
+      await loadExportedPackage(payload.analysis.report_package_path);
+      notify("Report claim saved", reviewStatus, "success");
+    } catch (error) {
+      notify("Review failed", message(error), "error");
+    } finally {
+      setObservationPending(claim.finding_id, null);
+    }
+  }
+
+  async function updateReportPlan(plan: ReportPlan) {
+    const evidenceFingerprint = analysis?.report_content?.evidence_fingerprint;
+    if (!evidenceFingerprint) return;
+    setReviewPending(true);
+    try {
+      let payload = await api.updateAnalysisReportPlan(plan, evidenceFingerprint);
+      if (payload.analysis.report_freshness.review.status === "current") {
+        payload = await api.regenerateAnalysisReportDraft();
+      }
+      setView(payload);
+      await loadExportedPackage(payload.analysis.report_package_path);
+      notify("Report order saved", undefined, "success");
+    } catch (error) {
+      notify("Report update failed", message(error), "error");
+    } finally {
+      setReviewPending(false);
     }
   }
 
@@ -579,7 +625,7 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
             sessions={analysis.sessions}
           />
         )}
-        {selection.kind === "review" && <ReviewEditor analysis={analysis} packageView={exportedPackage} refreshReview={refreshReview} updateObservation={updateObservation} pending={reviewPending} observationPendingActions={pendingObservationActions} />}
+        {selection.kind === "review" && <ReviewEditor analysis={analysis} packageView={exportedPackage} refreshReview={refreshReview} updateObservation={updateObservation} updateReportClaim={updateReportClaim} updateReportPlan={updateReportPlan} pending={reviewPending} observationPendingActions={pendingObservationActions} />}
         {selection.kind === "export" && <ExportEditor analysis={analysis} packageView={exportedPackage} exportAnalysis={exportAnalysis} openArtifact={openArtifact} pending={exportPending} packageLoading={packageLoading} />}
       </div>
       <Dialog open={newAnalysisOpen} onOpenChange={setNewAnalysisOpen} title="New Analysis">
@@ -2898,6 +2944,8 @@ function ReviewEditor({
   packageView,
   refreshReview,
   updateObservation,
+  updateReportClaim,
+  updateReportPlan,
   pending,
   observationPendingActions
 }: {
@@ -2905,30 +2953,218 @@ function ReviewEditor({
   packageView: PackageView | null;
   refreshReview: () => void;
   updateObservation: (observationId: string, reviewStatus: ReviewStatus, editedText?: string | null) => Promise<void>;
+  updateReportClaim: (claim: ReportClaim, reviewStatus: "pending" | "accepted" | "edited" | "rejected", editedText?: string | null) => Promise<void>;
+  updateReportPlan: (plan: ReportPlan) => Promise<void>;
   pending: boolean;
   observationPendingActions: Record<string, ObservationPendingAction>;
 }) {
   const observations = packageView?.observations ?? [];
+  const reportClaims = packageView?.findings ?? [];
+  const reportReviews = new Map((packageView?.report_review ?? []).map((entry) => [entry.item_id, entry]));
+  const reportSections = packageView?.report?.sections ?? [];
+  const reportCharts = new Map<string, ReportEvidence>();
+  for (const result of packageView?.results ?? []) {
+    for (const evidence of result.chart_evidence ?? []) reportCharts.set(evidence.chart_instance_id, evidence);
+  }
+  const operationalStatus = reportOperationalStatus(analysis);
+  function changePlan(mutator: (plan: ReportPlan) => void) {
+    if (!packageView?.report) return;
+    const next = structuredClone(packageView.report);
+    mutator(next);
+    void updateReportPlan(next);
+  }
   return (
     <Panel title="Review" actions={<Button icon={<RefreshCw className="h-4 w-4" />} onClick={refreshReview} disabled={!analysis} loading={pending}>Refresh</Button>}>
       <div className="grid gap-4">
         <dl className="grid gap-3 sm:grid-cols-3">
-          <Metric label="State" value={analysis?.review_stale ? "Stale" : "Current"} />
+          <Metric label="State" value={operationalStatus.label} />
           <Metric label="Charts" value={analysis?.charts.length ?? 0} />
-          <Metric label="Observations" value={observations.length} />
+          <Metric label="Publishable claims" value={reportClaims.length || observations.length} />
         </dl>
         <div className="grid gap-3">
-          {observations.length > 0 ? (
+          {reportClaims.length > 0 || reportSections.some((section) => section.items.some((item) => item.item_type === "chart")) ? (
+            reportSections.filter((section) => section.included).map((section, sectionIndex, includedSections) => {
+              const planItems = section.items.filter((item) => item.included).filter((item) =>
+                item.item_type === "claim"
+                  ? reportClaims.some((claim) => claim.finding_id === item.reference_id)
+                  : item.item_type === "chart" && reportCharts.has(item.reference_id)
+              );
+              if (planItems.length === 0) return null;
+              return (
+                <section key={section.section_id} className="grid gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-base font-semibold text-ink">{section.title}</h3>
+                    <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => changePlan((plan) => {
+                      const index = plan.sections.findIndex((item) => item.section_id === section.section_id);
+                      if (index > 0) [plan.sections[index - 1], plan.sections[index]] = [plan.sections[index], plan.sections[index - 1]];
+                    })} disabled={pending || sectionIndex === 0}>Move section up</Button>
+                    <Button onClick={() => changePlan((plan) => {
+                      const index = plan.sections.findIndex((item) => item.section_id === section.section_id);
+                      if (index >= 0 && index < plan.sections.length - 1) [plan.sections[index], plan.sections[index + 1]] = [plan.sections[index + 1], plan.sections[index]];
+                    })} disabled={pending || sectionIndex === includedSections.length - 1}>Move section down</Button>
+                    <Button onClick={() => changePlan((plan) => {
+                      const target = plan.sections.find((item) => item.section_id === section.section_id);
+                      if (target) target.included = false;
+                    })} disabled={pending}>Exclude section</Button>
+                    </div>
+                  </div>
+                  {planItems.map((planItem, itemIndex) => {
+                    const claim = planItem.item_type === "claim"
+                      ? reportClaims.find((value) => value.finding_id === planItem.reference_id)
+                      : undefined;
+                    const chart = planItem.item_type === "chart" ? reportCharts.get(planItem.reference_id) : undefined;
+                    return (
+                    <div key={planItem.item_id} className="grid gap-2">
+                    {claim ? <ReportClaimCard
+                      claim={claim}
+                      review={reportReviews.get(claim.finding_id) ?? null}
+                      updateReportClaim={updateReportClaim}
+                      pendingAction={observationPendingActions[claim.finding_id] ?? null}
+                    /> : chart ? <article className="grid gap-2 rounded-md border border-line bg-panel p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded bg-slate-100 px-2 py-1 text-xs text-muted">Chart</span>
+                        <span className="font-medium text-ink">{chart.title ?? chart.chart_instance_id}</span>
+                      </div>
+                      <span className="text-xs text-muted">Explicit report placement</span>
+                    </article> : null}
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button onClick={() => changePlan((plan) => {
+                        const target = plan.sections.find((item) => item.section_id === section.section_id);
+                        const index = target?.items.findIndex((item) => item.item_id === planItem.item_id) ?? -1;
+                        if (target && index > 0) [target.items[index - 1], target.items[index]] = [target.items[index], target.items[index - 1]];
+                      })} disabled={pending || itemIndex === 0}>Move up</Button>
+                      <Button onClick={() => changePlan((plan) => {
+                        const target = plan.sections.find((item) => item.section_id === section.section_id);
+                        const index = target?.items.findIndex((item) => item.item_id === planItem.item_id) ?? -1;
+                        if (target && index >= 0 && index < target.items.length - 1) [target.items[index], target.items[index + 1]] = [target.items[index + 1], target.items[index]];
+                      })} disabled={pending || itemIndex === planItems.length - 1}>Move down</Button>
+                      <Button onClick={() => changePlan((plan) => {
+                        const target = plan.sections.find((item) => item.section_id === section.section_id);
+                        const item = target?.items.find((value) => value.item_id === planItem.item_id);
+                        if (item) item.included = false;
+                      })} disabled={pending}>Exclude {planItem.item_type}</Button>
+                    </div>
+                    </div>
+                  )})}
+                </section>
+              );
+            })
+          ) : observations.length > 0 ? (
             observations.map((observation) => (
               <ObservationCard key={observation.observation_id} observation={observation} updateObservation={updateObservation} pendingAction={observationPendingActions[observation.observation_id] ?? null} />
             ))
           ) : (
-            <div className="rounded-md border border-dashed border-line bg-slate-50 p-6 text-sm text-muted">No observations</div>
+            <div className="rounded-md border border-dashed border-line bg-slate-50 p-6 text-sm text-muted">No publishable claims. Context, excluded, and unavailable results remain listed in package evidence.</div>
           )}
         </div>
+        {(packageView?.assessments.length ?? 0) > 0 && (
+          <details className="rounded-md border border-line bg-slate-50 p-3">
+            <summary className="cursor-pointer text-sm font-medium">Result accounting ({packageView?.assessments.length})</summary>
+            <div className="mt-3 grid gap-2 text-sm">
+              {packageView?.assessments.map((assessment) => (
+                <div key={assessment.assessment_id} className="flex flex-wrap items-start justify-between gap-2 rounded border border-line bg-white p-2">
+                  <span>{assessment.result_type}</span>
+                  <span className="font-mono text-xs">{assessment.report_disposition} · {assessment.reason_code}</span>
+                  <span className="basis-full text-xs text-muted">{assessment.reasons.join(" ")}</span>
+                  {assessment.next_action && <span className="basis-full text-xs text-muted">Next action: {assessment.next_action}</span>}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+        {(packageView?.report?.sections.some((section) => !section.included || section.items.some((item) => !item.included)) ?? false) && (
+          <div className="grid gap-2 rounded-md border border-line bg-slate-50 p-3">
+            <span className="text-sm font-medium">Excluded report content</span>
+            {packageView?.report?.sections.filter((section) => !section.included).map((section) => (
+              <Button key={section.section_id} onClick={() => changePlan((plan) => {
+                const target = plan.sections.find((item) => item.section_id === section.section_id);
+                if (target) target.included = true;
+              })}>Include {section.title}</Button>
+            ))}
+            {packageView?.report?.sections.flatMap((section) => section.items.filter((item) => !item.included).map((item) => ({ section, item }))).map(({ section, item }) => (
+              <Button key={item.item_id} onClick={() => changePlan((plan) => {
+                const target = plan.sections.find((value) => value.section_id === section.section_id)?.items.find((value) => value.item_id === item.item_id);
+                if (target) target.included = true;
+              })}>Include {reportClaims.find((claim) => claim.finding_id === item.reference_id)?.finding_type ?? item.reference_id}</Button>
+            ))}
+          </div>
+        )}
       </div>
     </Panel>
   );
+}
+
+function reportOperationalStatus(analysis: AnalysisView["analysis"] | null) {
+  const freshness = analysis?.report_freshness;
+  if (!freshness || freshness.evidence.status !== "current") return { label: "Evidence changed", action: "Refresh report evidence" };
+  if (freshness.review.status !== "current") return { label: "Review required", action: "Review included claims" };
+  if (freshness.draft.status !== "current") return { label: "Regenerate draft", action: "Regenerate report draft" };
+  return { label: "Report current", action: "Export current report" };
+}
+
+function ReportClaimCard({
+  claim,
+  review,
+  updateReportClaim,
+  pendingAction
+}: {
+  claim: ReportClaim;
+  review: ReportReviewEntry | null;
+  updateReportClaim: (claim: ReportClaim, reviewStatus: "pending" | "accepted" | "edited" | "rejected", editedText?: string | null) => Promise<void>;
+  pendingAction: ObservationPendingAction | null;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(review?.edited_text ?? claim.text);
+  const status = review?.review_status ?? "pending";
+  useEffect(() => {
+    setEditing(false);
+    setDraft(review?.edited_text ?? claim.text);
+  }, [claim.finding_id, claim.text, review?.edited_text]);
+  return (
+    <article className="grid gap-3 rounded-md border border-line bg-panel p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge value={status} />
+          <span className="text-xs text-muted">Confidence: {claim.confidence}</span>
+          {claim.finding_kind === "conclusion" && <span className="rounded bg-teal-50 px-2 py-1 text-xs text-brand">Synthesis</span>}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => updateReportClaim(claim, "accepted")} loading={pendingAction === "accepting"}>Accept</Button>
+          <Button icon={<XCircle className="h-4 w-4" />} onClick={() => updateReportClaim(claim, "rejected")} loading={pendingAction === "rejecting"}>Reject</Button>
+          <Button icon={<Edit3 className="h-4 w-4" />} onClick={() => setEditing(true)} disabled={pendingAction !== null}>Edit</Button>
+          {status !== "pending" && <Button icon={<RotateCcw className="h-4 w-4" />} onClick={() => updateReportClaim(claim, "pending")} loading={pendingAction === "clearing"}>Reset</Button>}
+        </div>
+      </div>
+      {editing ? (
+        <div className="grid gap-2">
+          <TextAreaField label="Report claim" value={draft} onChange={(event) => setDraft(event.target.value)} />
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setEditing(false)}>Cancel</Button>
+            <Button variant="primary" icon={<Save className="h-4 w-4" />} onClick={() => updateReportClaim(claim, "edited", draft)} loading={pendingAction === "saving"}>Save</Button>
+          </div>
+        </div>
+      ) : <p className="text-sm leading-6 text-ink">{review?.edited_text ?? claim.text}</p>}
+      {Object.keys(claim.comparison_basis).length > 0 && (
+        <div className="text-xs text-muted">Basis: {Object.entries(claim.comparison_basis).filter(([, value]) => value !== null).map(([key, value]) => `${key.replaceAll("_", " ")}=${String(value)}`).join("; ")}</div>
+      )}
+      {claim.limitations.length > 0 && <div className="text-xs text-muted">Limitations: {claim.limitations.join(" ")}</div>}
+      {claim.evidence.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {claim.evidence.map((evidence) => (
+            <span key={evidence.chart_instance_id} className="flex items-center gap-2 rounded border border-line px-2 py-1 text-xs text-muted">
+              {evidence.image_path ? <a className="text-brand underline" href={`/api/package/assets/${packageAssetPath(evidence.image_path)}`} target="_blank" rel="noreferrer">{evidence.title ?? evidence.artifact_id ?? evidence.chart_instance_id}</a> : (evidence.title ?? evidence.artifact_id ?? evidence.chart_instance_id)}
+              {evidence.metadata_path && <a className="text-brand underline" href={`/api/package/assets/${packageAssetPath(evidence.metadata_path)}`} target="_blank" rel="noreferrer">metadata</a>}
+            </span>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function packageAssetPath(path: string) {
+  return path.split("/").map((segment) => encodeURIComponent(segment)).join("/");
 }
 
 function PresetApplyPanel({

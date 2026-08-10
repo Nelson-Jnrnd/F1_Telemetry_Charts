@@ -6,6 +6,7 @@ import type {
   PlaybackPayload,
   PluginStatus,
   ProjectConfigForm,
+  ReportPlan,
   ReviewStatus,
   TrackMapPayload,
   ValidationResponse
@@ -221,6 +222,33 @@ export function getAnalysisPlayback(payload: {
 
 export function refreshAnalysisReview() {
   return request<AnalysisView>("/api/analysis/review/refresh", { method: "POST" });
+}
+
+export function reviewAnalysisReportItem(
+  itemId: string,
+  payload: {
+    review_status: "pending" | "accepted" | "edited" | "rejected";
+    evidence_fingerprint: string;
+    edited_text?: string | null;
+  }
+) {
+  return request<AnalysisView>(`/api/analysis/report/items/${encodeURIComponent(itemId)}/review`, {
+    method: "PUT",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateAnalysisReportPlan(plan: ReportPlan, evidenceFingerprint: string) {
+  return request<AnalysisView>("/api/analysis/report/plan", {
+    method: "PUT",
+    headers: jsonHeaders,
+    body: JSON.stringify({ plan, evidence_fingerprint: evidenceFingerprint })
+  });
+}
+
+export function regenerateAnalysisReportDraft() {
+  return request<AnalysisView>("/api/analysis/report/draft/regenerate", { method: "POST" });
 }
 
 export function exportAnalysis() {

@@ -16,6 +16,7 @@ from f1_telemetry_charts.analysis.observations import (
     ObservationReviewEntry,
     ReviewStatus,
 )
+from f1_telemetry_charts.analysis.findings import ReportPlan
 from f1_telemetry_charts.analysis.report import apply_observation_review, render_markdown_draft
 from f1_telemetry_charts.analysis.orchestrator import run_analysis
 from f1_telemetry_charts.analysis.workspace import (
@@ -140,6 +141,21 @@ class ChartGenerationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     chart_ids: list[str] | None = None
+
+
+class ReportReviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    review_status: Literal["pending", "accepted", "edited", "rejected"]
+    evidence_fingerprint: str = Field(min_length=1)
+    edited_text: str | None = None
+
+
+class ReportPlanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_fingerprint: str = Field(min_length=1)
+    plan: ReportPlan
 
 
 class AnalysisChartDiagnosticsRequest(BaseModel):
@@ -568,13 +584,56 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
     def refresh_analysis_review() -> AnalysisView:
         service = _require_analysis_service(state["analysis_path"])
         analysis = service.refresh_observations(service.open())
-        state["package_path"] = Path(analysis.exported_package_path).resolve() if analysis.exported_package_path else None
+        state["package_path"] = Path(analysis.report_package_path).resolve() if analysis.report_package_path else None
+        return service.view(analysis)
+
+    @app.put("/api/analysis/report/items/{item_id}/review", response_model=AnalysisView)
+    def review_analysis_report_item(
+        item_id: str, request: ReportReviewRequest
+    ) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.review_report_item(
+                service.open(),
+                item_id=item_id,
+                review_status=request.review_status,
+                evidence_fingerprint=request.evidence_fingerprint,
+                edited_text=request.edited_text,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.put("/api/analysis/report/plan", response_model=AnalysisView)
+    def update_analysis_report_plan(request: ReportPlanRequest) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.update_report_plan(
+                service.open(),
+                plan=request.plan,
+                evidence_fingerprint=request.evidence_fingerprint,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.post("/api/analysis/report/draft/regenerate", response_model=AnalysisView)
+    def regenerate_analysis_report_draft() -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.regenerate_report_draft(service.open())
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        state["package_path"] = Path(analysis.report_package_path).resolve() if analysis.report_package_path else None
         return service.view(analysis)
 
     @app.post("/api/analysis/export", response_model=AnalysisView)
     def export_analysis() -> AnalysisView:
         service = _require_analysis_service(state["analysis_path"])
-        analysis = service.export_package(service.open())
+        try:
+            analysis = service.export_package(service.open())
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         state["package_path"] = Path(analysis.exported_package_path).resolve() if analysis.exported_package_path else None
         if state["package_path"] is not None:
             _remember_history(state["history"], state["package_path"], "exported")

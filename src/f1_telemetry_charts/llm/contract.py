@@ -147,6 +147,7 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
         track_map_summaries = _track_map_summaries(service, analysis)
         playback_summaries = _playback_summaries(service, analysis)
         strategy_summaries = _strategy_summaries(service, analysis)
+        report_summary = _report_summary(analysis)
     except Exception as exc:
         return {
             "contract_version": CONTRACT_VERSION,
@@ -156,7 +157,9 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
     return {
         "contract_version": CONTRACT_VERSION,
         "status": "succeeded",
-        "analysis": view.analysis.model_dump(mode="json"),
+        "analysis": view.analysis.model_dump(
+            mode="json", exclude={"report_content", "report_reviews"}
+        ),
         "chart_instances": [
             chart.model_dump(mode="json") for chart in view.analysis.charts
         ],
@@ -178,6 +181,7 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
         "track_map_summaries": track_map_summaries,
         "playback_summaries": playback_summaries,
         "strategy_summaries": strategy_summaries,
+        "report_summary": report_summary,
     }
 
 
@@ -366,6 +370,49 @@ def _strategy_summaries(service: AnalysisService, analysis: Any) -> list[dict[st
                 ]
         summaries.append(summary)
     return summaries
+
+
+def _report_summary(analysis: Any, *, maximum_items: int = 100) -> dict[str, Any] | None:
+    """Return bounded, read-only report facts without raw analytical payloads."""
+
+    content = analysis.report_content
+    if content is None:
+        return None
+    claims = [*content.findings, *content.conclusions][:maximum_items]
+    assessments = content.assessments[:maximum_items]
+    return {
+        "schema_version": content.schema_version,
+        "target_session_id": content.target_session_id,
+        "evidence_fingerprint": content.evidence_fingerprint,
+        "freshness": analysis.report_freshness.model_dump(mode="json"),
+        "truncated": (
+            len(content.findings) + len(content.conclusions) > maximum_items
+            or len(content.assessments) > maximum_items
+        ),
+        "assessments": [
+            {
+                "assessment_id": item.assessment_id,
+                "result_type": item.result_type,
+                "report_disposition": item.report_disposition,
+                "reasons": item.reasons,
+                "finding_ids": item.finding_ids,
+            }
+            for item in assessments
+        ],
+        "claims": [
+            {
+                "finding_id": item.finding_id,
+                "finding_kind": item.finding_kind,
+                "finding_type": item.finding_type,
+                "text": item.text,
+                "confidence": item.confidence,
+                "comparison_basis": item.comparison_basis,
+                "limitations": item.limitations,
+                "evidence_fingerprint": item.evidence_fingerprint,
+            }
+            for item in claims
+        ],
+    }
 
 
 def _load_request_config(request_json: dict[str, Any]):

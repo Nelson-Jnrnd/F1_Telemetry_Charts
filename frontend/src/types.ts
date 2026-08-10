@@ -52,7 +52,73 @@ export type PackageView = {
   health: { status: HealthStatus; findings: Finding[] };
   observations: Observation[];
   review: unknown[];
+  results: Array<Record<string, unknown> & { chart_evidence?: ReportEvidence[] }>;
+  assessments: ReportAssessment[];
+  findings: ReportClaim[];
+  report?: ReportPlan | null;
+  report_review: ReportReviewEntry[];
   draft_markdown?: string | null;
+};
+
+export type ReportDisposition = "reportable" | "context_only" | "not_reportable" | "unsupported" | "unavailable";
+
+export type ReportEvidence = {
+  chart_instance_id: string;
+  artifact_id?: string | null;
+  title?: string | null;
+  image_path?: string | null;
+  metadata_path?: string | null;
+};
+
+export type ReportClaim = {
+  finding_id: string;
+  finding_kind: "finding" | "conclusion";
+  finding_type: string;
+  evidence_fingerprint: string;
+  text: string;
+  section: string;
+  confidence: string;
+  comparison_basis: Record<string, unknown>;
+  limitations: string[];
+  evidence: ReportEvidence[];
+};
+
+export type ReportAssessment = {
+  assessment_id: string;
+  result_type: string;
+  report_disposition: ReportDisposition;
+  reason_code: string;
+  reasons: string[];
+  next_action?: string | null;
+  technical_details: Record<string, unknown>;
+};
+
+export type ReportReviewEntry = {
+  item_id: string;
+  reviewed_evidence_fingerprint: string;
+  review_status: "pending" | "accepted" | "edited" | "rejected";
+  edited_text?: string | null;
+};
+
+export type ReportPlanItem = {
+  item_id: string;
+  item_type: "claim" | "chart" | "assessment";
+  reference_id: string;
+  included: boolean;
+};
+
+export type ReportPlanSection = {
+  section_id: string;
+  title: string;
+  included: boolean;
+  items: ReportPlanItem[];
+};
+
+export type ReportPlan = {
+  schema_version: number;
+  template_version: number;
+  target_session_id: string;
+  sections: ReportPlanSection[];
 };
 
 export type PluginRecipe = {
@@ -345,6 +411,18 @@ export type AnalysisWorkspace = {
   charts: ChartInstance[];
   presets: ParameterPreset[];
   review_stale: boolean;
+  report_target_session_id?: string | null;
+  report_content?: {
+    evidence_fingerprint: string;
+    plan: ReportPlan;
+  } | null;
+  report_freshness: {
+    evidence: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
+    review: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
+    draft: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
+    export: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
+  };
+  report_package_path?: string | null;
   exported_package_path?: string | null;
   errors: string[];
 };

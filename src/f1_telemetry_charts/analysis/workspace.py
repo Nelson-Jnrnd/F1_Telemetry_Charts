@@ -13,19 +13,27 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from f1_telemetry_charts.analysis.engine import extract_observations
+from f1_telemetry_charts.analysis.findings import (
+    FreshnessLayer,
+    ReportContent,
+    ReportFreshness,
+    ReportPlan,
+    ReportReviewEntry,
+    ResultSource,
+    build_report_content,
+    reviews_are_current,
+)
 from f1_telemetry_charts.analysis.manifest import (
     ArtifactManifest,
     ChartArtifactEntry,
     RecipeRunEntry,
 )
-from f1_telemetry_charts.analysis.observations import Observation
 from f1_telemetry_charts.analysis.playback import (
     PlaybackPayload,
     build_playback_payload,
     playback_summary,
 )
-from f1_telemetry_charts.analysis.report import write_report_package
+from f1_telemetry_charts.analysis.report import write_structured_report_package
 from f1_telemetry_charts.analysis.track_map import (
     DEFAULT_TRACK_MAP_POINT_LIMIT,
     TrackMapPayload,
@@ -192,6 +200,11 @@ class AnalysisWorkspace(BaseModel):
     charts: list[ChartInstance] = Field(default_factory=list)
     presets: list[ParameterPreset] = Field(default_factory=list)
     review_stale: bool = False
+    report_target_session_id: str | None = None
+    report_content: ReportContent | None = None
+    report_reviews: list[ReportReviewEntry] = Field(default_factory=list)
+    report_freshness: ReportFreshness = Field(default_factory=ReportFreshness)
+    report_package_path: str | None = None
     exported_package_path: str | None = None
     errors: list[str] = Field(default_factory=list)
 
@@ -502,6 +515,11 @@ class AnalysisService:
                     if session_id not in chart.target_session_ids
                 ],
                 "review_stale": bool(dependent_charts) or analysis.review_stale,
+                "report_freshness": (
+                    _stale_report_freshness(analysis.report_freshness)
+                    if dependent_charts
+                    else analysis.report_freshness
+                ),
             },
             deep=True,
         )
@@ -614,7 +632,16 @@ class AnalysisService:
         if not found:
             raise ValueError(f"Unknown chart instance ID: {chart_id}")
         return self.save(
-            analysis.model_copy(update={"charts": charts, "review_stale": True}, deep=True)
+            analysis.model_copy(
+                update={
+                    "charts": charts,
+                    "review_stale": True,
+                    "report_freshness": _stale_report_freshness(
+                        analysis.report_freshness
+                    ),
+                },
+                deep=True,
+            )
         )
 
     def remove_chart(self, analysis: AnalysisWorkspace, chart_id: str) -> AnalysisWorkspace:
@@ -624,6 +651,9 @@ class AnalysisService:
                     chart for chart in analysis.charts if chart.chart_instance_id != chart_id
                 ],
                 "review_stale": True,
+                "report_freshness": _stale_report_freshness(
+                    analysis.report_freshness
+                ),
             },
             deep=True,
         )
@@ -800,23 +830,69 @@ class AnalysisService:
                 )
         return self.save(
             analysis.model_copy(
-                update={"charts": updated_charts, "review_stale": True},
+                update={
+                    "charts": updated_charts,
+                    "review_stale": True,
+                    "report_freshness": analysis.report_freshness.model_copy(
+                        update={
+                            "evidence": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.evidence.input_fingerprint,
+                            ),
+                            "review": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.review.input_fingerprint,
+                            ),
+                            "draft": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.draft.input_fingerprint,
+                            ),
+                            "export": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.export.input_fingerprint,
+                            ),
+                        },
+                        deep=True,
+                    ),
+                },
                 deep=True,
             )
         )
 
     def refresh_observations(self, analysis: AnalysisWorkspace) -> AnalysisWorkspace:
-        observations = _extract_analysis_observations(self.root, analysis)
         package_dir = self.root / "package"
         package_dir.mkdir(parents=True, exist_ok=True)
         manifest = _analysis_manifest(self.root, analysis, status="succeeded")
         _materialize_package_artifacts(self.root, package_dir, manifest)
-        report_paths = write_report_package(package_dir, manifest, observations)
+        target_session = _report_target_session(analysis)
+        content = build_report_content(
+            target_session.session_id,
+            _report_result_sources(self.root, analysis, target_session.session_id),
+        )
+        claims = {item.finding_id: item for item in [*content.findings, *content.conclusions]}
+        prior_reviews = {item.item_id: item for item in analysis.report_reviews}
+        reviews = [
+            prior_reviews[item_id]
+            for item_id, claim in claims.items()
+            if item_id in prior_reviews
+            and prior_reviews[item_id].reviewed_evidence_fingerprint
+            == claim.evidence_fingerprint
+        ]
+        structured_paths = write_structured_report_package(
+            package_dir, manifest, content, reviews
+        )
+        review_current = reviews_are_current(content, reviews)
         manifest = manifest.model_copy(
             update={
-                "observations_path": _relative_path(report_paths.observations_path, package_dir),
-                "review_path": _relative_path(report_paths.review_path, package_dir),
-                "markdown_path": _relative_path(report_paths.markdown_path, package_dir),
+                "markdown_path": _relative_path(structured_paths.markdown_path, package_dir),
+                "results_path": _relative_path(structured_paths.results_path, package_dir),
+                "assessments_path": _relative_path(structured_paths.assessments_path, package_dir),
+                "findings_path": _relative_path(structured_paths.findings_path, package_dir),
+                "report_path": _relative_path(structured_paths.report_path, package_dir),
+                "report_review_path": _relative_path(structured_paths.review_path, package_dir),
+                "report_schema_version": content.schema_version,
+                "report_evidence_fingerprint": content.evidence_fingerprint,
+                "report_draft_fingerprint": structured_paths.draft_fingerprint,
             },
             deep=True,
         )
@@ -829,15 +905,248 @@ class AnalysisService:
             analysis.model_copy(
                 update={
                     "charts": charts,
-                    "review_stale": False,
-                    "exported_package_path": str(package_dir),
+                    "review_stale": not review_current,
+                    "report_target_session_id": target_session.session_id,
+                    "report_content": content,
+                    "report_reviews": reviews,
+                    "report_package_path": str(package_dir),
+                    "report_freshness": ReportFreshness(
+                        evidence=FreshnessLayer(
+                            status="current",
+                            input_fingerprint=content.evidence_fingerprint,
+                        ),
+                        review=FreshnessLayer(
+                            status="current" if review_current else "stale",
+                            input_fingerprint=content.evidence_fingerprint,
+                        ),
+                        draft=FreshnessLayer(
+                            status="current" if review_current else "stale",
+                            input_fingerprint=structured_paths.draft_fingerprint,
+                        ),
+                        export=FreshnessLayer(
+                            status="stale",
+                            input_fingerprint=analysis.report_freshness.export.input_fingerprint,
+                        ),
+                    ),
                 },
                 deep=True,
             )
         )
 
     def export_package(self, analysis: AnalysisWorkspace) -> AnalysisWorkspace:
-        return self.refresh_observations(analysis)
+        current = analysis
+        if (
+            current.report_content is None
+            or current.report_freshness.evidence.status != "current"
+        ):
+            current = self.refresh_observations(current)
+        if current.report_freshness.review.status != "current":
+            raise ValueError("Review included report claims before exporting.")
+        if current.report_freshness.draft.status != "current":
+            raise ValueError("Regenerate the current report draft before exporting.")
+        if not current.report_package_path:
+            raise ValueError("The current report package is unavailable.")
+        source = Path(current.report_package_path).resolve()
+        draft_fingerprint = current.report_freshness.draft.input_fingerprint
+        if not draft_fingerprint:
+            raise ValueError("The current report draft has no fingerprint.")
+        export_dir = self.root / "exports" / draft_fingerprint[:16]
+        if export_dir.exists():
+            if not export_dir.is_dir():
+                raise ValueError(f"Export path is not a directory: {export_dir}")
+        else:
+            export_dir.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(source, export_dir)
+        return self.save(
+            current.model_copy(
+                update={
+                    "exported_package_path": str(export_dir),
+                    "report_freshness": current.report_freshness.model_copy(
+                        update={
+                            "export": FreshnessLayer(
+                                status="current", input_fingerprint=draft_fingerprint
+                            )
+                        },
+                        deep=True,
+                    ),
+                },
+                deep=True,
+            )
+        )
+
+    def review_report_item(
+        self,
+        analysis: AnalysisWorkspace,
+        *,
+        item_id: str,
+        review_status: Literal["pending", "accepted", "edited", "rejected"],
+        evidence_fingerprint: str,
+        edited_text: str | None = None,
+    ) -> AnalysisWorkspace:
+        if analysis.report_content is None:
+            raise ValueError("Refresh report evidence before reviewing claims.")
+        claims = {
+            item.finding_id: item
+            for item in [
+                *analysis.report_content.findings,
+                *analysis.report_content.conclusions,
+            ]
+        }
+        claim = claims.get(item_id)
+        if claim is None:
+            raise ValueError(f"Unknown report item ID: {item_id}")
+        if claim.evidence_fingerprint != evidence_fingerprint:
+            raise ValueError("The report item evidence changed; refresh before reviewing.")
+        entry = ReportReviewEntry(
+            item_id=item_id,
+            reviewed_evidence_fingerprint=evidence_fingerprint,
+            review_status=review_status,
+            edited_text=edited_text,
+        )
+        reviews = [item for item in analysis.report_reviews if item.item_id != item_id]
+        reviews.append(entry)
+        reviews.sort(key=lambda item: item.item_id)
+        review_current = reviews_are_current(analysis.report_content, reviews)
+        if analysis.report_package_path:
+            _write_json(
+                Path(analysis.report_package_path) / "report-review.json",
+                [item.model_dump(mode="json") for item in reviews],
+            )
+        return self.save(
+            analysis.model_copy(
+                update={
+                    "report_reviews": reviews,
+                    "review_stale": not review_current,
+                    "report_freshness": analysis.report_freshness.model_copy(
+                        update={
+                            "review": FreshnessLayer(
+                                status="current" if review_current else "stale",
+                                input_fingerprint=analysis.report_content.evidence_fingerprint,
+                            ),
+                            "draft": FreshnessLayer(status="stale"),
+                            "export": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.export.input_fingerprint,
+                            ),
+                        },
+                        deep=True,
+                    ),
+                },
+                deep=True,
+            )
+        )
+
+    def regenerate_report_draft(self, analysis: AnalysisWorkspace) -> AnalysisWorkspace:
+        if analysis.report_content is None or not analysis.report_package_path:
+            raise ValueError("Refresh report evidence before regenerating the draft.")
+        if analysis.report_freshness.review.status != "current":
+            raise ValueError("Review included report claims before regenerating the draft.")
+        package_dir = Path(analysis.report_package_path)
+        manifest = ArtifactManifest.model_validate_json(
+            (package_dir / "manifest.json").read_text(encoding="utf-8")
+        )
+        paths = write_structured_report_package(
+            package_dir,
+            manifest,
+            analysis.report_content,
+            analysis.report_reviews,
+        )
+        manifest = manifest.model_copy(
+            update={"report_draft_fingerprint": paths.draft_fingerprint}, deep=True
+        )
+        manifest.write(package_dir / "manifest.json")
+        return self.save(
+            analysis.model_copy(
+                update={
+                    "report_freshness": analysis.report_freshness.model_copy(
+                        update={
+                            "draft": FreshnessLayer(
+                                status="current", input_fingerprint=paths.draft_fingerprint
+                            ),
+                            "export": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.export.input_fingerprint,
+                            ),
+                        },
+                        deep=True,
+                    )
+                },
+                deep=True,
+            )
+        )
+
+    def update_report_plan(
+        self,
+        analysis: AnalysisWorkspace,
+        *,
+        plan: ReportPlan,
+        evidence_fingerprint: str,
+    ) -> AnalysisWorkspace:
+        if analysis.report_content is None:
+            raise ValueError("Refresh report evidence before editing the report plan.")
+        if analysis.report_content.evidence_fingerprint != evidence_fingerprint:
+            raise ValueError("The report evidence changed; refresh before editing the plan.")
+        if plan.target_session_id != analysis.report_content.target_session_id:
+            raise ValueError("The report plan target session cannot be changed implicitly.")
+        claim_ids = {
+            item.finding_id
+            for item in [
+                *analysis.report_content.findings,
+                *analysis.report_content.conclusions,
+            ]
+        }
+        chart_ids = {
+            evidence.chart_instance_id
+            for result in analysis.report_content.results
+            for evidence in result.chart_evidence
+        }
+        for section in plan.sections:
+            referenced: set[tuple[str, str]] = set()
+            for item in section.items:
+                if item.item_type == "claim":
+                    if item.reference_id not in claim_ids:
+                        raise ValueError(
+                            f"Report plan references an unknown claim: {item.reference_id}"
+                        )
+                elif item.item_type == "chart" and item.reference_id not in chart_ids:
+                    raise ValueError(
+                        f"Report plan references an unknown chart: {item.reference_id}"
+                    )
+                reference = (item.item_type, item.reference_id)
+                if reference in referenced:
+                    raise ValueError(
+                        f"Report section references an item more than once: {item.reference_id}"
+                    )
+                referenced.add(reference)
+        content = analysis.report_content.model_copy(update={"plan": plan}, deep=True)
+        review_current = reviews_are_current(content, analysis.report_reviews)
+        if analysis.report_package_path:
+            (Path(analysis.report_package_path) / "report.json").write_text(
+                plan.model_dump_json(indent=2), encoding="utf-8"
+            )
+        return self.save(
+            analysis.model_copy(
+                update={
+                    "report_content": content,
+                    "review_stale": not review_current,
+                    "report_freshness": analysis.report_freshness.model_copy(
+                        update={
+                            "review": FreshnessLayer(
+                                status="current" if review_current else "stale",
+                                input_fingerprint=content.evidence_fingerprint,
+                            ),
+                            "draft": FreshnessLayer(status="stale"),
+                            "export": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.export.input_fingerprint,
+                            ),
+                        },
+                        deep=True,
+                    ),
+                },
+                deep=True,
+            )
+        )
 
     def save_preset(
         self,
@@ -2242,31 +2551,66 @@ def _validate_range_parameter(name: str, value: Any) -> None:
         raise ValueError(f"Parameter range start must be before end: {name}")
 
 
-def _extract_analysis_observations(
+def _report_target_session(analysis: AnalysisWorkspace) -> AnalysisSession:
+    if analysis.report_target_session_id:
+        selected = next(
+            (
+                session
+                for session in analysis.sessions
+                if session.session_id == analysis.report_target_session_id
+            ),
+            None,
+        )
+        if selected is None:
+            raise ValueError("The selected report target session no longer exists.")
+        if str(selected.session.session).strip().lower() not in {"race", "r"}:
+            raise ValueError("SPEC-009 reports require one Race session.")
+        return selected
+    races = [
+        session
+        for session in analysis.sessions
+        if str(session.session.session).strip().lower() in {"race", "r"}
+        and session.snapshot is not None
+    ]
+    if not races:
+        raise ValueError("A loaded Race session is required to build the report.")
+    return races[0]
+
+
+def _report_result_sources(
     analysis_root: Path,
     analysis: AnalysisWorkspace,
-) -> list[Observation]:
-    session = next(
-        (item for item in analysis.sessions if item.snapshot is not None),
-        None,
-    )
-    if session is None or session.snapshot is None:
-        return []
-    dataset = _read_snapshot_dataset(analysis_root, session.snapshot)
-    artifacts = [
-        ChartArtifactEntry(
-            artifact_id=chart.artifact_id or chart.chart_instance_id,
-            recipe_id=chart.recipe_id,
-            image_path=chart.image_path or "",
-            metadata_path=chart.metadata_path or "",
+    target_session_id: str,
+) -> list[ResultSource]:
+    sources: list[ResultSource] = []
+    for chart in analysis.charts:
+        if (
+            chart.generation_state != "generated"
+            or target_session_id not in chart.target_session_ids
+            or not chart.metadata_path
+        ):
+            continue
+        metadata_path = _resolve_relative_child(analysis_root, chart.metadata_path)
+        if not metadata_path.exists():
+            continue
+        try:
+            raw = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(raw, dict):
+            continue
+        sources.append(
+            ResultSource(
+                target_session_id=target_session_id,
+                chart_instance_id=chart.chart_instance_id,
+                artifact_id=chart.artifact_id,
+                title=str(raw.get("title") or chart.name),
+                image_path=chart.image_path,
+                metadata_path=chart.metadata_path,
+                metadata=raw,
+            )
         )
-        for chart in analysis.charts
-        if chart.generation_state == "generated"
-        and chart.artifact_id
-        and chart.image_path
-        and chart.metadata_path
-    ]
-    return extract_observations(dataset, artifacts)
+    return sources
 
 
 def _analysis_manifest(
@@ -2352,6 +2696,23 @@ def _resolve_relative_child(root: Path, relative_path: str) -> Path:
     except ValueError as exc:
         raise ValueError(f"Path escapes root: {relative_path}") from exc
     return candidate
+
+
+def _stale_report_freshness(current: ReportFreshness) -> ReportFreshness:
+    return ReportFreshness(
+        evidence=FreshnessLayer(
+            status="stale", input_fingerprint=current.evidence.input_fingerprint
+        ),
+        review=FreshnessLayer(
+            status="stale", input_fingerprint=current.review.input_fingerprint
+        ),
+        draft=FreshnessLayer(
+            status="stale", input_fingerprint=current.draft.input_fingerprint
+        ),
+        export=FreshnessLayer(
+            status="stale", input_fingerprint=current.export.input_fingerprint
+        ),
+    )
 
 
 def _global_preset_root() -> Path:
