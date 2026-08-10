@@ -42,6 +42,9 @@ class DriverMetadata(BaseModel):
     full_name: str | None = None
     team_name: str | None = None
     team_color: str | None = None
+    classification_position: int | None = Field(default=None, ge=1)
+    grid_position: int | None = Field(default=None, ge=0)
+    result_status: str | None = None
 
 
 class StyleColor(BaseModel):

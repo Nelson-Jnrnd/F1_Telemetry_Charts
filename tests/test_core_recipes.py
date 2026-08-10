@@ -164,7 +164,10 @@ class CoreRecipeTests(unittest.TestCase):
         )
         self.assertEqual(tyre.metadata["compounds"], ["SOFT"])
         self.assertTrue(tyre.metadata["show_pit_markers"])
-        self.assertEqual(len(tyre.vertical_markers), 1)
+        self.assertEqual(tyre.vertical_markers, [])
+        self.assertEqual(len(tyre.series), 1)
+        self.assertEqual(tyre.series[0].render_mode, "scatter")
+        self.assertEqual(tyre.series[0].label, "Pit stop")
         self.assertTrue(tyre.horizontal_bars)
         self.assertEqual(tyre.metadata["layout"], "stint_bars")
 

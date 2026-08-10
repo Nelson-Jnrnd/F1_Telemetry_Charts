@@ -1005,6 +1005,7 @@ function ChartDraftEditor({
           </div>
           {diagnostics && diagnostics.warnings.length > 0 && <WarningList warnings={diagnostics.warnings.map((item) => item.message)} />}
           {diagnostics && diagnostics.errors.length > 0 && <ErrorList errors={diagnostics.errors.map((item) => item.message)} />}
+          {diagnostics && <AnalyticalBasisSummary diagnostics={diagnostics} />}
         </div>
       )}
       <div className="mt-4">
@@ -1310,6 +1311,7 @@ function ChartEditor({
                   </div>
                   {diagnostics && diagnostics.warnings.length > 0 && <WarningList warnings={diagnostics.warnings.map((item) => item.message)} />}
                   {diagnostics && diagnostics.errors.length > 0 && <ErrorList errors={diagnostics.errors.map((item) => item.message)} />}
+                  {diagnostics && <AnalyticalBasisSummary diagnostics={diagnostics} />}
                 </div>
               )}
               <ParameterSections
@@ -3304,7 +3306,7 @@ function ParameterControl({
     );
   }
   if (field.field_type === "driver_selector") {
-    if (field.name === "reference_driver") {
+    if (["reference_driver", "focal_driver", "rival_driver"].includes(field.name)) {
       return (
         <SelectField
           label={label}
@@ -3426,6 +3428,36 @@ function ParameterControl({
     return <Field label={label} type="number" min={state.minimum ?? field.minimum ?? undefined} max={state.maximum ?? field.maximum ?? undefined} value={String(value ?? field.default ?? "")} disabled={state.disabled} error={state.error} description={state.warning ?? state.boundsLabel} onChange={(event) => setValue(numberOrNull(event.target.value))} />;
   }
   if (field.field_type === "object") {
+    if (field.name === "strategy_exclusion_policy") {
+      const policy = objectValue(value ?? field.default);
+      const options = [
+        ["exclude_first_race_lap", "Exclude race lap 1"],
+        ["exclude_pit_in_laps", "Exclude pit-in laps"],
+        ["exclude_pit_out_laps", "Exclude pit-out laps"],
+        ["exclude_deleted_laps", "Exclude deleted laps"],
+        ["exclude_generated_laps", "Exclude generated laps"],
+        ["exclude_inaccurate_laps", "Exclude inaccurate laps"],
+        ["exclude_non_green_status", "Exclude non-green track status"],
+        ["require_complete_sectors", "Require all three sectors"]
+      ] as const;
+      return (
+        <div className="grid gap-2">
+          <div className="text-sm font-medium text-ink">{label}</div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {options.map(([key, optionLabel]) => (
+              <CheckboxField
+                key={key}
+                label={optionLabel}
+                checked={Boolean(policy[key])}
+                disabled={state.disabled}
+                onCheckedChange={(checked) => setValue({ ...policy, [key]: checked })}
+              />
+            ))}
+          </div>
+          {feedback && <div className={cn("text-xs font-medium", state.error ? "text-danger" : "text-amber-700")}>{feedback}</div>}
+        </div>
+      );
+    }
     return <Field label={label} value="Structured controls only" disabled description={feedback} />;
   }
   if (field.field_type === "color") {
@@ -3511,6 +3543,28 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+function AnalyticalBasisSummary({ diagnostics }: { diagnostics: ParameterDiagnostics }) {
+  const basis = diagnostics.analytical_basis ?? {};
+  const results = diagnostics.analytical_results ?? {};
+  const items = [
+    ["Representative", basis.representative_sample_count],
+    ["Excluded", basis.excluded_sample_count],
+    ["Stints", basis.stint_count],
+    ["Category", results.value_category],
+    ["Status", results.status],
+    ["Quality", results.quality]
+  ].filter((item): item is [string, string | number] => typeof item[1] === "string" || typeof item[1] === "number");
+  if (items.length === 0) return null;
+  return (
+    <div className="grid gap-2" aria-label="Analytical basis">
+      <div className="text-xs font-semibold uppercase tracking-wide text-muted">Analytical basis</div>
+      <dl className="grid gap-2 sm:grid-cols-3">
+        {items.map(([label, value]) => <Metric key={label} label={label} value={value} />)}
+      </dl>
+    </div>
+  );
+}
+
 function LoadingBlock({ label }: { label: string }) {
   return (
     <div className="flex min-h-28 items-center justify-center rounded-md border border-line bg-slate-50 text-sm font-medium text-muted">
@@ -3574,10 +3628,16 @@ function ParameterSections({
           <div className="grid gap-3 md:grid-cols-2">
             {groupFields.map((field) => {
               const state = parameterFieldState(field, allFields, parameters, diagnostics);
+              const availableStints = Array.isArray(diagnostics?.analytical_basis.available_stints)
+                ? diagnostics.analytical_basis.available_stints.map(String)
+                : [];
+              const resolvedField = field.name === "stints" && availableStints.length > 0
+                ? { ...field, options: availableStints }
+                : field;
               return (
                 <ParameterControl
                   key={field.name}
-                  field={field}
+                  field={resolvedField}
                   value={parameterValue(parameters, field.name, field.default)}
                   drivers={drivers}
                   teams={teams}

@@ -84,3 +84,9 @@ response = update_analysis_chart_parameters(
 )
 print(response["status"])
 ```
+
+`inspect_analysis` also returns bounded `strategy_summaries` for generated
+strategy charts. They contain the schema version, analytical basis, headline
+result fields, warnings, and limitations without returning unbounded lap or
+timing streams. Value categories distinguish measured, derived, descriptive,
+and reserved estimated values.

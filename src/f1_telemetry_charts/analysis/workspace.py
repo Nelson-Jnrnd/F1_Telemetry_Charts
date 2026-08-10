@@ -219,6 +219,8 @@ class ParameterDiagnosticsView(BaseModel):
     effective_configuration: dict[str, Any] = Field(default_factory=dict)
     coverage_bounds: dict[str, Any] = Field(default_factory=dict)
     style_sources: dict[str, Any] = Field(default_factory=dict)
+    analytical_basis: dict[str, Any] = Field(default_factory=dict)
+    analytical_results: dict[str, Any] = Field(default_factory=dict)
 
 
 class AnalysisService:
@@ -241,6 +243,7 @@ class AnalysisService:
         path = _analysis_file(self.root)
         raw = json.loads(path.read_text(encoding="utf-8"))
         analysis = AnalysisWorkspace.model_validate(raw)
+        analysis = _migrate_loaded_strategy_contracts(analysis)
         return analysis.model_copy(update={"root_path": self.root}, deep=True)
 
     def save(self, analysis: AnalysisWorkspace) -> AnalysisWorkspace:
@@ -724,6 +727,10 @@ class AnalysisService:
             effective_configuration=dict(spec.metadata.get("effective_configuration", {})),
             coverage_bounds=dict(spec.metadata.get("coverage_bounds", bound_coverage)),
             style_sources=dict(spec.metadata.get("style_sources", {})),
+            analytical_basis=dict(spec.metadata.get("analytical_basis", {})),
+            analytical_results=_bounded_analytical_results(
+                spec.metadata.get("analytical_results", {})
+            ),
         )
 
     def generate_charts(
@@ -1024,6 +1031,40 @@ def normalize_chart_parameters(
         for key in ["compounds", "layout", "unknown_compound_policy"]:
             _move(parameters, analysis, key)
         _move(parameters, presentation, "show_pit_markers")
+    if recipe_id in {
+        "tyre_strategy",
+        "stint_pace",
+        "pace_evolution",
+        "compound_comparison",
+        "race_time_delta_evolution",
+        "pit_cycle_comparison",
+        "driver_battle",
+    }:
+        for key in ["stints", "focal_driver", "rival_driver"]:
+            _move(parameters, selection, key)
+        _move(parameters, filters, "strategy_exclusion_policy")
+        for key in [
+            "compounds",
+            "minimum_samples",
+            "comparison_mode",
+            "reference_driver",
+            "tyre_age_range",
+            "evolution_mode",
+            "delta_mode",
+            "pit_stop_lap",
+            "post_stop_window",
+        ]:
+            _move(parameters, analysis, key)
+        for key in [
+            "presentation_mode",
+            "x_axis_basis",
+            "context_layer",
+            "show_pit_markers",
+            "show_tyre_age_labels",
+            "show_rejoin_context",
+            "show_execution_breakdown",
+        ]:
+            _move(parameters, presentation, key)
     elif recipe_id == "position_progression":
         for key in ["invert_position_axis", "line_mode"]:
             _move(parameters, presentation, key)
@@ -1351,7 +1392,7 @@ def recipe_parameter_schema(recipe_id: str) -> RecipeParameterSchema:
             ),
             ParameterField(
                 name="layout",
-                label="Layout",
+                label="Legacy layout migration",
                 field_type="select",
                 default="stint_bars",
                 options=["stint_bars", "compound_steps"],
@@ -1371,6 +1412,63 @@ def recipe_parameter_schema(recipe_id: str) -> RecipeParameterSchema:
                 mode="advanced",
                 reset_group="analysis",
             ),
+            ParameterField(
+                name="context_layer",
+                label="Context layer",
+                field_type="select",
+                default="race_context",
+                options=["race_context", "conditions", "position", "gap"],
+                group="Strategy",
+                order=140,
+                mode="advanced",
+                reset_group="presentation",
+            ),
+            ParameterField(
+                name="show_tyre_age_labels",
+                label="Show tyre-age labels",
+                field_type="checkbox",
+                default=False,
+                group="Strategy",
+                order=150,
+                mode="advanced",
+                reset_group="presentation",
+            ),
+        ],
+        "stint_pace": [
+            ParameterField(name="stints", label="Driver stints", field_type="multi_select", default=[], group="Strategy", order=100, reset_group="selection"),
+            ParameterField(name="compounds", label="Compounds", field_type="multi_select", default=[], options=["HARD", "MEDIUM", "SOFT", "INTERMEDIATE", "WET"], group="Strategy", order=105, reset_group="analysis"),
+            ParameterField(name="presentation_mode", label="Presentation", field_type="select", default="progression", options=["progression", "consistency_summary"], group="Strategy", order=110, reset_group="presentation"),
+            ParameterField(name="x_axis_basis", label="X-axis", field_type="select", default="stint_progress", options=["stint_progress", "tyre_age", "race_lap"], group="Strategy", order=115, visible_when={"presentation_mode": "progression"}, reset_group="presentation"),
+            ParameterField(name="reference_driver", label="Same-lap reference", field_type="driver_selector", default=None, group="Strategy", order=120, mode="advanced", reset_group="analysis"),
+            ParameterField(name="minimum_samples", label="Minimum representative samples", field_type="number", default=3, minimum=1, group="Strategy", order=130, mode="advanced", reset_group="analysis"),
+        ],
+        "pace_evolution": [
+            ParameterField(name="stints", label="Driver stints", field_type="multi_select", default=[], group="Strategy", order=100, reset_group="selection"),
+            ParameterField(name="compounds", label="Compounds", field_type="multi_select", default=[], options=["HARD", "MEDIUM", "SOFT", "INTERMEDIATE", "WET"], group="Strategy", order=105, reset_group="analysis"),
+            ParameterField(name="evolution_mode", label="Evolution view", field_type="select", default="lap_time", options=["lap_time", "sector_evolution"], group="Strategy", order=110, reset_group="analysis"),
+            ParameterField(name="minimum_samples", label="Minimum representative samples", field_type="number", default=5, minimum=5, group="Strategy", order=120, mode="advanced", reset_group="analysis"),
+        ],
+        "compound_comparison": [
+            ParameterField(name="comparison_mode", label="Comparison mode", field_type="select", default="unrestricted_distribution", options=["within_driver", "matched_driver", "unrestricted_distribution"], group="Comparison", order=100, reset_group="analysis"),
+            ParameterField(name="compounds", label="Compounds", field_type="multi_select", default=[], options=["HARD", "MEDIUM", "SOFT", "INTERMEDIATE", "WET"], group="Comparison", order=110, reset_group="analysis"),
+            ParameterField(name="tyre_age_range", label="Tyre-age range", field_type="numeric_range", default=None, minimum=0, group="Comparison", order=120, mode="advanced", visible_when={"comparison_mode": ["within_driver", "matched_driver"]}, reset_group="analysis"),
+            ParameterField(name="minimum_samples", label="Minimum representative samples", field_type="number", default=5, minimum=1, group="Comparison", order=130, mode="advanced", reset_group="analysis"),
+        ],
+        "race_time_delta_evolution": [
+            ParameterField(name="focal_driver", label="Focal driver", field_type="driver_selector", required=True, default=None, group="Comparison", order=100, reset_group="selection"),
+            ParameterField(name="delta_mode", label="Delta mode", field_type="select", default="derived_cumulative_pace_delta", options=["measured_gap_change", "derived_cumulative_pace_delta"], group="Comparison", order=110, reset_group="analysis"),
+            ParameterField(name="reference_driver", label="Comparator", field_type="driver_selector", required=True, default=None, group="Comparison", order=120, reset_group="analysis"),
+        ],
+        "pit_cycle_comparison": [
+            ParameterField(name="focal_driver", label="Focal driver", field_type="driver_selector", required=True, default=None, group="Pit cycle", order=100, reset_group="selection"),
+            ParameterField(name="rival_driver", label="Rival driver", field_type="driver_selector", required=True, default=None, group="Pit cycle", order=110, reset_group="selection"),
+            ParameterField(name="pit_stop_lap", label="Focal pit-in lap", field_type="number", required=True, default=None, minimum=1, group="Pit cycle", order=120, reset_group="analysis"),
+            ParameterField(name="post_stop_window", label="Post-stop search window", field_type="number", default=3, minimum=1, maximum=5, group="Pit cycle", order=130, mode="advanced", reset_group="analysis"),
+            ParameterField(name="show_rejoin_context", label="Show rejoin context", field_type="checkbox", default=False, group="Pit cycle", order=140, mode="advanced", reset_group="presentation"),
+            ParameterField(name="show_execution_breakdown", label="Show execution breakdown", field_type="checkbox", default=False, group="Pit cycle", order=150, mode="advanced", reset_group="presentation"),
+        ],
+        "driver_battle": [
+            ParameterField(name="minimum_samples", label="Minimum representative samples", field_type="number", default=3, minimum=1, group="Battle", order=100, mode="advanced", reset_group="analysis"),
         ],
         "position_progression": [
             ParameterField(
@@ -1413,9 +1511,41 @@ def recipe_parameter_schema(recipe_id: str) -> RecipeParameterSchema:
             else field
             for field in fields
         ]
+    strategy_recipe_ids = {
+        "tyre_strategy",
+        "stint_pace",
+        "pace_evolution",
+        "compound_comparison",
+        "race_time_delta_evolution",
+        "pit_cycle_comparison",
+        "driver_battle",
+    }
+    if recipe_id in strategy_recipe_ids:
+        fields = fields + [
+            ParameterField(
+                name="strategy_exclusion_policy",
+                label="Representative-lap exclusions",
+                field_type="object",
+                default={
+                    "exclude_first_race_lap": True,
+                    "exclude_pit_in_laps": True,
+                    "exclude_pit_out_laps": True,
+                    "exclude_deleted_laps": True,
+                    "exclude_generated_laps": True,
+                    "exclude_inaccurate_laps": True,
+                    "exclude_non_green_status": True,
+                    "require_complete_sectors": False,
+                    "green_track_status_codes": ["1"],
+                },
+                group="Representative laps",
+                order=900,
+                mode="advanced",
+                reset_group="filters",
+            )
+        ]
     return RecipeParameterSchema(
         recipe_id=recipe_id,
-        schema_version=1,
+        schema_version=2 if recipe_id == "tyre_strategy" else 1,
         fields=fields,
     )
 
@@ -1464,7 +1594,49 @@ def _builtin_parameter_presets() -> list[ParameterPreset]:
             "builtin-tyre-strategy-overview",
             "tyre_strategy",
             "Tyre strategy overview",
-            {"analysis": {"layout": "stint_bars"}, "presentation": {"show_pit_markers": True}},
+            {"presentation": {"show_pit_markers": True, "context_layer": "race_context"}},
+        ),
+        (
+            "builtin-stint-pace-head-to-head",
+            "stint_pace",
+            "Stint pace head-to-head",
+            {"presentation": {"presentation_mode": "progression", "x_axis_basis": "stint_progress"}},
+        ),
+        (
+            "builtin-stint-pace-summary",
+            "stint_pace",
+            "Stint pace summary",
+            {"presentation": {"presentation_mode": "consistency_summary"}},
+        ),
+        (
+            "builtin-observed-pace-evolution",
+            "pace_evolution",
+            "Observed pace evolution",
+            {"analysis": {"evolution_mode": "lap_time", "minimum_samples": 5}},
+        ),
+        (
+            "builtin-compound-distributions",
+            "compound_comparison",
+            "Compound distributions",
+            {"analysis": {"comparison_mode": "unrestricted_distribution"}},
+        ),
+        (
+            "builtin-derived-race-pace-delta",
+            "race_time_delta_evolution",
+            "Derived cumulative pace delta",
+            {"analysis": {"delta_mode": "derived_cumulative_pace_delta"}},
+        ),
+        (
+            "builtin-pit-cycle-measured",
+            "pit_cycle_comparison",
+            "Measured pit-cycle comparison",
+            {"analysis": {"post_stop_window": 3}},
+        ),
+        (
+            "builtin-driver-battle",
+            "driver_battle",
+            "Driver battle",
+            {},
         ),
         (
             "builtin-position-progression",
@@ -1501,7 +1673,19 @@ def _builtin_parameter_presets() -> list[ParameterPreset]:
             parameters=parameters,
             created_at=created_at,
             updated_at=created_at,
-            notes="Built-in SPEC-006 analyst preset.",
+            notes=(
+                "Built-in SPEC-008 strategy preset."
+                if recipe_id in {
+                    "tyre_strategy",
+                    "stint_pace",
+                    "pace_evolution",
+                    "compound_comparison",
+                    "race_time_delta_evolution",
+                    "pit_cycle_comparison",
+                    "driver_battle",
+                }
+                else "Built-in SPEC-006 analyst preset."
+            ),
         )
         for preset_id, recipe_id, display_name, parameters in definitions
     ]
@@ -1833,7 +2017,7 @@ def _metadata_payload(metadata: RecipeMetadata) -> dict[str, Any]:
         "template_id": metadata.recipe_id,
         "recipe_id": metadata.recipe_id,
         "display_name": metadata.display_name,
-        "description": None,
+        "description": metadata.description,
         "source_type": source_type,
         "source_label": source_label,
         "required_dataset_fields": list(metadata.required_dataset_fields),
@@ -1845,6 +2029,81 @@ def _metadata_payload(metadata: RecipeMetadata) -> dict[str, Any]:
         "source": metadata.source,
         "parameter_schema": schema.model_dump(mode="json"),
     }
+
+
+def _migrate_loaded_strategy_contracts(analysis: AnalysisWorkspace) -> AnalysisWorkspace:
+    """Read legacy tyre-strategy instances through the approved v2 contract."""
+
+    charts: list[ChartInstance] = []
+    changed = False
+    target_version = recipe_parameter_schema("tyre_strategy").schema_version
+    for chart in analysis.charts:
+        if chart.recipe_id != "tyre_strategy" or chart.schema_version >= target_version:
+            charts.append(chart)
+            continue
+        normalized = normalize_chart_parameters("tyre_strategy", chart.parameters)
+        diagnostics = dict(normalized.get("diagnostics") or {})
+        diagnostics["migration"] = {
+            "from_schema_version": chart.schema_version,
+            "to_schema_version": target_version,
+            "status": "mapped",
+            "stable_recipe_id": "tyre_strategy",
+        }
+        normalized["diagnostics"] = diagnostics
+        charts.append(
+            chart.model_copy(
+                update={
+                    "parameters": normalized,
+                    "parameter_hash": _hash_payload(normalized),
+                    "schema_version": target_version,
+                    "generation_state": "stale" if chart.generation_state == "generated" else chart.generation_state,
+                    "stale": chart.generation_state == "generated" or chart.stale,
+                },
+                deep=True,
+            )
+        )
+        changed = True
+    presets = [
+        preset.model_copy(update={"schema_version": target_version}, deep=True)
+        if preset.recipe_id == "tyre_strategy" and preset.schema_version < target_version
+        else preset
+        for preset in analysis.presets
+    ]
+    if any(left is not right for left, right in zip(analysis.presets, presets)):
+        changed = True
+    if not changed:
+        return analysis
+    return analysis.model_copy(update={"charts": charts, "presets": presets}, deep=True)
+
+
+def _bounded_analytical_results(value: Any) -> dict[str, Any]:
+    """Expose deterministic headline results without returning raw sample streams."""
+
+    if not isinstance(value, dict):
+        return {}
+    headline_keys = {
+        "result_kind",
+        "value_category",
+        "value_categories",
+        "status",
+        "quality",
+        "presentation_mode",
+        "evolution_mode",
+        "comparison_mode",
+        "scalar_difference_seconds",
+        "measured_gap_change_seconds",
+        "overall_change_seconds",
+        "coverage_percentage",
+        "paired_sample_count",
+        "pit_lane_duration_seconds",
+        "panel_contract",
+        "template_version",
+        "stable_recipe_id",
+    }
+    bounded = {key: value[key] for key in sorted(value) if key in headline_keys}
+    if not bounded and "status" not in value:
+        bounded["summary_available"] = bool(value)
+    return bounded
 
 
 def _validate_parameters(schema: RecipeParameterSchema, parameters: dict[str, Any]) -> None:
@@ -1886,7 +2145,7 @@ def _validate_parameters(schema: RecipeParameterSchema, parameters: dict[str, An
         if field.field_type == "multi_select":
             if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
                 raise ValueError(f"Parameter must be a list of text values: {field.name}")
-            unsupported = sorted(set(value) - set(field.options))
+            unsupported = sorted(set(value) - set(field.options)) if field.options else []
             if unsupported:
                 raise ValueError(f"Parameter has unsupported option: {field.name}")
             continue

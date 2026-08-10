@@ -36,6 +36,7 @@ Terminal alternatives: `Superseded`, `Archived`, `Rejected`.
 | SPEC-005 | V2 Chart Templates and Parameter Presets | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-005-v2-chart-templates-and-presets.md` |
 | SPEC-006 | Analyst-Grade Chart Parameters and Renderer Semantics | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-006-analyst-grade-chart-parameters.md` |
 | SPEC-007 | Visual Track Map Range Selection and Race Playback Explorer | Implemented | Nelson Jeanrenaud | | [] | `d070f5e` | `docs/specs/implemented/SPEC-007-track-map-range-and-race-playback.md` |
+| SPEC-008 | Race Strategy and Pace Chart Templates | In Implementation | Nelson Jeanrenaud | | [] | | `docs/specs/approved/SPEC-008-race-strategy-chart-templates.md` |
 
 Requirement-level implementation and verification evidence was reconciled on
 2026-08-04. `chatbot` is the canonical delivery branch, so a PR or separate

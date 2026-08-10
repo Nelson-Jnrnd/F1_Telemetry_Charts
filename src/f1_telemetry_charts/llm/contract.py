@@ -146,6 +146,7 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
         coverage = service.coverage_bounds(analysis)
         track_map_summaries = _track_map_summaries(service, analysis)
         playback_summaries = _playback_summaries(service, analysis)
+        strategy_summaries = _strategy_summaries(service, analysis)
     except Exception as exc:
         return {
             "contract_version": CONTRACT_VERSION,
@@ -176,6 +177,7 @@ def inspect_analysis(request_json: dict[str, Any]) -> dict[str, Any]:
         "coverage_bounds": coverage,
         "track_map_summaries": track_map_summaries,
         "playback_summaries": playback_summaries,
+        "strategy_summaries": strategy_summaries,
     }
 
 
@@ -296,6 +298,73 @@ def _playback_summaries(service: AnalysisService, analysis: Any) -> list[dict[st
         payload.pop("points", None)
         payload.pop("frames", None)
         summaries.append(payload)
+    return summaries
+
+
+def _strategy_summaries(service: AnalysisService, analysis: Any) -> list[dict[str, Any]]:
+    """Return bounded data-only strategy headlines from generated artifacts."""
+
+    summaries: list[dict[str, Any]] = []
+    strategy_ids = {
+        "tyre_strategy",
+        "stint_pace",
+        "pace_evolution",
+        "compound_comparison",
+        "race_time_delta_evolution",
+        "pit_cycle_comparison",
+        "driver_battle",
+    }
+    for chart in analysis.charts:
+        if chart.recipe_id not in strategy_ids:
+            continue
+        summary: dict[str, Any] = {
+            "chart_instance_id": chart.chart_instance_id,
+            "recipe_id": chart.recipe_id,
+            "generation_state": chart.generation_state,
+        }
+        if chart.metadata_path and chart.generation_state == "generated":
+            try:
+                path = (service.root / chart.metadata_path).resolve()
+                path.relative_to(service.root.resolve())
+                metadata = json.loads(path.read_text(encoding="utf-8"))
+                results = metadata.get("analytical_results", {})
+                headline_keys = {
+                    "result_kind",
+                    "value_category",
+                    "value_categories",
+                    "status",
+                    "quality",
+                    "scalar_difference_seconds",
+                    "measured_gap_change_seconds",
+                    "overall_change_seconds",
+                    "coverage_percentage",
+                    "paired_sample_count",
+                    "pit_lane_duration_seconds",
+                    "panel_contract",
+                }
+                summary.update(
+                    {
+                        "strategy_analysis_schema_version": metadata.get(
+                            "strategy_analysis_schema_version"
+                        ),
+                        "result_kind": metadata.get("result_kind"),
+                        "analytical_basis": metadata.get("analytical_basis", {}),
+                        "headline_results": {
+                            key: results[key]
+                            for key in sorted(results)
+                            if key in headline_keys
+                        }
+                        if isinstance(results, dict)
+                        else {},
+                        "warnings": list(metadata.get("strategy_warnings", []))[:10],
+                        "limitations": list(metadata.get("strategy_limitations", []))[:10],
+                    }
+                )
+            except Exception as exc:
+                summary["diagnostics"] = [
+                    {"field": "strategy_metadata", "message": str(exc)}
+                ]
+        summaries.append(summary)
     return summaries
 
 

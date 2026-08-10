@@ -53,6 +53,9 @@ class FastF1GatewayTests(unittest.TestCase):
         self.assertEqual(dataset.metadata.event, "Bahrain Grand Prix")
         self.assertEqual(dataset.provenance.provider, "FastF1")
         self.assertEqual(dataset.drivers[0].abbreviation, "VER")
+        self.assertEqual(dataset.drivers[0].classification_position, 1)
+        self.assertEqual(dataset.drivers[0].grid_position, 1)
+        self.assertEqual(dataset.drivers[0].result_status, "Finished")
         self.assertEqual(dataset.style.driver_colors["VER"].color, "#112233")
         self.assertEqual(
             dataset.style.driver_colors["VER"].source,
@@ -453,6 +456,9 @@ class _FakeSession:
                     "FullName": "Max Verstappen",
                     "TeamName": "Red Bull Racing",
                     "TeamColor": "#3671C6",
+                    "Position": 1,
+                    "GridPosition": 1,
+                    "Status": "Finished",
                 },
                 {
                     "DriverNumber": "11",
@@ -460,6 +466,9 @@ class _FakeSession:
                     "FullName": "Sergio Perez",
                     "TeamName": "Red Bull Racing",
                     "TeamColor": "#3671C6",
+                    "Position": 2,
+                    "GridPosition": 2,
+                    "Status": "Finished",
                 }
             ]
         )

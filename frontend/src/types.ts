@@ -165,6 +165,8 @@ export type ParameterDiagnostics = {
   effective_configuration: Record<string, unknown>;
   coverage_bounds: Record<string, unknown>;
   style_sources: Record<string, unknown>;
+  analytical_basis: Record<string, unknown>;
+  analytical_results: Record<string, unknown>;
 };
 
 export type TrackMapPoint = {

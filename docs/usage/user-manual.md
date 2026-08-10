@@ -66,7 +66,17 @@ The example configuration renders:
 
 - `lap_time_delta`: lap-time comparison across selected drivers.
 - `telemetry_trace`: speed trace from normalized telemetry samples.
-- `tyre_strategy`: stint and tyre compound progression.
+- `tyre_strategy`: Strategy Timeline v2 with compound stints, pit events, and
+  race context. The stable id replaces the earlier renderer and migrates
+  supported saved parameters.
+- `stint_pace`: representative driver-stint pace and robust summaries.
+- `pace_evolution`: observed pace evolution by tyre age or stint progress; it
+  is not a causal tyre-degradation estimate.
+- `compound_comparison`: controlled descriptive compound samples.
+- `race_time_delta_evolution`: measured direct-gap change or derived cumulative
+  representative-pace delta.
+- `pit_cycle_comparison`: measured focal-versus-rival pit-cycle evidence.
+- `driver_battle`: synchronized pace, gap/position, and tyre context.
 - `position_progression`: race-position progression by lap.
 
 ## Configuration

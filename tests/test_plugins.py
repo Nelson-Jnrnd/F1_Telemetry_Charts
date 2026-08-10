@@ -107,12 +107,14 @@ def _write_plugin(path: Path, recipe_id: str = "plugin_constant_line") -> Path:
     (path / "plugin_recipe.py").write_text(
         f'''
 from f1_telemetry_charts.charts.models import ChartSpec, SeriesSpec
+from f1_telemetry_charts.strategy import derive_strategy_analysis
 
 
 class PluginConstantRecipe:
     recipe_id = "{recipe_id}"
 
     def build_spec(self, dataset, config):
+        strategy = derive_strategy_analysis(dataset)
         return ChartSpec(
             recipe_id=self.recipe_id,
             title=config.title or "Plugin constant line",
@@ -121,6 +123,7 @@ class PluginConstantRecipe:
             selected_drivers=[driver.abbreviation for driver in dataset.drivers],
             source_session=dataset.metadata.model_dump(mode="json"),
             series=[SeriesSpec(label="constant", x=[1.0, 2.0, 3.0], y=[1.0, 1.0, 1.0])],
+            metadata={{"strategy_analysis_schema_version": strategy.schema_version}},
         )
 '''.strip(),
         encoding="utf-8",

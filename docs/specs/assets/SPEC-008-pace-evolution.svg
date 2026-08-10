@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">SPEC-008 Pace Evolution head-to-head reference</title>
+  <desc id="desc">VER and PER representative samples and observed fits use one team colour with distinct markers and line styles, direct endpoint labels, a compact numerical fit summary, and an explicit stint-progress fallback.</desc>
+  <rect width="1200" height="675" fill="#f5f7fa"/>
+  <rect x="48" y="38" width="1104" height="596" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="600" y="82" text-anchor="middle" font-family="Arial" font-size="25" font-weight="700" fill="#172033">2023 Bahrain GP Race Observed Pace Evolution</text>
+  <text x="600" y="110" text-anchor="middle" font-family="Arial" font-size="13" fill="#475569">Tyre age unavailable; evolution shown against stint progress. Markers = representative samples; lines = observed fits.</text>
+  <rect x="92" y="142" width="1016" height="418" fill="#fbfcfe" stroke="#e2e8f0"/>
+  <g stroke="#e2e8f0" stroke-width="1">
+    <line x1="132" y1="205" x2="1070" y2="205"/><line x1="132" y1="285" x2="1070" y2="285"/><line x1="132" y1="365" x2="1070" y2="365"/><line x1="132" y1="445" x2="1070" y2="445"/><line x1="132" y1="525" x2="1070" y2="525"/>
+  </g>
+  <rect x="112" y="157" width="300" height="62" rx="6" fill="#ffffff" fill-opacity="0.94" stroke="#cbd5e1"/>
+  <g font-family="Arial" font-size="13" fill="#172033">
+    <text x="128" y="181">VER: +0.066 s/lap, n=11, quality=medium</text>
+    <text x="128" y="204">PER: +0.026 s/lap, n=14, quality=medium</text>
+  </g>
+  <path d="M150 486 L760 356" stroke="#3671c6" stroke-width="3" fill="none"/>
+  <path d="M150 294 L1030 250" stroke="#3671c6" stroke-width="3" stroke-dasharray="9 6" fill="none"/>
+  <g fill="#3671c6">
+    <circle cx="150" cy="505" r="5"/><circle cx="225" cy="478" r="5"/><circle cx="300" cy="488" r="5"/><circle cx="375" cy="432" r="5"/><circle cx="450" cy="455" r="5"/><circle cx="525" cy="398" r="5"/><circle cx="600" cy="420" r="5"/><circle cx="675" cy="365" r="5"/><circle cx="750" cy="382" r="5"/>
+    <rect x="145" y="274" width="10" height="10"/><rect x="215" y="305" width="10" height="10"/><rect x="285" y="250" width="10" height="10"/><rect x="355" y="316" width="10" height="10"/><rect x="425" y="263" width="10" height="10"/><rect x="495" y="296" width="10" height="10"/><rect x="565" y="238" width="10" height="10"/><rect x="635" y="278" width="10" height="10"/><rect x="705" y="232" width="10" height="10"/><rect x="775" y="286" width="10" height="10"/><rect x="845" y="220" width="10" height="10"/><rect x="915" y="270" width="10" height="10"/><rect x="985" y="218" width="10" height="10"/>
+  </g>
+  <g font-family="Arial" font-size="13" font-weight="700" fill="#3671c6">
+    <text x="772" y="360">VER</text><text x="1040" y="254">PER</text>
+  </g>
+  <g font-family="Arial" font-size="12" fill="#475569">
+    <text x="555" y="596">Stint progress lap</text>
+    <text x="63" y="410" transform="rotate(-90 63 410)">Representative lap time (s)</text>
+  </g>
+</svg>

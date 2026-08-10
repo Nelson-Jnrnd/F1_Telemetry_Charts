@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Compact Pit Rejoin and Execution reference</title>
+  <desc id="desc">One coherent pit-cycle chart with measured direct-gap endpoints, a two-driver pit window, and one compact contextual strip for rejoin state and focal pit-lane duration.</desc>
+  <rect width="1200" height="675" fill="#0b1020"/>
+  <text x="54" y="48" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="700">2023 Bahrain GP Race Pit Cycle: VER Stop 1 vs PER</text>
+  <text x="54" y="77" fill="#38bdf8" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700">VER lost 21.282 s relative to PER</text>
+
+  <rect x="54" y="102" width="1092" height="230" rx="10" fill="#111827" stroke="#334155"/>
+  <text x="72" y="130" fill="#e2e8f0" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700">MEASURED DIRECT-GAP ENDPOINTS</text>
+  <g stroke="#334155" stroke-width="1"><line x1="92" y1="286" x2="1110" y2="286"/><line x1="92" y1="218" x2="1110" y2="218"/><line x1="92" y1="150" x2="1110" y2="150"/></g>
+  <rect x="535" y="142" width="164" height="150" fill="#64748b" opacity=".18"/>
+  <g stroke-width="2"><line x1="320" y1="142" x2="320" y2="292" stroke="#64748b" stroke-dasharray="4 4"/><line x1="535" y1="142" x2="535" y2="292" stroke="#ef4444" stroke-dasharray="7 5"/><line x1="699" y1="142" x2="699" y2="292" stroke="#ef4444" stroke-dasharray="7 5"/><line x1="930" y1="142" x2="930" y2="292" stroke="#64748b" stroke-dasharray="4 4"/></g>
+  <line x1="320" y1="268" x2="930" y2="177" stroke="#94a3b8" stroke-width="3" stroke-dasharray="4 5"/>
+  <circle cx="320" cy="268" r="7" fill="#38bdf8"/><circle cx="930" cy="177" r="7" fill="#38bdf8"/>
+  <g fill="#cbd5e1" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700"><text x="286" y="157">Pre ref L13</text><text x="510" y="157" fill="#f87171">Pit-in L14</text><text x="605" y="157">Pit interval</text><text x="674" y="157" fill="#f87171">Pit-out L15</text><text x="900" y="157">Post ref L16</text></g>
+  <text x="330" y="272" fill="#38bdf8" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700">Pre −10.943 s</text><text x="920" y="169" text-anchor="end" fill="#38bdf8" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700">Post +10.339 s</text>
+
+  <rect x="54" y="350" width="1092" height="142" rx="10" fill="#111827" stroke="#334155"/>
+  <text x="72" y="378" fill="#e2e8f0" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700">PIT-CYCLE WINDOW</text>
+  <text x="78" y="419" fill="#e2e8f0" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700">VER</text><rect x="125" y="401" width="405" height="23" fill="#ef4444"/><rect x="700" y="401" width="408" height="23" fill="#ef4444"/>
+  <text x="78" y="462" fill="#e2e8f0" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="700">PER</text><rect x="125" y="444" width="983" height="23" fill="#ef4444"/>
+  <rect x="530" y="391" width="170" height="86" fill="#64748b" opacity=".18"/><line x1="530" y1="391" x2="530" y2="477" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5"/><line x1="700" y1="391" x2="700" y2="477" stroke="#ef4444" stroke-width="2" stroke-dasharray="7 5"/>
+
+  <rect x="54" y="512" width="1092" height="126" rx="10" fill="#111827" stroke="#334155"/>
+  <text x="72" y="540" fill="#e2e8f0" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700">ADDITIONAL CONTEXT</text>
+  <rect x="72" y="554" width="500" height="65" rx="8" fill="#0f172a" stroke="#334155"/><text x="90" y="575" fill="#94a3b8" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700">REJOIN CONTEXT · L15 EXACT</text><text x="90" y="594" fill="#e2e8f0" font-family="Inter,Arial,sans-serif" font-size="12">PER 11.311 s ahead · VER rejoined P2 · clean air</text><text x="90" y="611" fill="#e2e8f0" font-family="Inter,Arial,sans-serif" font-size="12">PER next stop: within 2 laps</text>
+  <rect x="592" y="554" width="536" height="65" rx="8" fill="#0f172a" stroke="#334155"/><text x="610" y="575" fill="#94a3b8" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700">MEASURED PIT-LANE DURATION</text><text x="610" y="594" fill="#e2e8f0" font-family="Inter,Arial,sans-serif" font-size="12">VER Stop 1: 24.297 s · source pit-in to pit-out timestamps</text><text x="610" y="611" fill="#64748b" font-family="Inter,Arial,sans-serif" font-size="12">Stationary time and entry/exit components unavailable</text>
+</svg>

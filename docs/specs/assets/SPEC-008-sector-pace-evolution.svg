@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">SPEC-008 Sector Pace Evolution reference</title>
+  <desc id="desc">Three vertically aligned sector panels compare VER and PER raw representative sector samples and independent observed fits using one shared scale.</desc>
+  <rect width="1200" height="900" fill="#f5f7fa"/>
+  <text x="600" y="44" text-anchor="middle" font-family="Arial" font-size="24" font-weight="700" fill="#172033">2023 Bahrain GP Race Observed Sector-Time Evolution</text>
+  <text x="600" y="70" text-anchor="middle" font-family="Arial" font-size="13" fill="#475569">VER S1 vs PER S1, Soft, tyre-age basis. Delta normalized to each driver's first representative sector sample.</text>
+  <g font-family="Arial" fill="#172033">
+    <g transform="translate(78,105)">
+      <rect width="1060" height="220" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="0" y="-10" font-size="16" font-weight="700">Sector 1: observed sector-time evolution</text>
+      <rect x="14" y="12" width="290" height="43" rx="5" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="25" y="30" font-size="11">VER: +0.013 s/lap, n=11, quality=medium</text><text x="25" y="46" font-size="11">PER: +0.015 s/lap, n=14, quality=medium</text>
+      <g stroke="#e2e8f0"><line x1="55" y1="76" x2="1020" y2="76"/><line x1="55" y1="130" x2="1020" y2="130"/><line x1="55" y1="184" x2="1020" y2="184"/></g>
+      <path d="M70 167 L730 128" fill="none" stroke="#3671c6" stroke-width="3"/><path d="M70 145 L1000 108" fill="none" stroke="#3671c6" stroke-width="3" stroke-dasharray="9 6"/>
+      <g fill="#3671c6"><circle cx="70" cy="145" r="4"/><circle cx="230" cy="170" r="4"/><circle cx="390" cy="153" r="4"/><circle cx="550" cy="140" r="4"/><circle cx="730" cy="130" r="4"/><rect x="66" y="126" width="8" height="8"/><rect x="266" y="150" width="8" height="8"/><rect x="466" y="92" width="8" height="8"/><rect x="666" y="115" width="8" height="8"/><rect x="866" y="103" width="8" height="8"/><rect x="996" y="118" width="8" height="8"/></g>
+      <text x="742" y="132" font-size="12" font-weight="700" fill="#3671c6">VER</text><text x="1010" y="112" font-size="12" font-weight="700" fill="#3671c6">PER</text>
+    </g>
+    <g transform="translate(78,385)">
+      <rect width="1060" height="220" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="0" y="-10" font-size="16" font-weight="700">Sector 2: observed sector-time evolution</text>
+      <rect x="14" y="12" width="290" height="43" rx="5" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="25" y="30" font-size="11">VER: +0.040 s/lap, n=11, quality=medium</text><text x="25" y="46" font-size="11">PER: +0.005 s/lap, n=14, quality=medium</text>
+      <g stroke="#e2e8f0"><line x1="55" y1="76" x2="1020" y2="76"/><line x1="55" y1="130" x2="1020" y2="130"/><line x1="55" y1="184" x2="1020" y2="184"/></g>
+      <path d="M70 148 L730 58" fill="none" stroke="#3671c6" stroke-width="3"/><path d="M70 136 L1000 123" fill="none" stroke="#3671c6" stroke-width="3" stroke-dasharray="9 6"/>
+      <g fill="#3671c6"><circle cx="70" cy="137" r="4"/><circle cx="230" cy="116" r="4"/><circle cx="390" cy="104" r="4"/><circle cx="550" cy="86" r="4"/><circle cx="730" cy="70" r="4"/><rect x="66" y="126" width="8" height="8"/><rect x="266" y="151" width="8" height="8"/><rect x="466" y="115" width="8" height="8"/><rect x="666" y="124" width="8" height="8"/><rect x="866" y="154" width="8" height="8"/><rect x="996" y="145" width="8" height="8"/></g>
+      <text x="742" y="62" font-size="12" font-weight="700" fill="#3671c6">VER</text><text x="1010" y="127" font-size="12" font-weight="700" fill="#3671c6">PER</text>
+    </g>
+    <g transform="translate(78,665)">
+      <rect width="1060" height="180" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="0" y="-10" font-size="16" font-weight="700">Sector 3: observed sector-time evolution</text>
+      <rect x="14" y="12" width="290" height="43" rx="5" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="25" y="30" font-size="11">VER: +0.014 s/lap, n=11, quality=medium</text><text x="25" y="46" font-size="11">PER: +0.004 s/lap, n=14, quality=medium</text>
+      <g stroke="#e2e8f0"><line x1="55" y1="76" x2="1020" y2="76"/><line x1="55" y1="126" x2="1020" y2="126"/></g>
+      <path d="M70 128 L730 101" fill="none" stroke="#3671c6" stroke-width="3"/><path d="M70 105 L1000 92" fill="none" stroke="#3671c6" stroke-width="3" stroke-dasharray="9 6"/>
+      <g fill="#3671c6"><circle cx="70" cy="105" r="4"/><circle cx="230" cy="126" r="4"/><circle cx="390" cy="119" r="4"/><circle cx="550" cy="108" r="4"/><circle cx="730" cy="100" r="4"/><rect x="66" y="96" width="8" height="8"/><rect x="266" y="82" width="8" height="8"/><rect x="466" y="88" width="8" height="8"/><rect x="666" y="75" width="8" height="8"/><rect x="866" y="100" width="8" height="8"/><rect x="996" y="96" width="8" height="8"/></g>
+      <text x="742" y="105" font-size="12" font-weight="700" fill="#3671c6">VER</text><text x="1010" y="96" font-size="12" font-weight="700" fill="#3671c6">PER</text>
+    </g>
+  </g>
+  <text x="24" y="475" transform="rotate(-90 24 475)" text-anchor="middle" font-family="Arial" font-size="13" fill="#475569">Normalized sector-time delta (s) · shared scale</text>
+  <text x="600" y="880" text-anchor="middle" font-family="Arial" font-size="13" fill="#475569">Tyre age (completed laps on set)</text>
+</svg>

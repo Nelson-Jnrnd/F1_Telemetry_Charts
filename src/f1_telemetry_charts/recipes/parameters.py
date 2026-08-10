@@ -960,7 +960,27 @@ def _apply_driver_order(
     selected_set = set(selected)
     order = _driver_order(config)
     if order in {"classification", "grid"}:
-        return [driver.abbreviation for driver in dataset.drivers if driver.abbreviation in selected_set]
+        source_index = {
+            driver.abbreviation: index for index, driver in enumerate(dataset.drivers)
+        }
+        def order_key(driver):
+            recorded = (
+                driver.classification_position
+                if order == "classification"
+                else driver.grid_position
+            )
+            return (
+                recorded is None,
+                recorded if recorded is not None else source_index[driver.abbreviation],
+                driver.abbreviation,
+            )
+        return [
+            driver.abbreviation
+            for driver in sorted(
+                (driver for driver in dataset.drivers if driver.abbreviation in selected_set),
+                key=order_key,
+            )
+        ]
     if order == "selection_order" and isinstance(requested, list):
         return [driver for driver in requested if driver in selected_set]
     if order == "custom":

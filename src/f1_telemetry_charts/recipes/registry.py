@@ -6,8 +6,16 @@ from dataclasses import dataclass
 from typing import Callable
 
 from f1_telemetry_charts.recipes.base import ChartRecipe
+from f1_telemetry_charts.recipes.compound_comparison import CompoundComparisonRecipe
+from f1_telemetry_charts.recipes.driver_battle import DriverBattleRecipe
 from f1_telemetry_charts.recipes.lap_time_delta import LapTimeDeltaRecipe
+from f1_telemetry_charts.recipes.pace_evolution import PaceEvolutionRecipe
+from f1_telemetry_charts.recipes.pit_cycle_comparison import PitCycleComparisonRecipe
 from f1_telemetry_charts.recipes.position_progression import PositionProgressionRecipe
+from f1_telemetry_charts.recipes.race_time_delta_evolution import (
+    RaceTimeDeltaEvolutionRecipe,
+)
+from f1_telemetry_charts.recipes.stint_pace import StintPaceRecipe
 from f1_telemetry_charts.recipes.telemetry_trace import TelemetryTraceRecipe
 from f1_telemetry_charts.recipes.tyre_strategy import TyreStrategyRecipe
 
@@ -19,6 +27,7 @@ class RecipeMetadata:
     required_dataset_fields: tuple[str, ...]
     output_artifact_types: tuple[str, ...] = ("png", "json")
     source: str = "core"
+    description: str | None = None
 
 
 class RecipeRegistry:
@@ -76,8 +85,45 @@ def default_recipe_registry() -> RecipeRegistry:
         ),
         RecipeMetadata(
             recipe_id="tyre_strategy",
-            display_name="Tyre strategy",
+            display_name="Strategy Timeline",
             required_dataset_fields=("laps",),
+            description="Full-race compound stints, pit events, and shared race context.",
+        ),
+        RecipeMetadata(
+            recipe_id="stint_pace",
+            display_name="Stint Pace",
+            required_dataset_fields=("laps",),
+            description="Representative lap-time progression and robust driver-stint summaries.",
+        ),
+        RecipeMetadata(
+            recipe_id="pace_evolution",
+            display_name="Pace Evolution",
+            required_dataset_fields=("laps",),
+            description="Theil-Sen observed pace evolution by tyre age or stint progress.",
+        ),
+        RecipeMetadata(
+            recipe_id="compound_comparison",
+            display_name="Compound Comparison",
+            required_dataset_fields=("laps",),
+            description="Controlled descriptive compound samples without causal offsets.",
+        ),
+        RecipeMetadata(
+            recipe_id="race_time_delta_evolution",
+            display_name="Race-Time Delta Evolution",
+            required_dataset_fields=("laps",),
+            description="Measured direct-gap change or derived cumulative representative pace delta.",
+        ),
+        RecipeMetadata(
+            recipe_id="pit_cycle_comparison",
+            display_name="Pit-Cycle Comparison",
+            required_dataset_fields=("laps",),
+            description="Measured focal-versus-rival change across one bounded stop cycle.",
+        ),
+        RecipeMetadata(
+            recipe_id="driver_battle",
+            display_name="Driver Battle",
+            required_dataset_fields=("laps",),
+            description="Synchronized representative pace, direct gap, and tyre context for two drivers.",
         ),
         RecipeMetadata(
             recipe_id="position_progression",
@@ -92,5 +138,11 @@ def default_recipe_registry() -> RecipeRegistry:
             "position_progression": PositionProgressionRecipe,
             "telemetry_trace": TelemetryTraceRecipe,
             "tyre_strategy": TyreStrategyRecipe,
+            "stint_pace": StintPaceRecipe,
+            "pace_evolution": PaceEvolutionRecipe,
+            "compound_comparison": CompoundComparisonRecipe,
+            "race_time_delta_evolution": RaceTimeDeltaEvolutionRecipe,
+            "pit_cycle_comparison": PitCycleComparisonRecipe,
+            "driver_battle": DriverBattleRecipe,
         },
     )
