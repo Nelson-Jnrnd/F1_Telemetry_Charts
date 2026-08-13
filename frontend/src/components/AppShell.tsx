@@ -34,8 +34,8 @@ export function AppShell({ page, setPage, sidebarContent, detail, children }: Ap
             : "lg:grid-cols-[280px_minmax(0,1fr)]"
       )}
     >
-      <aside className="flex min-h-0 flex-col border-b border-line bg-panel px-3 py-4 lg:h-screen lg:border-b-0 lg:border-r">
-        <div className={cn("mb-4 flex items-center gap-2", collapsed && "justify-center")}>
+      <aside className="flex min-h-0 flex-col border-b border-line bg-panel px-3 py-2 lg:h-screen lg:border-b-0 lg:border-r lg:py-4">
+        <div className={cn("mb-2 flex items-center gap-2 lg:mb-4", collapsed && "justify-center")}>
           <button
             className={cn("flex min-w-0 items-center gap-2 rounded-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent", collapsed && "justify-center")}
             onClick={() => setPage("workbench")}
@@ -58,11 +58,11 @@ export function AppShell({ page, setPage, sidebarContent, detail, children }: Ap
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto">
           {sidebarContent?.(collapsed)}
         </div>
 
-        <nav className="mt-4 grid gap-2 border-t border-line pt-4">
+        <nav className="mt-4 hidden gap-2 border-t border-line pt-4 lg:grid">
           {navItems.map((item) => (
             <button
               key={item.page}

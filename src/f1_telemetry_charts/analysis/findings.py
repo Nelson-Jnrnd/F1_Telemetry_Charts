@@ -17,6 +17,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 REPORT_CONTENT_SCHEMA_VERSION = 1
 REPORT_TEMPLATE_VERSION = 1
+PUBLICATION_PLAN_SCHEMA_VERSION = 1
+PUBLICATION_SELECTION_POLICY_ID = "race-publication-selection"
+PUBLICATION_SELECTION_POLICY_VERSION = 2
 
 ReportDisposition = Literal[
     "reportable", "context_only", "not_reportable", "unsupported", "unavailable"
@@ -34,6 +37,24 @@ ReportReviewStatus = Literal["pending", "accepted", "edited", "rejected"]
 FreshnessStatus = Literal["current", "stale", "missing"]
 OperationalReportStatus = Literal[
     "report_current", "review_required", "evidence_changed", "regenerate_draft"
+]
+MeasurementCategory = Literal["measured", "derived", "descriptive", "estimated"]
+PublicationSectionKind = Literal[
+    "headline",
+    "standfirst",
+    "at_a_glance",
+    "how_the_race_developed",
+    "pace_and_strategy",
+    "key_comparison",
+    "conclusion",
+    "methods_and_evidence",
+]
+PublicationWorkflowState = Literal[
+    "evidence_ready",
+    "editorial_work_required",
+    "review_required",
+    "publication_draft_ready",
+    "export_current",
 ]
 
 
@@ -75,6 +96,12 @@ class AnalyticalResultRecord(BaseModel):
     result_fingerprint: str
     analytical_status: str
     value_category: str | None = None
+    measurement_category: MeasurementCategory = "derived"
+    subjects: list[str] = Field(default_factory=list)
+    boundaries: dict[str, Any] = Field(default_factory=dict)
+    provenance: dict[str, Any] = Field(default_factory=dict)
+    coverage: dict[str, Any] = Field(default_factory=dict)
+    quality: dict[str, Any] = Field(default_factory=dict)
     payload: dict[str, Any]
     analytical_basis: dict[str, Any] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
@@ -176,6 +203,71 @@ class ReportPlan(BaseModel):
     sections: list[ReportPlanSection]
 
 
+class EditorialField(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    value: str = ""
+    provenance: Literal["human"] = "human"
+    dependency_fingerprints: list[str] = Field(default_factory=list)
+    review_required: bool = False
+
+
+class PublicationClaimPlacement(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    finding_id: str
+    section: PublicationSectionKind
+    included: bool = True
+    selection_mode: Literal["automatic", "explicit"] = "automatic"
+    summary_reference: str | None = None
+
+
+class PublicationChartPlacement(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_instance_id: str
+    section: PublicationSectionKind
+    purpose: str
+    finding_ids: list[str] = Field(default_factory=list)
+    result_ids: list[str] = Field(default_factory=list)
+    caption: EditorialField = Field(default_factory=EditorialField)
+    alt_text: EditorialField = Field(default_factory=EditorialField)
+    included: bool = True
+    selection_mode: Literal["automatic", "explicit"] = "automatic"
+
+
+class PublicationEditorial(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    headline: EditorialField = Field(default_factory=EditorialField)
+    standfirst: EditorialField = Field(default_factory=EditorialField)
+    section_ledes: dict[str, EditorialField] = Field(default_factory=dict)
+    conclusion: EditorialField = Field(default_factory=EditorialField)
+
+
+class PublicationPlan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: int = PUBLICATION_PLAN_SCHEMA_VERSION
+    policy_id: str = PUBLICATION_SELECTION_POLICY_ID
+    policy_version: int = PUBLICATION_SELECTION_POLICY_VERSION
+    target_session_id: str
+    section_order: list[PublicationSectionKind]
+    claims: list[PublicationClaimPlacement] = Field(default_factory=list)
+    charts: list[PublicationChartPlacement] = Field(default_factory=list)
+
+
+class PublicationReadiness(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ready: bool = False
+    state: PublicationWorkflowState = "evidence_ready"
+    next_action: str = "Add headline and standfirst"
+    blockers: list[str] = Field(default_factory=list)
+    checks: dict[str, bool] = Field(default_factory=dict)
+    package_integrity: Literal["valid", "invalid", "unchecked"] = "unchecked"
+
+
 class ReportReviewEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -205,6 +297,9 @@ class ReportFreshness(BaseModel):
 
     evidence: FreshnessLayer = Field(default_factory=FreshnessLayer)
     review: FreshnessLayer = Field(default_factory=FreshnessLayer)
+    selection: FreshnessLayer = Field(default_factory=FreshnessLayer)
+    editorial: FreshnessLayer = Field(default_factory=FreshnessLayer)
+    publication: FreshnessLayer = Field(default_factory=FreshnessLayer)
     draft: FreshnessLayer = Field(default_factory=FreshnessLayer)
     export: FreshnessLayer = Field(default_factory=FreshnessLayer)
 
@@ -239,6 +334,9 @@ class ReportContent(BaseModel):
     conclusions: list[ReportFinding]
     plan: ReportPlan
     evidence_fingerprint: str
+    publication_plan: PublicationPlan | None = None
+    publication_editorial: PublicationEditorial = Field(default_factory=PublicationEditorial)
+    publication_readiness: PublicationReadiness = Field(default_factory=PublicationReadiness)
 
 
 class ResultSource(BaseModel):
@@ -811,12 +909,23 @@ def _gap_provider(result: AnalyticalResultRecord):
         if start_lap is not None and end_lap is not None
         else "across the observed interval"
     )
+    if result.result_type == "derived_cumulative_pace_delta":
+        finding_text = (
+            f"Across the representative-lap comparison, {focal} accumulated an "
+            f"{abs(change):.3f}-second pace advantage over {benchmark} {interval_text}; "
+            "this is a derived pace total, not the elapsed race gap."
+        )
+    else:
+        finding_text = (
+            f"{focal} {direction} {abs(change):.3f} seconds relative to "
+            f"{benchmark} {interval_text}."
+        )
     finding = _finding(
         result,
         provider_id=provider_id,
         provider_version=version,
         finding_type="direct_gap_change" if result.result_type == "measured_gap_change" else "cumulative_pace_delta",
-        text=f"{focal} {direction} {abs(change):.3f} seconds relative to {benchmark} {interval_text}.",
+        text=finding_text,
         section="strategy_and_race_evolution",
         confidence="high" if payload.get("status") == "available" else "low",
         comparison_basis={
@@ -972,6 +1081,64 @@ def _driver_battle_provider(result: AnalyticalResultRecord):
     ), []
 
 
+def _session_spine_provider(result: AnalyticalResultRecord):
+    """Turn typed race chronology into governed, non-causal findings."""
+
+    provider_id, version = "race-session-spine-provider", 1
+    if result.analytical_status == "unavailable":
+        return _unavailable(result, provider_id, version)
+    summaries = {
+        "race_classification": result.payload.get("summary"),
+        "grid_to_finish_movement": result.payload.get("summary"),
+        "pit_stop_sequence": result.payload.get("summary"),
+        "neutralisation_periods": result.payload.get("summary"),
+        "retirement_status": result.payload.get("summary"),
+        "position_change_interval": result.payload.get("summary"),
+    }
+    text = summaries.get(result.result_type)
+    if not isinstance(text, str) or not text.strip():
+        return _assessment(
+            result,
+            provider_id=provider_id,
+            provider_version=version,
+            disposition="context_only",
+            reasons=["The typed chronology is retained as context without a prose claim."],
+        ), []
+    confidence: Confidence = "high" if result.quality.get("level") == "high" else "medium"
+    finding = _finding(
+        result,
+        provider_id=provider_id,
+        provider_version=version,
+        finding_type=result.result_type,
+        text=text.strip(),
+        section="strategy_and_race_evolution",
+        confidence=confidence,
+        comparison_basis={
+            "session_id": result.target_session_id,
+            "subjects": result.subjects,
+            **result.boundaries,
+        },
+        metrics={},
+        limitations=result.limitations,
+        priority={
+            "race_classification": 100,
+            "grid_to_finish_movement": 88,
+            "pit_stop_sequence": 82,
+            "neutralisation_periods": 76,
+            "retirement_status": 72,
+            "position_change_interval": 68,
+        }.get(result.result_type, 60),
+    )
+    return _assessment(
+        result,
+        provider_id=provider_id,
+        provider_version=version,
+        disposition="reportable",
+        reasons=["The typed result supports a provenance-qualified race-chronology claim."],
+        findings=[finding],
+    ), [finding]
+
+
 _register(
     FindingProviderDescriptor(
         provider_id="strategy-timeline-provider",
@@ -1056,6 +1223,26 @@ _register(
         criteria={"supported_nested_direct_gap_required": True},
     ),
     _driver_battle_provider,
+)
+_register(
+    FindingProviderDescriptor(
+        provider_id="race-session-spine-provider",
+        provider_version=1,
+        result_types=[
+            "race_classification",
+            "grid_to_finish_movement",
+            "pit_stop_sequence",
+            "neutralisation_periods",
+            "retirement_status",
+            "position_change_interval",
+        ],
+        criteria={
+            "measurement_category": "measured",
+            "causal_or_intent_language": False,
+            "partial_states_supported": True,
+        },
+    ),
+    _session_spine_provider,
 )
 
 
@@ -1330,11 +1517,19 @@ def _select_executive_claims(claims: list[ReportFinding]) -> list[ReportFinding]
     return selected[:3]
 
 
-def build_report_content(target_session_id: str, sources: Iterable[ResultSource]) -> ReportContent:
+def build_report_content(
+    target_session_id: str,
+    sources: Iterable[ResultSource],
+    additional_results: Iterable[AnalyticalResultRecord] = (),
+) -> ReportContent:
     source_values = list(sources)
     if any(source.target_session_id != target_session_id for source in source_values):
         raise ValueError("A report may contain analytical results from one target session only")
-    results = materialize_results(source_values)
+    results_by_fingerprint = {
+        result.result_fingerprint: result
+        for result in [*materialize_results(source_values), *additional_results]
+    }
+    results = sorted(results_by_fingerprint.values(), key=lambda item: item.result_fingerprint)
     assessments, findings = assess_results(results)
     conclusions = synthesize_findings(findings)
     plan = default_report_plan(target_session_id, results, findings, conclusions)
@@ -1360,6 +1555,12 @@ def build_report_content(target_session_id: str, sources: Iterable[ResultSource]
 
 def required_review_item_ids(content: ReportContent) -> set[str]:
     claims = {item.finding_id for item in [*content.findings, *content.conclusions]}
+    if content.publication_plan is not None:
+        return {
+            item.finding_id
+            for item in content.publication_plan.claims
+            if item.included and item.finding_id in claims
+        }
     return {
         item.reference_id
         for section in content.plan.sections

@@ -47,6 +47,10 @@ class PackageView(BaseModel):
     findings: list[dict[str, Any]]
     report: dict[str, Any] | None
     report_review: list[dict[str, Any]]
+    publication_plan: dict[str, Any] | None = None
+    publication_readiness: dict[str, Any] | None = None
+    article: dict[str, Any] | None = None
+    evidence: dict[str, Any] | None = None
     draft_markdown: str | None
 
 
@@ -66,12 +70,22 @@ def read_package_view(package_path: str | Path) -> PackageView:
     report_findings: list[dict[str, Any]] = []
     report: dict[str, Any] | None = None
     report_review: list[dict[str, Any]] = []
+    publication_plan: dict[str, Any] | None = None
+    article: dict[str, Any] | None = None
+    evidence: dict[str, Any] | None = None
     draft_markdown: str | None = None
 
     if manifest is not None:
         _check_artifacts(root, manifest, findings)
         draft_markdown = _read_optional_text(root, manifest.markdown_path, "draft", findings)
-        if manifest.report_schema_version is not None:
+        if manifest.article_json_path is not None:
+            article = _read_optional_json_object(
+                root, manifest.article_json_path, "article", findings
+            )
+            evidence = _read_optional_json_object(
+                root, manifest.evidence_sidecar_path, "evidence", findings
+            )
+        elif manifest.report_schema_version is not None:
             results = _read_optional_json_list(
                 root, manifest.results_path, "results", findings
             )
@@ -87,6 +101,10 @@ def read_package_view(package_path: str | Path) -> PackageView:
             report_review = _read_optional_json_list(
                 root, manifest.report_review_path, "report_review", findings
             )
+            if manifest.publication_plan_path:
+                publication_plan = _read_optional_json_object(
+                    root, manifest.publication_plan_path, "publication_plan", findings
+                )
             _check_report_links(
                 results, assessments, report_findings, report, report_review, findings
             )
@@ -113,6 +131,10 @@ def read_package_view(package_path: str | Path) -> PackageView:
         findings=report_findings,
         report=report,
         report_review=report_review,
+        publication_plan=publication_plan,
+        publication_readiness=manifest.publication_readiness if manifest else None,
+        article=article,
+        evidence=evidence,
         draft_markdown=draft_markdown,
     )
 

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -15,6 +17,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from f1_telemetry_charts.analysis.findings import (
     FreshnessLayer,
+    PublicationEditorial,
+    PublicationPlan,
     ReportContent,
     ReportFreshness,
     ReportPlan,
@@ -33,7 +37,19 @@ from f1_telemetry_charts.analysis.playback import (
     build_playback_payload,
     playback_summary,
 )
-from f1_telemetry_charts.analysis.report import write_structured_report_package
+from f1_telemetry_charts.analysis.publication import (
+    editorial_fingerprint,
+    evaluate_readiness,
+    materialize_session_spine,
+    preserve_editorial_on_refresh,
+    propose_publication_plan,
+    validate_publication_plan,
+)
+from f1_telemetry_charts.analysis.report import (
+    PUBLICATION_EXPORT_CONTRACT_VERSION,
+    write_publication_export_package,
+    write_structured_report_package,
+)
 from f1_telemetry_charts.analysis.track_map import (
     DEFAULT_TRACK_MAP_POINT_LIMIT,
     TrackMapPayload,
@@ -843,6 +859,18 @@ class AnalysisService:
                                 status="stale",
                                 input_fingerprint=analysis.report_freshness.review.input_fingerprint,
                             ),
+                            "selection": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.selection.input_fingerprint,
+                            ),
+                            "editorial": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.editorial.input_fingerprint,
+                            ),
+                            "publication": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.publication.input_fingerprint,
+                            ),
                             "draft": FreshnessLayer(
                                 status="stale",
                                 input_fingerprint=analysis.report_freshness.draft.input_fingerprint,
@@ -865,10 +893,46 @@ class AnalysisService:
         manifest = _analysis_manifest(self.root, analysis, status="succeeded")
         _materialize_package_artifacts(self.root, package_dir, manifest)
         target_session = _report_target_session(analysis)
+        if target_session.snapshot is None:
+            raise ValueError("A loaded Race session is required to build the publication report.")
+        dataset = _read_snapshot_dataset(self.root, target_session.snapshot)
         content = build_report_content(
             target_session.session_id,
             _report_result_sources(self.root, analysis, target_session.session_id),
+            materialize_session_spine(target_session.session_id, dataset),
         )
+        current_fingerprints = {item.result_fingerprint for item in content.results}
+        prior_editorial = (
+            analysis.report_content.publication_editorial
+            if analysis.report_content is not None
+            else content.publication_editorial
+        )
+        editorial = preserve_editorial_on_refresh(prior_editorial, current_fingerprints)
+        content = content.model_copy(update={"publication_editorial": editorial}, deep=True)
+        proposal = propose_publication_plan(content)
+        if analysis.report_content and analysis.report_content.publication_plan:
+            prior_charts = {
+                item.chart_instance_id: item
+                for item in analysis.report_content.publication_plan.charts
+            }
+            proposal = proposal.model_copy(
+                update={
+                    "charts": [
+                        item.model_copy(
+                            update={
+                                "caption": prior_charts[item.chart_instance_id].caption,
+                                "alt_text": prior_charts[item.chart_instance_id].alt_text,
+                            },
+                            deep=True,
+                        )
+                        if item.chart_instance_id in prior_charts
+                        else item
+                        for item in proposal.charts
+                    ]
+                },
+                deep=True,
+            )
+        content = content.model_copy(update={"publication_plan": proposal}, deep=True)
         claims = {item.finding_id: item for item in [*content.findings, *content.conclusions]}
         prior_reviews = {item.item_id: item for item in analysis.report_reviews}
         reviews = [
@@ -882,6 +946,16 @@ class AnalysisService:
             package_dir, manifest, content, reviews
         )
         review_current = reviews_are_current(content, reviews)
+        readiness = evaluate_readiness(
+            content,
+            reviews,
+            evidence_current=True,
+            review_current=review_current,
+            publication_current=review_current,
+            export_current=False,
+            package_integrity=True,
+        )
+        content = content.model_copy(update={"publication_readiness": readiness}, deep=True)
         manifest = manifest.model_copy(
             update={
                 "markdown_path": _relative_path(structured_paths.markdown_path, package_dir),
@@ -890,6 +964,16 @@ class AnalysisService:
                 "findings_path": _relative_path(structured_paths.findings_path, package_dir),
                 "report_path": _relative_path(structured_paths.report_path, package_dir),
                 "report_review_path": _relative_path(structured_paths.review_path, package_dir),
+                "publication_plan_path": (
+                    _relative_path(structured_paths.publication_plan_path, package_dir)
+                    if structured_paths.publication_plan_path else None
+                ),
+                "analyst_markdown_path": _relative_path(structured_paths.analyst_markdown_path, package_dir),
+                "evidence_sidecar_path": (
+                    _relative_path(structured_paths.evidence_sidecar_path, package_dir)
+                    if structured_paths.evidence_sidecar_path else None
+                ),
+                "publication_readiness": readiness.model_dump(mode="json"),
                 "report_schema_version": content.schema_version,
                 "report_evidence_fingerprint": content.evidence_fingerprint,
                 "report_draft_fingerprint": structured_paths.draft_fingerprint,
@@ -919,6 +1003,26 @@ class AnalysisService:
                             status="current" if review_current else "stale",
                             input_fingerprint=content.evidence_fingerprint,
                         ),
+                        selection=FreshnessLayer(
+                            status="current",
+                            input_fingerprint=content.evidence_fingerprint,
+                        ),
+                        editorial=FreshnessLayer(
+                            status="stale" if any(
+                                field.review_required
+                                for field in [
+                                    editorial.headline,
+                                    editorial.standfirst,
+                                    editorial.conclusion,
+                                    *editorial.section_ledes.values(),
+                                ]
+                            ) else "current",
+                            input_fingerprint=editorial_fingerprint(editorial, proposal),
+                        ),
+                        publication=FreshnessLayer(
+                            status="current" if review_current else "stale",
+                            input_fingerprint=structured_paths.draft_fingerprint,
+                        ),
                         draft=FreshnessLayer(
                             status="current" if review_current else "stale",
                             input_fingerprint=structured_paths.draft_fingerprint,
@@ -944,23 +1048,64 @@ class AnalysisService:
             raise ValueError("Review included report claims before exporting.")
         if current.report_freshness.draft.status != "current":
             raise ValueError("Regenerate the current report draft before exporting.")
+        if not current.report_content.publication_readiness.ready:
+            raise ValueError(
+                "Publication draft is not ready: "
+                + ", ".join(current.report_content.publication_readiness.blockers)
+            )
         if not current.report_package_path:
             raise ValueError("The current report package is unavailable.")
         source = Path(current.report_package_path).resolve()
         draft_fingerprint = current.report_freshness.draft.input_fingerprint
         if not draft_fingerprint:
             raise ValueError("The current report draft has no fingerprint.")
-        export_dir = self.root / "exports" / draft_fingerprint[:16]
+        export_dir = (
+            self.root
+            / "exports"
+            / f"{draft_fingerprint[:16]}-v{PUBLICATION_EXPORT_CONTRACT_VERSION}"
+        )
+        readiness = evaluate_readiness(
+            current.report_content,
+            current.report_reviews,
+            evidence_current=True,
+            review_current=True,
+            publication_current=True,
+            export_current=True,
+            package_integrity=True,
+        )
         if export_dir.exists():
             if not export_dir.is_dir():
                 raise ValueError(f"Export path is not a directory: {export_dir}")
+            manifest_path = export_dir / "manifest.json"
+            if not manifest_path.is_file():
+                raise ValueError(f"Existing export is incomplete: {export_dir}")
         else:
             export_dir.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(source, export_dir)
+            staging_dir = export_dir.parent / f".{export_dir.name}-{uuid4().hex}.tmp"
+            try:
+                source_manifest = ArtifactManifest.model_validate_json(
+                    (source / "manifest.json").read_text(encoding="utf-8")
+                )
+                write_publication_export_package(
+                    staging_dir,
+                    source,
+                    source_manifest,
+                    current.report_content,
+                    current.report_reviews,
+                    readiness,
+                )
+                os.replace(staging_dir, export_dir)
+            except Exception:
+                if staging_dir.exists():
+                    shutil.rmtree(staging_dir)
+                raise
         return self.save(
             current.model_copy(
                 update={
                     "exported_package_path": str(export_dir),
+                    "report_content": current.report_content.model_copy(
+                        update={"publication_readiness": readiness}, deep=True
+                    ),
                     "report_freshness": current.report_freshness.model_copy(
                         update={
                             "export": FreshnessLayer(
@@ -1007,6 +1152,18 @@ class AnalysisService:
         reviews.append(entry)
         reviews.sort(key=lambda item: item.item_id)
         review_current = reviews_are_current(analysis.report_content, reviews)
+        readiness = evaluate_readiness(
+            analysis.report_content,
+            reviews,
+            evidence_current=True,
+            review_current=review_current,
+            publication_current=False,
+            export_current=False,
+            package_integrity=True,
+        )
+        content = analysis.report_content.model_copy(
+            update={"publication_readiness": readiness}, deep=True
+        )
         if analysis.report_package_path:
             _write_json(
                 Path(analysis.report_package_path) / "report-review.json",
@@ -1016,6 +1173,7 @@ class AnalysisService:
             analysis.model_copy(
                 update={
                     "report_reviews": reviews,
+                    "report_content": content,
                     "review_stale": not review_current,
                     "report_freshness": analysis.report_freshness.model_copy(
                         update={
@@ -1024,6 +1182,7 @@ class AnalysisService:
                                 input_fingerprint=analysis.report_content.evidence_fingerprint,
                             ),
                             "draft": FreshnessLayer(status="stale"),
+                            "publication": FreshnessLayer(status="stale"),
                             "export": FreshnessLayer(
                                 status="stale",
                                 input_fingerprint=analysis.report_freshness.export.input_fingerprint,
@@ -1051,15 +1210,34 @@ class AnalysisService:
             analysis.report_content,
             analysis.report_reviews,
         )
+        readiness = evaluate_readiness(
+            analysis.report_content,
+            analysis.report_reviews,
+            evidence_current=True,
+            review_current=True,
+            publication_current=True,
+            export_current=False,
+            package_integrity=True,
+        )
+        content = analysis.report_content.model_copy(
+            update={"publication_readiness": readiness}, deep=True
+        )
         manifest = manifest.model_copy(
-            update={"report_draft_fingerprint": paths.draft_fingerprint}, deep=True
+            update={
+                "report_draft_fingerprint": paths.draft_fingerprint,
+                "publication_readiness": readiness.model_dump(mode="json"),
+            }, deep=True
         )
         manifest.write(package_dir / "manifest.json")
         return self.save(
             analysis.model_copy(
                 update={
+                    "report_content": content,
                     "report_freshness": analysis.report_freshness.model_copy(
                         update={
+                            "publication": FreshnessLayer(
+                                status="current", input_fingerprint=paths.draft_fingerprint
+                            ),
                             "draft": FreshnessLayer(
                                 status="current", input_fingerprint=paths.draft_fingerprint
                             ),
@@ -1070,6 +1248,68 @@ class AnalysisService:
                         },
                         deep=True,
                     )
+                },
+                deep=True,
+            )
+        )
+
+    def update_publication(
+        self,
+        analysis: AnalysisWorkspace,
+        *,
+        plan: PublicationPlan,
+        editorial: PublicationEditorial,
+        evidence_fingerprint: str,
+    ) -> AnalysisWorkspace:
+        if analysis.report_content is None:
+            raise ValueError("Refresh report evidence before editing publication fields.")
+        if analysis.report_content.evidence_fingerprint != evidence_fingerprint:
+            raise ValueError("The report evidence changed; refresh before editing publication fields.")
+        if analysis.report_freshness.evidence.status != "current":
+            raise ValueError("Publication fields cannot be changed against stale evidence.")
+        validate_publication_plan(analysis.report_content, plan)
+        content = analysis.report_content.model_copy(
+            update={"publication_plan": plan, "publication_editorial": editorial},
+            deep=True,
+        )
+        review_current = reviews_are_current(content, analysis.report_reviews)
+        readiness = evaluate_readiness(
+            content,
+            analysis.report_reviews,
+            evidence_current=True,
+            review_current=review_current,
+            publication_current=False,
+            export_current=False,
+            package_integrity=True,
+        )
+        content = content.model_copy(update={"publication_readiness": readiness}, deep=True)
+        return self.save(
+            analysis.model_copy(
+                update={
+                    "report_content": content,
+                    "review_stale": not review_current,
+                    "report_freshness": analysis.report_freshness.model_copy(
+                        update={
+                            "review": FreshnessLayer(
+                                status="current" if review_current else "stale",
+                                input_fingerprint=content.evidence_fingerprint,
+                            ),
+                            "selection": FreshnessLayer(
+                                status="current", input_fingerprint=content.evidence_fingerprint
+                            ),
+                            "editorial": FreshnessLayer(
+                                status="current",
+                                input_fingerprint=editorial_fingerprint(editorial, plan),
+                            ),
+                            "publication": FreshnessLayer(status="stale"),
+                            "draft": FreshnessLayer(status="stale"),
+                            "export": FreshnessLayer(
+                                status="stale",
+                                input_fingerprint=analysis.report_freshness.export.input_fingerprint,
+                            ),
+                        },
+                        deep=True,
+                    ),
                 },
                 deep=True,
             )
@@ -1121,8 +1361,9 @@ class AnalysisService:
         content = analysis.report_content.model_copy(update={"plan": plan}, deep=True)
         review_current = reviews_are_current(content, analysis.report_reviews)
         if analysis.report_package_path:
-            (Path(analysis.report_package_path) / "report.json").write_text(
-                plan.model_dump_json(indent=2), encoding="utf-8"
+            _write_json(
+                Path(analysis.report_package_path) / "report.json",
+                plan.model_dump(mode="json"),
             )
         return self.save(
             analysis.model_copy(
@@ -2261,10 +2502,10 @@ def _read_snapshot_dataset(analysis_root: Path, snapshot: DatasetSnapshot) -> Se
 
 def _write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
+    with NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as stream:
+        json.dump(payload, stream, indent=2, sort_keys=True)
+        temporary = Path(stream.name)
+    os.replace(temporary, path)
 
 
 def _hash_payload(payload: Any) -> str:
@@ -2705,6 +2946,15 @@ def _stale_report_freshness(current: ReportFreshness) -> ReportFreshness:
         ),
         review=FreshnessLayer(
             status="stale", input_fingerprint=current.review.input_fingerprint
+        ),
+        selection=FreshnessLayer(
+            status="stale", input_fingerprint=current.selection.input_fingerprint
+        ),
+        editorial=FreshnessLayer(
+            status="stale", input_fingerprint=current.editorial.input_fingerprint
+        ),
+        publication=FreshnessLayer(
+            status="stale", input_fingerprint=current.publication.input_fingerprint
         ),
         draft=FreshnessLayer(
             status="stale", input_fingerprint=current.draft.input_fingerprint

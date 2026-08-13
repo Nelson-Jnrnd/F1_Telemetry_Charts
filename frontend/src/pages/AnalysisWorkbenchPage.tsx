@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { BarChart3, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Edit3, FilePlus2, FolderOpen, Image, LineChart, Loader2, Map as MapIcon, Maximize2, Play, Plus, RefreshCw, RotateCcw, RotateCw, Save, Trash2, XCircle, ZoomIn, ZoomOut } from "lucide-react";
 import * as api from "../api";
-import type { AnalysisSession, AnalysisView, Artifact, ChartInstance, Observation, PackageView, ParameterDiagnostics, ParameterField, ParameterPreset, PlaybackMarker, PlaybackMode, PlaybackPayload, ReportClaim, ReportEvidence, ReportPlan, ReportReviewEntry, ReviewStatus, TrackMapCorner, TrackMapPayload, TrackMapPoint } from "../types";
+import type { AnalysisSession, AnalysisView, Artifact, ChartInstance, Observation, PackageView, ParameterDiagnostics, ParameterField, ParameterPreset, PlaybackMarker, PlaybackMode, PlaybackPayload, PublicationEditorial, PublicationPlan, ReportClaim, ReportEvidence, ReportPlan, ReportReviewEntry, ReviewStatus, TrackMapCorner, TrackMapPayload, TrackMapPoint } from "../types";
 import { compactPath, cn } from "../lib/utils";
 import type { SidebarRenderer } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
@@ -23,7 +23,9 @@ type AnalysisSelection =
   | { kind: "new-chart" }
   | { kind: "chart"; id: string }
   | { kind: "playback" }
-  | { kind: "review" }
+  | { kind: "story" }
+  | { kind: "evidence" }
+  | { kind: "preview" }
   | { kind: "export" };
 
 type AnalysisWorkbenchPageProps = {
@@ -97,7 +99,7 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
         setAnalysisPath(payload.analysis.root_path);
         setAnalysisName(payload.analysis.name);
         if (payload.analysis.report_package_path || payload.analysis.exported_package_path) {
-          loadExportedPackage(payload.analysis.report_package_path ?? payload.analysis.exported_package_path);
+          loadExportedPackage(payload.analysis.exported_package_path ?? payload.analysis.report_package_path);
         }
       })
       .catch(() => undefined)
@@ -570,6 +572,25 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
     }
   }
 
+  async function updatePublication(plan: PublicationPlan, editorial: PublicationEditorial) {
+    const evidenceFingerprint = analysis?.report_content?.evidence_fingerprint;
+    if (!evidenceFingerprint) return;
+    setReviewPending(true);
+    try {
+      let payload = await api.updateAnalysisPublication(plan, editorial, evidenceFingerprint);
+      if (payload.analysis.report_freshness.review.status === "current") {
+        payload = await api.regenerateAnalysisReportDraft();
+      }
+      setView(payload);
+      await loadExportedPackage(payload.analysis.report_package_path);
+      notify("Publication story saved", undefined, "success");
+    } catch (error) {
+      notify("Publication update failed", message(error), "error");
+    } finally {
+      setReviewPending(false);
+    }
+  }
+
   return (
     <div className="grid gap-4">
       <AnalysisHeader
@@ -625,7 +646,9 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
             sessions={analysis.sessions}
           />
         )}
-        {selection.kind === "review" && <ReviewEditor analysis={analysis} packageView={exportedPackage} refreshReview={refreshReview} updateObservation={updateObservation} updateReportClaim={updateReportClaim} updateReportPlan={updateReportPlan} pending={reviewPending} observationPendingActions={pendingObservationActions} />}
+        {selection.kind === "story" && <StoryEditor analysis={analysis} savePublication={updatePublication} pending={reviewPending} />}
+        {selection.kind === "evidence" && <ReviewEditor analysis={analysis} packageView={exportedPackage} refreshReview={refreshReview} updateObservation={updateObservation} updateReportClaim={updateReportClaim} updateReportPlan={updateReportPlan} pending={reviewPending} observationPendingActions={pendingObservationActions} />}
+        {selection.kind === "preview" && <PublicationPreview analysis={analysis} packageView={exportedPackage} packageLoading={packageLoading} />}
         {selection.kind === "export" && <ExportEditor analysis={analysis} packageView={exportedPackage} exportAnalysis={exportAnalysis} openArtifact={openArtifact} pending={exportPending} packageLoading={packageLoading} />}
       </div>
       <Dialog open={newAnalysisOpen} onOpenChange={setNewAnalysisOpen} title="New Analysis">
@@ -727,94 +750,116 @@ function AnalysisSidebar({
 }) {
   return (
     <nav className="grid gap-2">
-      <OutlineButton
-        active={selection.kind === "overview"}
-        label={analysis?.name ?? "Overview"}
-        icon={<BarChart3 className="h-4 w-4" />}
-        onClick={() => setSelection({ kind: "overview" })}
-        collapsed={collapsed}
-      />
-
-      <div className="mt-2 grid gap-1">
-        <GroupLabel
-          label="Sessions"
-          count={analysis?.sessions.length ?? 0}
-          open={sessionsOpen}
-          onToggle={() => setSessionsOpen(!sessionsOpen)}
+      <div className="hidden gap-2 lg:grid">
+        <OutlineButton
+          active={selection.kind === "overview"}
+          label={analysis?.name ?? "Overview"}
+          icon={<BarChart3 className="h-4 w-4" />}
+          onClick={() => setSelection({ kind: "overview" })}
           collapsed={collapsed}
         />
-        {sessionsOpen && (
-          <>
-            {analysis?.sessions.map((session) => (
+
+        <div className="mt-2 grid gap-1">
+          <GroupLabel
+            label="Sessions"
+            count={analysis?.sessions.length ?? 0}
+            open={sessionsOpen}
+            onToggle={() => setSessionsOpen(!sessionsOpen)}
+            collapsed={collapsed}
+          />
+          {sessionsOpen && (
+            <>
+              {analysis?.sessions.map((session) => (
+                <OutlineButton
+                  key={session.session_id}
+                  active={selection.kind === "session" && selection.id === session.session_id}
+                  label={session.name}
+                  status={session.load_state}
+                  icon={<BarChart3 className="h-4 w-4" />}
+                  onClick={() => setSelection({ kind: "session", id: session.session_id })}
+                  collapsed={collapsed}
+                />
+              ))}
               <OutlineButton
-                key={session.session_id}
-                active={selection.kind === "session" && selection.id === session.session_id}
-                label={session.name}
-                status={session.load_state}
-                icon={<BarChart3 className="h-4 w-4" />}
-                onClick={() => setSelection({ kind: "session", id: session.session_id })}
+                active={selection.kind === "new-session"}
+                label="Add Session"
+                icon={<Plus className="h-4 w-4" />}
+                onClick={() => setSelection({ kind: "new-session" })}
                 collapsed={collapsed}
               />
-            ))}
-            <OutlineButton
-              active={selection.kind === "new-session"}
-              label="Add Session"
-              icon={<Plus className="h-4 w-4" />}
-              onClick={() => setSelection({ kind: "new-session" })}
-              collapsed={collapsed}
-            />
-          </>
-        )}
-      </div>
+            </>
+          )}
+        </div>
 
-      <div className="mt-2 grid gap-1">
-        <GroupLabel
-          label="Charts"
-          count={analysis?.charts.length ?? 0}
-          open={chartsOpen}
-          onToggle={() => setChartsOpen(!chartsOpen)}
-          collapsed={collapsed}
-        />
-        {chartsOpen && (
-          <>
-            {analysis?.charts.map((chart) => (
+        <div className="mt-2 grid gap-1">
+          <GroupLabel
+            label="Charts"
+            count={analysis?.charts.length ?? 0}
+            open={chartsOpen}
+            onToggle={() => setChartsOpen(!chartsOpen)}
+            collapsed={collapsed}
+          />
+          {chartsOpen && (
+            <>
+              {analysis?.charts.map((chart) => (
+                <OutlineButton
+                  key={chart.chart_instance_id}
+                  active={selection.kind === "chart" && selection.id === chart.chart_instance_id}
+                  label={chart.name}
+                  status={chart.generation_state}
+                  icon={<LineChart className="h-4 w-4" />}
+                  onClick={() => setSelection({ kind: "chart", id: chart.chart_instance_id })}
+                  collapsed={collapsed}
+                />
+              ))}
               <OutlineButton
-                key={chart.chart_instance_id}
-                active={selection.kind === "chart" && selection.id === chart.chart_instance_id}
-                label={chart.name}
-                status={chart.generation_state}
-                icon={<LineChart className="h-4 w-4" />}
-                onClick={() => setSelection({ kind: "chart", id: chart.chart_instance_id })}
+                active={selection.kind === "new-chart"}
+                label="Add Chart"
+                icon={<Plus className="h-4 w-4" />}
+                onClick={() => setSelection({ kind: "new-chart" })}
+                disabled={!analysis || analysis.sessions.length === 0}
                 collapsed={collapsed}
               />
-            ))}
-            <OutlineButton
-              active={selection.kind === "new-chart"}
-              label="Add Chart"
-              icon={<Plus className="h-4 w-4" />}
-              onClick={() => setSelection({ kind: "new-chart" })}
-              disabled={!analysis || analysis.sessions.length === 0}
-              collapsed={collapsed}
-            />
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="mt-2 grid gap-1">
+      <div className="grid grid-cols-4 gap-1 lg:mt-2 lg:grid-cols-1">
+        <div className="hidden lg:block">
+          <OutlineButton
+            active={selection.kind === "playback"}
+            label="Race Playback"
+            icon={<MapIcon className="h-4 w-4" />}
+            onClick={() => setSelection({ kind: "playback" })}
+            disabled={!analysis || !analysis.sessions.some((session) => session.load_state === "loaded")}
+            collapsed={collapsed}
+          />
+        </div>
         <OutlineButton
-          active={selection.kind === "playback"}
-          label="Race Playback"
-          icon={<MapIcon className="h-4 w-4" />}
-          onClick={() => setSelection({ kind: "playback" })}
-          disabled={!analysis || !analysis.sessions.some((session) => session.load_state === "loaded")}
+          active={selection.kind === "story"}
+          label="Story"
+          status={analysis?.report_content?.publication_readiness.state}
+          icon={<Edit3 className="h-4 w-4" />}
+          onClick={() => setSelection({ kind: "story" })}
+          disabled={!analysis}
           collapsed={collapsed}
         />
         <OutlineButton
-          active={selection.kind === "review"}
-          label="Review"
+          active={selection.kind === "evidence"}
+          label="Evidence"
           status={analysis?.review_stale ? "stale" : undefined}
           icon={<ClipboardCheck className="h-4 w-4" />}
-          onClick={() => setSelection({ kind: "review" })}
+          onClick={() => setSelection({ kind: "evidence" })}
+          disabled={!analysis}
+          collapsed={collapsed}
+        />
+        <OutlineButton
+          active={selection.kind === "preview"}
+          label="Preview"
+          status={analysis?.report_freshness.publication.status}
+          icon={<Image className="h-4 w-4" />}
+          onClick={() => setSelection({ kind: "preview" })}
           disabled={!analysis}
           collapsed={collapsed}
         />
@@ -2939,6 +2984,99 @@ function formatSessionTime(value: number) {
   return `${minutes}:${seconds.toFixed(1).padStart(4, "0")}`;
 }
 
+function StoryEditor({
+  analysis,
+  savePublication,
+  pending
+}: {
+  analysis: AnalysisView["analysis"] | null;
+  savePublication: (plan: PublicationPlan, editorial: PublicationEditorial) => Promise<void>;
+  pending: boolean;
+}) {
+  const authority = analysis?.report_content;
+  const [plan, setPlan] = useState<PublicationPlan | null>(authority?.publication_plan ?? null);
+  const [editorial, setEditorial] = useState<PublicationEditorial | null>(authority?.publication_editorial ?? null);
+  useEffect(() => {
+    setPlan(authority?.publication_plan ? structuredClone(authority.publication_plan) : null);
+    setEditorial(authority?.publication_editorial ? structuredClone(authority.publication_editorial) : null);
+  }, [authority?.evidence_fingerprint, authority?.publication_plan, authority?.publication_editorial]);
+  if (!authority || !plan || !editorial) {
+    return (
+      <Panel title="Story">
+        <div className="rounded-md border border-dashed border-line bg-slate-50 p-6 text-sm text-muted">Refresh Evidence to create the publication proposal.</div>
+      </Panel>
+    );
+  }
+  const claimById = new Map([...authority.findings, ...authority.conclusions].map((claim) => [claim.finding_id, claim]));
+  const updateEditorialValue = (key: "headline" | "standfirst" | "conclusion", value: string) => {
+    setEditorial((current) => current ? { ...current, [key]: { ...current[key], value, review_required: false } } : current);
+  };
+  return (
+    <div className="grid gap-4">
+      <Panel title="Story" actions={<Button variant="primary" icon={<Save className="h-4 w-4" />} onClick={() => void savePublication(plan, editorial)} loading={pending}>Save story</Button>}>
+        <div className="grid gap-4">
+          <dl className="grid gap-3 sm:grid-cols-3">
+            <Metric label="State" value={authority.publication_readiness.state.replaceAll("_", " ")} />
+            <Metric label="Selected claims" value={plan.claims.filter((item) => item.included).length} />
+            <Metric label="Selected charts" value={plan.charts.filter((item) => item.included).length} />
+          </dl>
+          <Field label="Headline" value={editorial.headline.value} onChange={(event) => updateEditorialValue("headline", event.target.value)} aria-label="Publication headline" />
+          <TextAreaField label="Standfirst" value={editorial.standfirst.value} onChange={(event) => updateEditorialValue("standfirst", event.target.value)} aria-label="Publication standfirst" />
+          <TextAreaField label="How the Race Developed lede" value={editorial.section_ledes.how_the_race_developed?.value ?? ""} onChange={(event) => setEditorial((current) => current ? { ...current, section_ledes: { ...current.section_ledes, how_the_race_developed: { value: event.target.value, provenance: "human", dependency_fingerprints: [], review_required: false } } } : current)} />
+          <TextAreaField label="Pace and Strategy lede" value={editorial.section_ledes.pace_and_strategy?.value ?? ""} onChange={(event) => setEditorial((current) => current ? { ...current, section_ledes: { ...current.section_ledes, pace_and_strategy: { value: event.target.value, provenance: "human", dependency_fingerprints: [], review_required: false } } } : current)} />
+          <TextAreaField label="Conclusion" value={editorial.conclusion.value} onChange={(event) => updateEditorialValue("conclusion", event.target.value)} />
+        </div>
+      </Panel>
+      <Panel title="Canonical claims">
+        <div className="grid gap-3">
+          {plan.claims.map((placement, index) => {
+            const claim = claimById.get(placement.finding_id);
+            return (
+              <CheckboxField
+                key={placement.finding_id}
+                label={claim?.finding_type.replaceAll("_", " ") ?? "Claim"}
+                description={`${placement.section.replaceAll("_", " ")} · ${claim?.text ?? "Unavailable"}`}
+                checked={placement.included}
+                onCheckedChange={(included) => setPlan((current) => current ? { ...current, claims: current.claims.map((item, itemIndex) => itemIndex === index ? { ...item, included, selection_mode: "explicit" } : item) } : current)}
+              />
+            );
+          })}
+        </div>
+      </Panel>
+      <Panel title="Purposeful charts">
+        <div className="grid gap-4">
+          {plan.charts.length === 0 && <div className="rounded-md border border-dashed border-line bg-slate-50 p-6 text-sm text-muted">No useful chart was selected. A measured report remains valid.</div>}
+          {plan.charts.map((chart, index) => (
+            <section key={chart.chart_instance_id} className="grid gap-3 rounded-md border border-line p-4">
+              <CheckboxField label={chart.chart_instance_id} description={chart.purpose} checked={chart.included} onCheckedChange={(included) => setPlan((current) => current ? { ...current, charts: current.charts.map((item, itemIndex) => itemIndex === index ? { ...item, included, selection_mode: "explicit" } : item) } : current)} />
+              <Field label="Purpose" value={chart.purpose} onChange={(event) => setPlan((current) => current ? { ...current, charts: current.charts.map((item, itemIndex) => itemIndex === index ? { ...item, purpose: event.target.value, selection_mode: "explicit" } : item) } : current)} />
+              <TextAreaField label="Caption" value={chart.caption.value} onChange={(event) => setPlan((current) => current ? { ...current, charts: current.charts.map((item, itemIndex) => itemIndex === index ? { ...item, caption: { ...item.caption, value: event.target.value, review_required: false } } : item) } : current)} />
+              <TextAreaField label="Alt text" value={chart.alt_text.value} onChange={(event) => setPlan((current) => current ? { ...current, charts: current.charts.map((item, itemIndex) => itemIndex === index ? { ...item, alt_text: { ...item.alt_text, value: event.target.value, review_required: false } } : item) } : current)} />
+            </section>
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function PublicationPreview({ analysis, packageView, packageLoading }: { analysis: AnalysisView["analysis"] | null; packageView: PackageView | null; packageLoading: boolean }) {
+  const readiness = analysis?.report_content?.publication_readiness;
+  return (
+    <div className="grid gap-4">
+      <Panel title="Preview" actions={readiness && <StatusBadge value={readiness.state} />}>
+        <dl className="grid gap-3 sm:grid-cols-3">
+          <Metric label="Readiness" value={readiness?.ready ? "Publication draft ready" : "Not ready"} />
+          <Metric label="Next action" value={readiness?.next_action ?? "Refresh evidence"} />
+          <Metric label="Package integrity" value={readiness?.package_integrity ?? "unchecked"} />
+        </dl>
+        {readiness && readiness.blockers.length > 0 && <div className="mt-4"><WarningList warnings={readiness.blockers} /></div>}
+      </Panel>
+      {packageLoading ? <LoadingBlock label="Loading preview" /> : <DraftPreview markdown={packageView?.draft_markdown ?? null} />}
+    </div>
+  );
+}
+
 function ReviewEditor({
   analysis,
   packageView,
@@ -3734,7 +3872,7 @@ function OutlineButton({
         <span className="shrink-0">{icon}</span>
         {!collapsed && <span className="truncate">{label}</span>}
       </span>
-      {!collapsed && status && <span className="shrink-0 rounded border border-line px-1.5 py-0.5 text-[11px]">{status}</span>}
+      {!collapsed && status && <span className="hidden shrink-0 rounded border border-line px-1.5 py-0.5 text-[11px] lg:inline">{status}</span>}
     </button>
   );
 }

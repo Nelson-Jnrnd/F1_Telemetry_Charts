@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import os
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Literal
 from typing import Any
 
@@ -48,11 +50,16 @@ class ArtifactManifest(BaseModel):
     observations_path: str | None = None
     review_path: str | None = None
     markdown_path: str | None = None
+    article_json_path: str | None = None
     results_path: str | None = None
     assessments_path: str | None = None
     findings_path: str | None = None
     report_path: str | None = None
     report_review_path: str | None = None
+    publication_plan_path: str | None = None
+    analyst_markdown_path: str | None = None
+    evidence_sidecar_path: str | None = None
+    publication_readiness: dict[str, Any] | None = None
     report_schema_version: int | None = None
     report_evidence_fingerprint: str | None = None
     report_draft_fingerprint: str | None = None
@@ -65,7 +72,7 @@ class ArtifactManifest(BaseModel):
 
     def write(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            self.model_dump_json(indent=2),
-            encoding="utf-8",
-        )
+        with NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as stream:
+            stream.write(self.model_dump_json(indent=2))
+            temporary = Path(stream.name)
+        os.replace(temporary, path)

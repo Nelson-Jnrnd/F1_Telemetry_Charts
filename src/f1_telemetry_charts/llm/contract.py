@@ -385,6 +385,29 @@ def _report_summary(analysis: Any, *, maximum_items: int = 100) -> dict[str, Any
         "target_session_id": content.target_session_id,
         "evidence_fingerprint": content.evidence_fingerprint,
         "freshness": analysis.report_freshness.model_dump(mode="json"),
+        "publication": {
+            "readiness": content.publication_readiness.model_dump(mode="json"),
+            "policy": (
+                {
+                    "policy_id": content.publication_plan.policy_id,
+                    "policy_version": content.publication_plan.policy_version,
+                    "section_order": content.publication_plan.section_order,
+                    "selected_claim_count": len(
+                        [item for item in content.publication_plan.claims if item.included]
+                    ),
+                    "selected_chart_count": len(
+                        [item for item in content.publication_plan.charts if item.included]
+                    ),
+                }
+                if content.publication_plan is not None
+                else None
+            ),
+            "editorial_fields_present": {
+                "headline": bool(content.publication_editorial.headline.value.strip()),
+                "standfirst": bool(content.publication_editorial.standfirst.value.strip()),
+                "conclusion": bool(content.publication_editorial.conclusion.value.strip()),
+            },
+        },
         "truncated": (
             len(content.findings) + len(content.conclusions) > maximum_items
             or len(content.assessments) > maximum_items

@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from f1_telemetry_charts.analysis.findings import EditorialField, PublicationEditorial
 from f1_telemetry_charts.analysis.workspace import (
     AnalysisService,
     recipe_parameter_schema,
@@ -1069,9 +1070,49 @@ class StrategyAnalysisTests(unittest.TestCase):
             self.assertTrue(all(chart.generation_state == "generated" for chart in analysis.charts))
             analysis = service.refresh_observations(analysis)
             self.assertIsNotNone(analysis.report_content)
-            self.assertEqual(len(analysis.report_content.results), 7)
+            self.assertEqual(len(analysis.report_content.results), 13)
+            self.assertTrue(
+                {
+                    "race_classification",
+                    "grid_to_finish_movement",
+                    "pit_stop_sequence",
+                    "neutralisation_periods",
+                    "retirement_status",
+                    "position_change_interval",
+                }
+                <= {item.result_type for item in analysis.report_content.results}
+            )
             with self.assertRaisesRegex(ValueError, "Review included report claims"):
                 service.export_package(analysis)
+            publication_plan = analysis.report_content.publication_plan.model_copy(
+                update={
+                    "charts": [
+                        chart.model_copy(
+                            update={
+                                "caption": EditorialField(value="The selected comparison highlights the main pace difference across the reviewed interval."),
+                                "alt_text": EditorialField(value="Line chart with two driver traces plotted across the reviewed race interval and labelled at their endpoints."),
+                            },
+                            deep=True,
+                        )
+                        for chart in analysis.report_content.publication_plan.charts
+                    ]
+                },
+                deep=True,
+            )
+            analysis = service.update_publication(
+                analysis,
+                plan=publication_plan,
+                editorial=PublicationEditorial(
+                    headline=EditorialField(value="Verstappen leads Bahrain as the field order changes"),
+                    standfirst=EditorialField(value="Verstappen led the Bahrain finish while the reviewed chronology and pace evidence defined the main race story."),
+                    section_ledes={
+                        "how_the_race_developed": EditorialField(value="The classified order, field recovery and neutralised phase establish the race chronology."),
+                        "pace_and_strategy": EditorialField(value="The representative-lap comparisons then show how the leading pair differed on pace."),
+                    },
+                    conclusion=EditorialField(value="The reviewed chronology and representative pace evidence support this final account."),
+                ),
+                evidence_fingerprint=analysis.report_content.evidence_fingerprint,
+            )
             for claim in [
                 *analysis.report_content.findings,
                 *analysis.report_content.conclusions,

@@ -1,0 +1,838 @@
+"""Race-session publication planning built on the SPEC-009 report authority."""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterable
+from typing import Any
+
+from f1_telemetry_charts.analysis.findings import (
+    AnalyticalResultRecord,
+    EditorialField,
+    MeasurementCategory,
+    PublicationChartPlacement,
+    PublicationClaimPlacement,
+    PublicationEditorial,
+    PublicationPlan,
+    PublicationReadiness,
+    ReportContent,
+    ReportFinding,
+    ReportReviewEntry,
+    canonical_fingerprint,
+    stable_id,
+)
+from f1_telemetry_charts.data import SessionDataset
+
+
+PUBLICATION_SECTION_ORDER = [
+    "headline",
+    "standfirst",
+    "at_a_glance",
+    "how_the_race_developed",
+    "pace_and_strategy",
+    "key_comparison",
+    "conclusion",
+    "methods_and_evidence",
+]
+SESSION_SPINE_TYPES = (
+    "race_classification",
+    "grid_to_finish_movement",
+    "pit_stop_sequence",
+    "neutralisation_periods",
+    "retirement_status",
+    "position_change_interval",
+)
+
+
+def materialize_session_spine(
+    target_session_id: str, dataset: SessionDataset
+) -> list[AnalyticalResultRecord]:
+    """Materialize the six versioned chronology results for one Race."""
+
+    if dataset.metadata.session.strip().lower() not in {"race", "r"}:
+        raise ValueError(
+            "Publication reports support Race sessions only; the selected session is unsupported."
+        )
+    provenance = {
+        "provider": dataset.provenance.provider,
+        "cache_status": dataset.provenance.cache_status,
+        "source_path": str(dataset.provenance.source_path) if dataset.provenance.source_path else None,
+        "fetched_from_network": dataset.provenance.fetched_from_network,
+    }
+    laps_by_driver: dict[str, list[Any]] = {}
+    for lap in dataset.laps:
+        laps_by_driver.setdefault(lap.driver, []).append(lap)
+    for laps in laps_by_driver.values():
+        laps.sort(key=lambda item: item.lap_number)
+
+    driver_rows = []
+    for driver in dataset.drivers:
+        laps = laps_by_driver.get(driver.abbreviation, [])
+        final_position = driver.classification_position
+        classification_source = "official"
+        if final_position is None:
+            final_position = next((lap.position for lap in reversed(laps) if lap.position), None)
+            classification_source = (
+                "last_recorded_lap" if final_position is not None else "unavailable"
+            )
+        grid_position = driver.grid_position
+        grid_source = "official"
+        grid_context = "pit_lane" if grid_position == 0 else "grid_slot"
+        if grid_position is None:
+            grid_position = next((lap.position for lap in laps if lap.position), None)
+            grid_source = "first_recorded_lap" if grid_position is not None else "unavailable"
+            grid_context = "recorded_running_position" if grid_position is not None else "unavailable"
+        driver_rows.append(
+            {
+                "driver": driver.abbreviation,
+                "full_name": driver.full_name,
+                "team": driver.team_name,
+                "classification_position": final_position,
+                "classification_source": classification_source,
+                "grid_position": grid_position,
+                "grid_source": grid_source,
+                "grid_context": grid_context,
+                "status": driver.result_status,
+            }
+        )
+    classified = sorted(
+        (row for row in driver_rows if row["classification_position"] is not None),
+        key=lambda row: (row["classification_position"], row["driver"]),
+    )
+    classification_summary = _classification_summary(classified)
+    inferred_classification = any(
+        row["classification_source"] == "last_recorded_lap" for row in classified
+    )
+    classification_limitations = []
+    if inferred_classification:
+        classification_limitations.append(
+            "Official classification was unavailable for one or more drivers; substituted positions are the last recorded running order."
+        )
+    if len(classified) != len(dataset.drivers):
+        classification_limitations.append("Classification coverage is partial.")
+    classification = _record(
+        target_session_id,
+        "race_classification",
+        payload={"entries": driver_rows, "summary": classification_summary},
+        subjects=[row["driver"] for row in driver_rows],
+        boundaries={
+            "start": "race_start",
+            "end": "last_recorded_running_order" if inferred_classification else "official_classification",
+        },
+        provenance=provenance,
+        coverage={"available": len(classified), "expected": len(dataset.drivers)},
+        quality=_quality(len(classified), len(dataset.drivers), inferred=inferred_classification),
+        status=_availability(classified, len(classified) == len(dataset.drivers)),
+        limitations=classification_limitations,
+        measurement_category="derived" if inferred_classification else "measured",
+    )
+
+    movements = [
+        {
+            "driver": row["driver"],
+            "full_name": row["full_name"],
+            "grid_position": row["grid_position"],
+            "finish_position": row["classification_position"],
+            "places": row["grid_position"] - row["classification_position"],
+            "grid_source": row["grid_source"],
+            "finish_source": row["classification_source"],
+        }
+        for row in driver_rows
+        if row["grid_position"] is not None
+        and row["grid_position"] > 0
+        and row["classification_position"] is not None
+    ]
+    movements.sort(key=lambda row: (-abs(row["places"]), row["driver"]))
+    pit_lane_starters = [
+        row["driver"] for row in driver_rows if row["grid_context"] == "pit_lane"
+    ]
+    movement_limitations = []
+    if any(row["grid_source"] != "official" for row in movements):
+        movement_limitations.append(
+            "Some grid positions use the first recorded race lap because official grid data was unavailable."
+        )
+    if any(row["finish_source"] != "official" for row in movements):
+        movement_limitations.append(
+            "Some finish positions use the last recorded running order because official classification was unavailable."
+        )
+    if pit_lane_starters:
+        movement_limitations.append(
+            "Pit-lane starters are contextual and excluded from grid-position arithmetic."
+        )
+    movement = _record(
+        target_session_id,
+        "grid_to_finish_movement",
+        payload={
+            "entries": movements,
+            "pit_lane_starters": pit_lane_starters,
+            "summary": _movement_summary(movements),
+        },
+        subjects=[row["driver"] for row in movements],
+        boundaries={"start": "grid", "end": "classified_finish"},
+        provenance=provenance,
+        coverage={
+            "available": len(movements),
+            "expected": len(dataset.drivers) - len(pit_lane_starters),
+            "pit_lane_starters": len(pit_lane_starters),
+        },
+        quality=_quality(
+            len(movements),
+            len(dataset.drivers) - len(pit_lane_starters),
+            inferred=any(
+                row["grid_source"] != "official" or row["finish_source"] != "official"
+                for row in movements
+            ),
+        ),
+        status=_availability(
+            movements,
+            len(movements) + len(pit_lane_starters) == len(dataset.drivers),
+        ),
+        limitations=movement_limitations,
+        measurement_category=(
+            "derived"
+            if any(
+                row["grid_source"] != "official" or row["finish_source"] != "official"
+                for row in movements
+            )
+            else "measured"
+        ),
+    )
+
+    stops = []
+    for driver, laps in sorted(laps_by_driver.items()):
+        for lap in laps:
+            if lap.is_pit_in_lap or lap.is_pit_out_lap or lap.pit_in_time_seconds is not None or lap.pit_out_time_seconds is not None:
+                stops.append(
+                    {
+                        "driver": driver,
+                        "full_name": next(
+                            (
+                                row["full_name"]
+                                for row in driver_rows
+                                if row["driver"] == driver
+                            ),
+                            driver,
+                        ),
+                        "lap": lap.lap_number,
+                        "pit_in": lap.is_pit_in_lap or lap.pit_in_time_seconds is not None,
+                        "pit_out": lap.is_pit_out_lap or lap.pit_out_time_seconds is not None,
+                        "pit_in_time_seconds": lap.pit_in_time_seconds,
+                        "pit_out_time_seconds": lap.pit_out_time_seconds,
+                    }
+                )
+    stops.sort(key=lambda row: (row["lap"], row["driver"], not row["pit_in"]))
+    pit_sequence = _record(
+        target_session_id,
+        "pit_stop_sequence",
+        payload={"events": stops, "summary": _pit_summary(stops)},
+        subjects=sorted(laps_by_driver),
+        boundaries={"start_lap": 1, "end_lap": max((lap.lap_number for lap in dataset.laps), default=None)},
+        provenance=provenance,
+        coverage={"lap_records": len(dataset.laps)},
+        quality={"level": "high" if dataset.laps else "unavailable"},
+        status="available" if dataset.laps else "unavailable",
+        limitations=[],
+    )
+
+    neutralisation_laps: dict[int, set[str]] = {}
+    track_status_covered = 0
+    for lap in dataset.laps:
+        if lap.track_status is None:
+            continue
+        track_status_covered += 1
+        labels = _neutralisation_labels(lap.track_status)
+        if labels:
+            neutralisation_laps.setdefault(lap.lap_number, set()).update(labels)
+    periods = _periods(neutralisation_laps)
+    neutralisations = _record(
+        target_session_id,
+        "neutralisation_periods",
+        payload={"periods": periods, "summary": _neutralisation_summary(periods)},
+        subjects=[],
+        boundaries={"start_lap": 1, "end_lap": max((lap.lap_number for lap in dataset.laps), default=None)},
+        provenance=provenance,
+        coverage={"track_status_laps": track_status_covered, "lap_records": len(dataset.laps)},
+        quality={"level": "high" if track_status_covered == len(dataset.laps) and dataset.laps else "medium" if track_status_covered else "unavailable"},
+        status="available" if track_status_covered else "unavailable",
+        limitations=[] if track_status_covered == len(dataset.laps) else ["Neutralisation coverage is partial or unavailable."],
+    )
+
+    statuses = [
+        {
+            "driver": row["driver"],
+            "status": row["status"],
+            "finish_category": _finish_category(row["status"]),
+        }
+        for row in driver_rows
+        if row["status"]
+    ]
+    retirements = _record(
+        target_session_id,
+        "retirement_status",
+        payload={"entries": statuses, "summary": _retirement_summary(statuses)},
+        subjects=[row["driver"] for row in statuses],
+        boundaries={"end": "classified_finish"},
+        provenance=provenance,
+        coverage={"available": len(statuses), "expected": len(dataset.drivers)},
+        quality=_quality(len(statuses), len(dataset.drivers)),
+        status=_availability(statuses, len(statuses) == len(dataset.drivers)),
+        limitations=[] if len(statuses) == len(dataset.drivers) else ["Official result-status coverage is partial or unavailable."],
+    )
+
+    intervals = []
+    for driver, laps in sorted(laps_by_driver.items()):
+        positioned = [lap for lap in laps if lap.position is not None]
+        if not positioned:
+            continue
+        intervals.append(
+            {
+                "driver": driver,
+                "start_lap": positioned[0].lap_number,
+                "start_position": positioned[0].position,
+                "end_lap": positioned[-1].lap_number,
+                "end_position": positioned[-1].position,
+                "places": positioned[0].position - positioned[-1].position,
+            }
+        )
+    intervals.sort(key=lambda row: (-abs(row["places"]), row["driver"]))
+    position_intervals = _record(
+        target_session_id,
+        "position_change_interval",
+        payload={"intervals": intervals, "summary": _position_interval_summary(intervals)},
+        subjects=[row["driver"] for row in intervals],
+        boundaries={"basis": "first_to_last_recorded_position"},
+        provenance=provenance,
+        coverage={"available": len(intervals), "expected": len(laps_by_driver)},
+        quality=_quality(len(intervals), len(laps_by_driver)),
+        status=_availability(intervals, len(intervals) == len(laps_by_driver)),
+        limitations=[] if len(intervals) == len(laps_by_driver) else ["Position interval coverage is partial."],
+    )
+    return sorted(
+        [classification, movement, pit_sequence, neutralisations, retirements, position_intervals],
+        key=lambda item: item.result_type,
+    )
+
+
+def propose_publication_plan(content: ReportContent) -> PublicationPlan:
+    """Apply the named deterministic selection policy to current evidence."""
+
+    all_claims = sorted(
+        [*content.findings, *content.conclusions],
+        key=lambda item: (-item.priority, item.finding_id),
+    )
+    result_by_id = {result.result_id: result for result in content.results}
+    synthesis_components = {
+        finding_id
+        for claim in content.conclusions
+        if _claim_eligible(claim, result_by_id)
+        for finding_id in claim.supporting_finding_ids
+    }
+    eligible = [
+        claim
+        for claim in all_claims
+        if claim.finding_id not in synthesis_components
+        and _claim_eligible(claim, result_by_id)
+        and _publication_default_included(claim, result_by_id)
+    ]
+    chronology_order = {
+        "race_classification": 0,
+        "grid_to_finish_movement": 1,
+        "neutralisation_periods": 2,
+    }
+    eligible.sort(
+        key=lambda item: (
+            0 if item.finding_type in chronology_order else 1,
+            chronology_order.get(item.finding_type, 99),
+            -item.priority,
+            item.finding_id,
+        )
+    )
+    placements: list[PublicationClaimPlacement] = []
+    for claim in eligible:
+        section = _publication_section(claim)
+        if section == "key_comparison" and claim.finding_kind != "conclusion":
+            section = "pace_and_strategy"
+        placements.append(
+            PublicationClaimPlacement(
+                finding_id=claim.finding_id,
+                section=section,
+                summary_reference=(
+                    _summary_reference(claim, result_by_id)
+                    if claim.finding_type in chronology_order
+                    else None
+                ),
+            )
+        )
+
+    candidate_charts: list[PublicationChartPlacement] = []
+    used_primary_results: set[str] = set()
+    for claim in eligible:
+        primary_result = claim.result_ids[0] if claim.result_ids else ""
+        for evidence in sorted(claim.evidence, key=lambda item: item.chart_instance_id):
+            if not evidence.image_path or primary_result in used_primary_results:
+                continue
+            candidate_charts.append(
+                PublicationChartPlacement(
+                    chart_instance_id=evidence.chart_instance_id,
+                    section=_publication_section(claim),
+                    purpose=_chart_purpose(claim),
+                    finding_ids=[claim.finding_id],
+                    result_ids=claim.result_ids,
+                )
+            )
+            used_primary_results.add(primary_result)
+            break
+        if len(candidate_charts) >= 4:
+            break
+    return PublicationPlan(
+        target_session_id=content.target_session_id,
+        section_order=list(PUBLICATION_SECTION_ORDER),
+        claims=placements,
+        charts=candidate_charts,
+    )
+
+
+def validate_publication_plan(content: ReportContent, plan: PublicationPlan) -> None:
+    if plan.schema_version != 1 or plan.policy_version != 2:
+        raise ValueError("Unsupported publication plan or selection policy version.")
+    if plan.target_session_id != content.target_session_id:
+        raise ValueError("The publication target session cannot be changed implicitly.")
+    if plan.section_order != PUBLICATION_SECTION_ORDER:
+        raise ValueError("Publication sections must use the approved article order.")
+    claim_ids = {item.finding_id for item in [*content.findings, *content.conclusions]}
+    seen_claims: set[str] = set()
+    for placement in plan.claims:
+        if placement.finding_id not in claim_ids:
+            raise ValueError(f"Publication plan references an unknown claim: {placement.finding_id}")
+        if placement.included and placement.finding_id in seen_claims:
+            raise ValueError("A claim may have only one canonical detailed placement.")
+        if placement.included:
+            seen_claims.add(placement.finding_id)
+        if placement.summary_reference and re.search(r"\d", placement.summary_reference):
+            raise ValueError("At a Glance references cannot introduce numeric assertions.")
+    chart_ids = {
+        evidence.chart_instance_id
+        for result in content.results
+        for evidence in result.chart_evidence
+    }
+    included_charts = [chart for chart in plan.charts if chart.included]
+    for chart in included_charts:
+        if chart.chart_instance_id not in chart_ids:
+            raise ValueError(f"Publication plan references an unknown chart: {chart.chart_instance_id}")
+        if not chart.purpose.strip():
+            raise ValueError("Every included chart requires an editorial purpose.")
+    automatic = [chart for chart in included_charts if chart.selection_mode == "automatic"]
+    if len(automatic) > 4:
+        raise ValueError("More than four charts requires explicit inclusion.")
+    primary = [chart.result_ids[0] for chart in automatic if chart.result_ids]
+    if len(primary) != len(set(primary)):
+        raise ValueError("Automatic chart selection cannot repeat the same primary result.")
+
+
+def evaluate_readiness(
+    content: ReportContent,
+    reviews: Iterable[ReportReviewEntry],
+    *,
+    evidence_current: bool,
+    review_current: bool,
+    publication_current: bool,
+    export_current: bool,
+    package_integrity: bool,
+) -> PublicationReadiness:
+    plan = content.publication_plan or propose_publication_plan(content)
+    editorial = content.publication_editorial
+    review_by_id = {item.item_id: item for item in reviews}
+    included_claims = [item for item in plan.claims if item.included]
+    included_charts = [item for item in plan.charts if item.included]
+    race_development_required = any(
+        item.section == "how_the_race_developed" for item in included_claims
+    ) or any(item.section == "how_the_race_developed" for item in included_charts)
+    pace_strategy_required = any(
+        item.section == "pace_and_strategy" for item in included_claims
+    ) or any(item.section == "pace_and_strategy" for item in included_charts)
+    checks = {
+        "session_spine_current": evidence_current
+        and set(SESSION_SPINE_TYPES) <= {result.result_type for result in content.results},
+        "included_evidence_current": evidence_current,
+        "included_claims_reviewed": review_current
+        and all(
+            placement.finding_id in review_by_id
+            and review_by_id[placement.finding_id].review_status in {"accepted", "edited"}
+            for placement in included_claims
+        ),
+        "editorial_headline": _headline_is_editorial(editorial.headline.value),
+        "publication_standfirst": _minimum_words(editorial.standfirst.value, 15),
+        "race_development_lede": not race_development_required or _minimum_words(
+            editorial.section_ledes.get("how_the_race_developed", EditorialField()).value,
+            8,
+        ),
+        "pace_strategy_lede": not pace_strategy_required or _minimum_words(
+            editorial.section_ledes.get("pace_and_strategy", EditorialField()).value,
+            8,
+        ),
+        "conclusion_present": _minimum_words(editorial.conclusion.value, 8),
+        "publication_captions": all(
+            _caption_is_informative(content, chart) for chart in included_charts
+        ),
+        "accessible_alt_text": all(
+            _alt_text_is_visual(content, chart) for chart in included_charts
+        ),
+        "editorial_current": not any(
+            field.review_required
+            for field in [editorial.headline, editorial.standfirst, editorial.conclusion, *editorial.section_ledes.values()]
+        ) and all(not chart.caption.review_required and not chart.alt_text.review_required for chart in included_charts),
+        "canonical_placement": len({item.finding_id for item in included_claims}) == len(included_claims),
+        "safe_default_selection": all(placement.selection_mode == "explicit" or _placement_is_safe(content, placement) for placement in included_claims),
+        "preview_current": publication_current,
+        "package_integrity": package_integrity,
+    }
+    blockers = [name.replace("_", " ").capitalize() for name, passed in checks.items() if not passed]
+    ready = not blockers
+    if export_current and ready:
+        state, next_action = "export_current", "Copy Markdown or download the current package"
+    elif ready:
+        state, next_action = "publication_draft_ready", "Export publication package"
+    elif not evidence_current:
+        state, next_action = "evidence_ready", "Refresh report evidence"
+    elif not all(
+        checks[name]
+        for name in (
+            "editorial_headline",
+            "publication_standfirst",
+            "race_development_lede",
+            "pace_strategy_lede",
+            "conclusion_present",
+            "publication_captions",
+            "accessible_alt_text",
+        )
+    ):
+        state, next_action = "editorial_work_required", "Complete required editorial fields"
+    else:
+        state, next_action = "review_required", "Review included claims and dependent editorial copy"
+    return PublicationReadiness(
+        ready=ready,
+        state=state,
+        next_action=next_action,
+        blockers=blockers,
+        checks=checks,
+        package_integrity="valid" if package_integrity else "invalid",
+    )
+
+
+def preserve_editorial_on_refresh(
+    prior: PublicationEditorial,
+    current_result_fingerprints: set[str],
+) -> PublicationEditorial:
+    def update(field: EditorialField) -> EditorialField:
+        changed = bool(field.dependency_fingerprints) and not set(field.dependency_fingerprints) <= current_result_fingerprints
+        return field.model_copy(update={"review_required": field.review_required or changed})
+
+    return PublicationEditorial(
+        headline=update(prior.headline),
+        standfirst=update(prior.standfirst),
+        section_ledes={key: update(value) for key, value in prior.section_ledes.items()},
+        conclusion=update(prior.conclusion),
+    )
+
+
+def editorial_fingerprint(editorial: PublicationEditorial, plan: PublicationPlan) -> str:
+    return canonical_fingerprint(
+        {"editorial": editorial.model_dump(mode="json"), "plan": plan.model_dump(mode="json")}
+    )
+
+
+def _record(
+    session_id: str,
+    result_type: str,
+    *,
+    payload: dict[str, Any],
+    subjects: list[str],
+    boundaries: dict[str, Any],
+    provenance: dict[str, Any],
+    coverage: dict[str, Any],
+    quality: dict[str, Any],
+    status: str,
+    limitations: list[str],
+    measurement_category: MeasurementCategory = "measured",
+) -> AnalyticalResultRecord:
+    semantic = {
+        "result_type": result_type,
+        "result_schema_version": 1,
+        "target_session_id": session_id,
+        "measurement_category": measurement_category,
+        "subjects": subjects,
+        "boundaries": boundaries,
+        "payload": payload,
+        "provenance": provenance,
+        "coverage": coverage,
+        "quality": quality,
+        "status": status,
+        "limitations": limitations,
+    }
+    fingerprint = canonical_fingerprint(semantic)
+    return AnalyticalResultRecord(
+        result_id=stable_id("result", fingerprint),
+        result_type=result_type,
+        result_schema_version=1,
+        target_session_id=session_id,
+        result_fingerprint=fingerprint,
+        analytical_status=status,
+        measurement_category=measurement_category,
+        subjects=subjects,
+        boundaries=boundaries,
+        provenance=provenance,
+        coverage=coverage,
+        quality=quality,
+        payload=payload,
+        analytical_basis={
+            "measurement": (
+                "official session data"
+                if measurement_category == "measured"
+                else "derived from recorded session running order"
+            )
+        },
+        limitations=limitations,
+    )
+
+
+def _quality(available: int, expected: int, inferred: bool = False) -> dict[str, Any]:
+    ratio = available / expected if expected else 0.0
+    level = "high" if ratio == 1 and not inferred else "medium" if ratio > 0 else "unavailable"
+    return {"level": level, "coverage_ratio": ratio, "inferred_boundary": inferred}
+
+
+def _availability(values: list[Any], complete: bool) -> str:
+    return "available" if values and complete else "partial" if values else "unavailable"
+
+
+def _classification_summary(rows: list[dict[str, Any]]) -> str:
+    if not rows:
+        return ""
+    leaders = rows[:3]
+    official = all(row.get("classification_source") == "official" for row in leaders)
+    if len(leaders) >= 3 and official:
+        names = [row.get("full_name") or row["driver"] for row in leaders]
+        return f"{names[0]} won ahead of {names[1]} and {names[2]}."
+    label = "The official classification placed" if official else "The last recorded running order placed"
+    return label + " " + ", ".join(
+        f"{row.get('full_name') or row['driver']} P{row['classification_position']}"
+        for row in leaders
+    ) + "."
+
+
+def _movement_summary(rows: list[dict[str, Any]]) -> str:
+    changed = [row for row in rows if row["places"]]
+    if not changed:
+        return "The available grid and finish records show no position movement."
+    row = changed[0]
+    direction = "gained" if row["places"] > 0 else "lost"
+    driver = row.get("full_name") or row["driver"]
+    if row["places"] > 0:
+        return f"{driver} made the largest field recovery, gaining {abs(row['places'])} places from grid to finish."
+    return f"{driver} had the largest grid-to-finish change, losing {abs(row['places'])} places."
+
+
+def _pit_summary(rows: list[dict[str, Any]]) -> str:
+    if not rows:
+        return "No pit-stop event was present in the available lap records."
+    first = rows[0]
+    return f"{first.get('full_name') or first['driver']} made the first recorded pit visit on lap {first['lap']}."
+
+
+def _neutralisation_labels(value: str) -> set[str]:
+    codes = {character for character in str(value) if character.isdigit()}
+    labels: set[str] = set()
+    if "4" in codes:
+        labels.add("Safety Car")
+    if codes & {"6", "7"}:
+        labels.add("Virtual Safety Car")
+    if "5" in codes:
+        labels.add("Red flag")
+    return labels
+
+
+def _periods(values: dict[int, set[str]]) -> list[dict[str, Any]]:
+    periods: list[dict[str, Any]] = []
+    for lap in sorted(values):
+        labels = sorted(values[lap])
+        if periods and periods[-1]["end_lap"] + 1 == lap and periods[-1]["types"] == labels:
+            periods[-1]["end_lap"] = lap
+        else:
+            periods.append({"start_lap": lap, "end_lap": lap, "types": labels})
+    return periods
+
+
+def _neutralisation_summary(periods: list[dict[str, Any]]) -> str:
+    if not periods:
+        return "No neutralisation period was identified in the available track-status records."
+    first = periods[0]
+    types = " and ".join(first["types"])
+    return f"A {types} period ran from laps {first['start_lap']} to {first['end_lap']}."
+
+
+def _retirement_summary(rows: list[dict[str, Any]]) -> str:
+    if not rows:
+        return ""
+    non_finishers = [row for row in rows if row.get("finish_category") != "finisher"]
+    if not non_finishers:
+        return "The available official statuses record all covered drivers as finishers."
+    return f"The available official statuses identify {len(non_finishers)} non-finishing or non-classified entries."
+
+
+def _finish_category(status: object) -> str:
+    normalized = " ".join(str(status or "").strip().lower().split())
+    if normalized in {"finished", "lapped", "lapping"}:
+        return "finisher"
+    if re.fullmatch(r"\+\s*\d+\s+laps?", normalized):
+        return "finisher"
+    return "non_finisher"
+
+
+def _position_interval_summary(rows: list[dict[str, Any]]) -> str:
+    changed = [row for row in rows if row["places"]]
+    if not changed:
+        return "The first and last recorded positions were unchanged for the covered drivers."
+    row = changed[0]
+    direction = "improved" if row["places"] > 0 else "fell"
+    return f"{row['driver']} {direction} by {abs(row['places'])} positions between laps {row['start_lap']} and {row['end_lap']}."
+
+
+def _claim_eligible(claim: ReportFinding, results: dict[str, AnalyticalResultRecord]) -> bool:
+    if claim.confidence in {"low", "provisional", "unavailable"}:
+        return False
+    owned = [results[result_id] for result_id in claim.result_ids if result_id in results]
+    if any(result.measurement_category == "estimated" for result in owned):
+        return False
+    text = " ".join([*claim.limitations, *(warning for result in owned for warning in result.warnings)]).lower()
+    return "confound" not in text
+
+
+def _publication_section(claim: ReportFinding):
+    if claim.finding_type in SESSION_SPINE_TYPES:
+        return "how_the_race_developed"
+    if claim.finding_kind == "conclusion":
+        return "key_comparison"
+    return "pace_and_strategy"
+
+
+def _summary_reference(
+    claim: ReportFinding,
+    results: dict[str, AnalyticalResultRecord],
+) -> str | None:
+    result = next((results[item_id] for item_id in claim.result_ids if item_id in results), None)
+    if result is None:
+        return None
+    if claim.finding_type == "race_classification":
+        entries = sorted(
+            (item for item in result.payload.get("entries", []) if item.get("classification_position") is not None),
+            key=lambda item: item["classification_position"],
+        )[:3]
+        if len(entries) == 3 and all(
+            item.get("classification_source") == "official" for item in entries
+        ):
+            names = [_short_driver_name(item) for item in entries]
+            return f"{names[0]} won ahead of {names[1]} and {names[2]}."
+        if len(entries) == 3:
+            names = [_short_driver_name(item) for item in entries]
+            return f"The last recorded running order was {names[0]}, {names[1]} and {names[2]}."
+    if claim.finding_type == "grid_to_finish_movement":
+        entries = [
+            item for item in result.payload.get("entries", []) if item.get("places")
+        ]
+        if entries:
+            return f"{_short_driver_name(entries[0])} made the largest field recovery."
+    if claim.finding_type == "neutralisation_periods":
+        periods = result.payload.get("periods", [])
+        if periods:
+            return f"The race included a {' and '.join(periods[0].get('types') or ['neutralisation'])} period."
+    return None
+
+
+def _chart_purpose(claim: ReportFinding) -> str:
+    if claim.finding_type in {"representative_pace_advantage", "observed_pace_evolution"}:
+        return "Show the selected pace comparison."
+    if "pit" in claim.finding_type:
+        return "Show the measured pit-cycle comparison."
+    return "Show the selected analytical comparison."
+
+
+def _placement_is_safe(content: ReportContent, placement: PublicationClaimPlacement) -> bool:
+    claim = next((item for item in [*content.findings, *content.conclusions] if item.finding_id == placement.finding_id), None)
+    if claim is None:
+        return False
+    return _claim_eligible(claim, {result.result_id: result for result in content.results})
+
+
+def _publication_default_included(
+    claim: ReportFinding,
+    results: dict[str, AnalyticalResultRecord],
+) -> bool:
+    if claim.finding_type in {"pit_stop_sequence", "retirement_status", "position_change_interval"}:
+        return False
+    if claim.finding_type == "grid_to_finish_movement":
+        result = next((results[item_id] for item_id in claim.result_ids if item_id in results), None)
+        return bool(
+            result
+            and any(item.get("places") for item in result.payload.get("entries", []))
+        )
+    if claim.finding_type == "neutralisation_periods":
+        result = next((results[item_id] for item_id in claim.result_ids if item_id in results), None)
+        return bool(result and result.payload.get("periods"))
+    return True
+
+
+def _short_driver_name(row: dict[str, Any]) -> str:
+    full_name = str(row.get("full_name") or "").strip()
+    return full_name.split()[-1] if full_name else str(row.get("driver") or "Driver")
+
+
+def _minimum_words(value: str, minimum: int) -> bool:
+    return len(re.findall(r"\b[\w'-]+\b", value.strip())) >= minimum
+
+
+def _headline_is_editorial(value: str) -> bool:
+    headline = " ".join(value.split())
+    if not _minimum_words(headline, 4):
+        return False
+    return not bool(
+        re.search(r"(?:race report|analysis|session report|report)$", headline, re.I)
+    )
+
+
+def _chart_title(content: ReportContent, chart_id: str) -> str:
+    for result in content.results:
+        for evidence in result.chart_evidence:
+            if evidence.chart_instance_id == chart_id:
+                return str(evidence.title or "")
+    return ""
+
+
+def _caption_is_informative(
+    content: ReportContent,
+    chart: PublicationChartPlacement,
+) -> bool:
+    caption = " ".join(chart.caption.value.split())
+    title = " ".join(_chart_title(content, chart.chart_instance_id).split())
+    return _minimum_words(caption, 8) and caption.casefold().rstrip(".") != title.casefold().rstrip(".")
+
+
+def _alt_text_is_visual(
+    content: ReportContent,
+    chart: PublicationChartPlacement,
+) -> bool:
+    alt = " ".join(chart.alt_text.value.split())
+    if not _minimum_words(alt, 12):
+        return False
+    normalized = alt.casefold().rstrip(".")
+    if normalized == " ".join(chart.caption.value.split()).casefold().rstrip("."):
+        return False
+    claim_texts = {
+        " ".join(item.text.split()).casefold().rstrip(".")
+        for item in [*content.findings, *content.conclusions]
+    }
+    if normalized in claim_texts:
+        return False
+    return any(
+        token in normalized
+        for token in ("chart", "line", "lines", "axis", "axes", "points", "markers", "bars", "plot", "panel")
+    )

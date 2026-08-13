@@ -247,6 +247,18 @@ export function updateAnalysisReportPlan(plan: ReportPlan, evidenceFingerprint: 
   });
 }
 
+export function updateAnalysisPublication(
+  plan: import("./types").PublicationPlan,
+  editorial: import("./types").PublicationEditorial,
+  evidenceFingerprint: string
+) {
+  return request<AnalysisView>("/api/analysis/publication", {
+    method: "PUT",
+    headers: jsonHeaders,
+    body: JSON.stringify({ plan, editorial, evidence_fingerprint: evidenceFingerprint })
+  });
+}
+
 export function regenerateAnalysisReportDraft() {
   return request<AnalysisView>("/api/analysis/report/draft/regenerate", { method: "POST" });
 }

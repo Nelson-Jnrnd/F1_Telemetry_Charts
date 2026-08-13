@@ -16,7 +16,11 @@ from f1_telemetry_charts.analysis.observations import (
     ObservationReviewEntry,
     ReviewStatus,
 )
-from f1_telemetry_charts.analysis.findings import ReportPlan
+from f1_telemetry_charts.analysis.findings import (
+    PublicationEditorial,
+    PublicationPlan,
+    ReportPlan,
+)
 from f1_telemetry_charts.analysis.report import apply_observation_review, render_markdown_draft
 from f1_telemetry_charts.analysis.orchestrator import run_analysis
 from f1_telemetry_charts.analysis.workspace import (
@@ -156,6 +160,14 @@ class ReportPlanRequest(BaseModel):
 
     evidence_fingerprint: str = Field(min_length=1)
     plan: ReportPlan
+
+
+class PublicationUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_fingerprint: str = Field(min_length=1)
+    plan: PublicationPlan
+    editorial: PublicationEditorial
 
 
 class AnalysisChartDiagnosticsRequest(BaseModel):
@@ -625,6 +637,20 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         state["package_path"] = Path(analysis.report_package_path).resolve() if analysis.report_package_path else None
+        return service.view(analysis)
+
+    @app.put("/api/analysis/publication", response_model=AnalysisView)
+    def update_analysis_publication(request: PublicationUpdateRequest) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.update_publication(
+                service.open(),
+                plan=request.plan,
+                editorial=request.editorial,
+                evidence_fingerprint=request.evidence_fingerprint,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         return service.view(analysis)
 
     @app.post("/api/analysis/export", response_model=AnalysisView)

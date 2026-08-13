@@ -23,7 +23,9 @@ approved spec wins. See
   [`SPEC-004`](docs/specs/implemented/SPEC-004-v2-analysis-workbench-pipeline.md),
   [`SPEC-005`](docs/specs/implemented/SPEC-005-v2-chart-templates-and-presets.md),
   [`SPEC-006`](docs/specs/implemented/SPEC-006-analyst-grade-chart-parameters.md),
-  and [`SPEC-007`](docs/specs/implemented/SPEC-007-track-map-range-and-race-playback.md).
+  [`SPEC-007`](docs/specs/implemented/SPEC-007-track-map-range-and-race-playback.md),
+  [`SPEC-008`](docs/specs/implemented/SPEC-008-race-strategy-chart-templates.md),
+  and [`SPEC-009`](docs/specs/implemented/SPEC-009-evidence-driven-report-synthesis-review.md).
 - Workflow: [`AGENT_WORKFLOW.md`](docs/workflow/AGENT_WORKFLOW.md).
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

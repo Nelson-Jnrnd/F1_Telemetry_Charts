@@ -9,6 +9,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from f1_telemetry_charts.analysis import workspace
+from f1_telemetry_charts.analysis.findings import EditorialField, PublicationEditorial
 from f1_telemetry_charts.analysis.playback import (
     PlaybackMarker,
     _equal_distance_segment_times,
@@ -326,8 +327,60 @@ class AnalysisWorkspaceTests(unittest.TestCase):
             self.assertEqual(preset.scope, "analysis")
             self.assertEqual(analysis.presets[0].display_name, "Race Delta")
 
+            analysis = _ready_publication(service, analysis)
             analysis = service.export_package(analysis)
             self.assertFalse(analysis.review_stale)
+            export_root = Path(analysis.exported_package_path)
+            self.assertEqual(
+                {item.name for item in export_root.iterdir()},
+                {"article.md", "article.json", "evidence.json", "manifest.json", "assets"},
+            )
+            export_view = read_package_view(export_root)
+            self.assertEqual(export_view.health.status, "healthy")
+            self.assertEqual(export_view.manifest.markdown_path, "article.md")
+            self.assertIsNotNone(export_view.article)
+            self.assertIsNotNone(export_view.evidence)
+            article = json.loads((export_root / "article.json").read_text(encoding="utf-8"))
+            evidence = json.loads((export_root / "evidence.json").read_text(encoding="utf-8"))
+            self.assertEqual(article["schema_version"], 2)
+            published_claim_ids = {
+                paragraph["claim_id"]
+                for section in article["sections"]
+                for paragraph in section["paragraphs"]
+            }
+            placement_claim_ids = {
+                placement["claim_id"] for placement in evidence["publication_placements"]
+            }
+            evidence_claim_ids = {finding["finding_id"] for finding in evidence["findings"]}
+            self.assertEqual(published_claim_ids, placement_claim_ids)
+            self.assertTrue(published_claim_ids <= evidence_claim_ids)
+            self.assertTrue(
+                all(item["claim_id"] in published_claim_ids for item in article["at_a_glance"])
+            )
+            self.assertEqual(evidence["publication_export_contract_version"], 3)
+            evidence_references = [
+                reference
+                for result in evidence["results"]
+                for reference in result.get("chart_evidence", [])
+            ] + [
+                reference
+                for finding in evidence["findings"]
+                for reference in finding.get("evidence", [])
+            ]
+            package_references = [
+                reference
+                for reference in evidence_references
+                if reference["reference_scope"] == "package"
+            ]
+            for reference in package_references:
+                self.assertTrue(reference["image_path"].startswith("assets/"))
+                self.assertTrue((export_root / reference["image_path"]).is_file())
+                self.assertTrue((export_root / reference["metadata_path"]).is_file())
+            for reference in evidence_references:
+                if reference["reference_scope"] == "source_analysis":
+                    self.assertNotIn("image_path", reference)
+                    self.assertNotIn("metadata_path", reference)
+                    self.assertIn("source_image_path", reference)
             package_root = root / "package"
             self.assertTrue((package_root / "manifest.json").exists())
             manifest = json.loads((package_root / "manifest.json").read_text(encoding="utf-8"))
@@ -911,6 +964,7 @@ class AnalysisApiTests(unittest.TestCase):
                     "generated",
                 )
 
+            _ready_publication(AnalysisService(root), AnalysisService(root).open())
             export_response = client.post("/api/analysis/export")
             self.assertEqual(export_response.status_code, 200, export_response.text)
             package_path = Path(export_response.json()["analysis"]["exported_package_path"])
@@ -918,8 +972,8 @@ class AnalysisApiTests(unittest.TestCase):
             package_view = read_package_view(package_path)
             self.assertEqual(package_view.health.status, "healthy")
             self.assertIsNotNone(package_view.manifest)
-            asset_path = package_view.manifest.artifacts[0].image_path
-            asset = client.get(f"/api/package/assets/{asset_path}")
+            self.assertEqual(package_view.manifest.markdown_path, "article.md")
+            asset = client.get("/api/package/assets/article.md")
             self.assertEqual(asset.status_code, 200, asset.text)
 
             opened = client.post("/api/analysis/open", json={"path": str(root / "analysis.json")})
@@ -1911,6 +1965,57 @@ def _full_field_payload() -> dict:
         ],
         "provenance": {"provider": "fixture", "cache_status": "fixture"},
     }
+
+def _ready_publication(service: AnalysisService, analysis):
+    analysis = service.refresh_observations(analysis)
+    content = analysis.report_content
+    assert content is not None and content.publication_plan is not None
+    editorial = PublicationEditorial(
+        headline=EditorialField(value="Verstappen leads Bahrain as the field order changes"),
+        standfirst=EditorialField(value="Verstappen led the Bahrain finish while the reviewed chronology and pace evidence defined the main race story."),
+        section_ledes={
+            "how_the_race_developed": EditorialField(value="The classified order, field recovery and neutralised phase establish the race chronology."),
+            "pace_and_strategy": EditorialField(value="The representative-lap comparisons then show how the leading pair differed on pace."),
+        },
+        conclusion=EditorialField(value="The reviewed chronology and representative pace evidence support this final account."),
+    )
+    plan = content.publication_plan.model_copy(
+        update={
+            "charts": [
+                chart.model_copy(
+                    update={
+                        "caption": EditorialField(value="The selected comparison highlights the main pace difference across the reviewed interval."),
+                        "alt_text": EditorialField(value="Line chart with two driver traces plotted across the reviewed race interval and labelled at their endpoints."),
+                    },
+                    deep=True,
+                )
+                for chart in content.publication_plan.charts
+            ]
+        },
+        deep=True,
+    )
+    analysis = service.update_publication(
+        analysis,
+        plan=plan,
+        editorial=editorial,
+        evidence_fingerprint=content.evidence_fingerprint,
+    )
+    claims = {
+        item.finding_id: item
+        for item in [*analysis.report_content.findings, *analysis.report_content.conclusions]
+    }
+    for placement in analysis.report_content.publication_plan.claims:
+        if not placement.included:
+            continue
+        claim = claims[placement.finding_id]
+        analysis = service.review_report_item(
+            analysis,
+            item_id=claim.finding_id,
+            review_status="accepted",
+            evidence_fingerprint=claim.evidence_fingerprint,
+        )
+    return service.regenerate_report_draft(analysis)
+
 
 if __name__ == "__main__":
     unittest.main()

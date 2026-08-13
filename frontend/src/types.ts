@@ -57,6 +57,8 @@ export type PackageView = {
   findings: ReportClaim[];
   report?: ReportPlan | null;
   report_review: ReportReviewEntry[];
+  publication_plan?: PublicationPlan | null;
+  publication_readiness?: PublicationReadiness | null;
   draft_markdown?: string | null;
 };
 
@@ -119,6 +121,61 @@ export type ReportPlan = {
   template_version: number;
   target_session_id: string;
   sections: ReportPlanSection[];
+};
+
+export type EditorialField = {
+  value: string;
+  provenance: "human";
+  dependency_fingerprints: string[];
+  review_required: boolean;
+};
+
+export type PublicationSection = "headline" | "standfirst" | "at_a_glance" | "how_the_race_developed" | "pace_and_strategy" | "key_comparison" | "conclusion" | "methods_and_evidence";
+
+export type PublicationClaimPlacement = {
+  finding_id: string;
+  section: PublicationSection;
+  included: boolean;
+  selection_mode: "automatic" | "explicit";
+  summary_reference?: string | null;
+};
+
+export type PublicationChartPlacement = {
+  chart_instance_id: string;
+  section: PublicationSection;
+  purpose: string;
+  finding_ids: string[];
+  result_ids: string[];
+  caption: EditorialField;
+  alt_text: EditorialField;
+  included: boolean;
+  selection_mode: "automatic" | "explicit";
+};
+
+export type PublicationEditorial = {
+  headline: EditorialField;
+  standfirst: EditorialField;
+  section_ledes: Record<string, EditorialField>;
+  conclusion: EditorialField;
+};
+
+export type PublicationPlan = {
+  schema_version: number;
+  policy_id: string;
+  policy_version: number;
+  target_session_id: string;
+  section_order: PublicationSection[];
+  claims: PublicationClaimPlacement[];
+  charts: PublicationChartPlacement[];
+};
+
+export type PublicationReadiness = {
+  ready: boolean;
+  state: "evidence_ready" | "editorial_work_required" | "review_required" | "publication_draft_ready" | "export_current";
+  next_action: string;
+  blockers: string[];
+  checks: Record<string, boolean>;
+  package_integrity: "valid" | "invalid" | "unchecked";
 };
 
 export type PluginRecipe = {
@@ -415,10 +472,20 @@ export type AnalysisWorkspace = {
   report_content?: {
     evidence_fingerprint: string;
     plan: ReportPlan;
+    results: Array<Record<string, unknown> & { result_type: string; result_id: string; chart_evidence?: ReportEvidence[] }>;
+    assessments: ReportAssessment[];
+    findings: ReportClaim[];
+    conclusions: ReportClaim[];
+    publication_plan?: PublicationPlan | null;
+    publication_editorial: PublicationEditorial;
+    publication_readiness: PublicationReadiness;
   } | null;
   report_freshness: {
     evidence: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
     review: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
+    selection: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
+    editorial: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
+    publication: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
     draft: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
     export: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
   };

@@ -90,3 +90,8 @@ strategy charts. They contain the schema version, analytical basis, headline
 result fields, warnings, and limitations without returning unbounded lap or
 timing streams. Value categories distinguish measured, derived, descriptive,
 and reserved estimated values.
+
+When report evidence exists, `report_summary.publication` exposes only bounded,
+read-only readiness, selection-policy counts, section order, and editorial-field
+presence. It does not expose raw result payloads or provide publication
+mutation operations.

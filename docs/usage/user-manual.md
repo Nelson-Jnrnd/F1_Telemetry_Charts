@@ -4,6 +4,8 @@ This page is derived documentation. Authoritative requirements live in
 `docs/specs/implemented/SPEC-001-f1-analysis-framework.md` and
 `docs/specs/implemented/SPEC-002-v2-plugin-preview-workbench.md` plus the UI
 specification in `docs/specs/implemented/SPEC-003-v2-tailwind-ui-system.md`.
+Race publication workflow requirements live in
+`docs/specs/approved/SPEC-010-publication-ready-race-session-reports.md`.
 
 ## What You Can Test
 
@@ -139,6 +141,32 @@ Important interactions:
 - Workbench Validate and Run always call backend validation; frontend validation
   is only an ergonomic first pass.
 - Clear History requires confirmation and does not delete generated packages.
+
+The Analysis Workbench publication workflow has four stages:
+
+- **Story**: complete the headline, standfirst, section ledes, conclusion,
+  canonical claim inclusion, chart purpose, captions, and alt text.
+- **Evidence**: accept, edit, or reject analytical claims independently from
+  publication inclusion.
+- **Preview**: inspect the exact reader-facing Markdown and readiness blockers.
+- **Export**: copy or download only a current, integrity-valid publication
+  package.
+
+Publication readiness requires an editorial headline rather than a generic
+report label, a publication standfirst, both main section ledes, a conclusion,
+informative captions, and visual-description alt text. The clean export contains
+`article.md`, `article.json`, `evidence.json`, `manifest.json`, and `assets/`;
+the internal analyst report and workbench plan remain in the Analysis working
+package. Published claim paragraphs and At a Glance items in `article.json`
+retain canonical claim IDs, while `evidence.json.publication_placements`
+records their publication sections and summary references without exposing IDs
+in the rendered article. Chart evidence references are also typed: `package`
+references resolve within the portable export, while `source_analysis`
+references are explicitly non-portable provenance and do not masquerade as
+package-relative paths.
+
+Evidence refresh preserves human-authored fields. Referenced fields become
+review-required when their evidence changes.
 
 ## Direct CLI Commands
 
