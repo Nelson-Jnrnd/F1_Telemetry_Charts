@@ -2,11 +2,12 @@
 doc_type: spec
 spec_id: SPEC-010
 title: Publication-Ready Race Session Reports
-status: In Implementation
+status: Implemented
 owner: Nelson Jeanrenaud
 related_issue:
 related_prs: []
-delivery_refs: []
+delivery_refs:
+  - 63f2fc5
 affected_components:
   - analytical result providers
   - report plan and review
@@ -684,7 +685,7 @@ implementation planning once their interfaces exist.
 | REQ-009 | Chart selection | `analysis/publication.py` | `test_publication_report.py` | Implemented |
 | REQ-010 | Publication renderer | `analysis/report.py` | `test_publication_report.py` | Implemented |
 | REQ-011 | Freshness extension | `analysis/workspace.py` | `test_analysis_workspace.py` | Implemented |
-| REQ-012 | Readiness validator | `analysis/publication.py::evaluate_publication_readiness` | `test_publication_report.py` | Implemented |
+| REQ-012 | Readiness validator | `analysis/publication.py::evaluate_readiness` | `test_publication_report.py` | Implemented |
 | REQ-013 | Workflow states | `analysis/publication.py`, `analysis/workspace.py` | `test_analysis_workspace.py` | Implemented |
 | REQ-014 | Package exporter | `analysis/report.py::write_publication_export_package` | `test_analysis_workspace.py` | Implemented |
 | NFR-001 | Determinism | `analysis/publication.py` versioned policy | `test_publication_report.py` | Implemented |
@@ -734,6 +735,11 @@ can close this spec it's all done I validate everything." AMEND-004 records
 that decision, closes the remaining fixture-specific human gate, and completes
 the lifecycle without claiming that separate disrupted and wet packages were
 produced.
+
+AMEND-005 corrections were fully verified with 154 backend tests, frontend
+typecheck/build, governance, specification, drift, and whitespace checks. The
+implementation was delivered in commit `63f2fc5` after Nelson Jeanrenaud
+explicitly authorised the commit on 2026-08-13.
 
 ## Spec amendments
 
@@ -859,15 +865,17 @@ produced.
   movement arithmetic. `Lapped` and general `+N Lap` / `+N Laps` statuses are
   classified as finishers. A section lede is required only when its section has
   an included claim or chart; empty sections disappear without blockers.
-- **Test impact:** Add regression tests for all four semantics before restoring
-  Implemented status.
+- **Test impact:** Four regressions cover classification provenance, pit-lane
+  grid context, lapped-finisher normalization, and conditional section ledes.
+  Full discovery passes with 154 tests.
 - **Human approval reference:** Nelson Jeanrenaud's 2026-08-13 technical
   closeout verdict listing these four bounded correctness issues as required
   changes.
 
 ## Closeout
 
-- **Final status:** Reopened as In Implementation by AMEND-005.
+- **Final status:** Implemented in delivery commit `63f2fc5` after AMEND-005
+  correction and verification.
 - **Human acceptance:** Complete on 2026-08-13.
 - **Canonical artifact:**
   `review-packages/SPEC-010-bahrain-canonical-v3.zip`.
