@@ -73,6 +73,7 @@ class LapRecord(BaseModel):
     lap_end_time_seconds: float | None = Field(default=None, ge=0)
     lap_time_seconds: float | None = None
     compound: str | None = None
+    tyre_age: float | None = Field(default=None, ge=0)
     stint: int | None = None
     position: int | None = None
     is_pit_in_lap: bool = False
@@ -80,6 +81,8 @@ class LapRecord(BaseModel):
     pit_in_time_seconds: float | None = Field(default=None, ge=0)
     pit_out_time_seconds: float | None = Field(default=None, ge=0)
     is_deleted: bool = False
+    deletion_reason: str | None = None
+    qualifying_segment: Literal["Q1", "Q2", "Q3"] | None = None
     is_generated: bool = False
     is_accurate: bool | None = None
     sector_1_time_seconds: float | None = None
@@ -205,6 +208,52 @@ class WeatherSample(BaseModel):
     rainfall: bool | None = None
 
 
+class SessionStatusRecord(BaseModel):
+    """One source-recorded session-control state change."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    time_seconds: float = Field(ge=0)
+    status: str = Field(min_length=1)
+
+
+class QualifyingClassificationEntry(BaseModel):
+    """One source-recorded official entry within a qualifying segment."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    driver: str = Field(min_length=1)
+    position: int = Field(ge=1)
+    time_seconds: float | None = Field(default=None, gt=0)
+    status: str | None = None
+    advanced: bool | None = None
+    advancement_basis: Literal["time", "tie", "non_time", "not_applicable"] = "time"
+
+
+class QualifyingSegmentClassification(BaseModel):
+    """Official order and advancement outcome for Q1, Q2, or Q3."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    segment: Literal["Q1", "Q2", "Q3"]
+    entries: list[QualifyingClassificationEntry] = Field(default_factory=list)
+    status: Literal["complete", "partial", "unavailable", "not_completed", "source_conflict"] = "complete"
+    source_conflicts: list[str] = Field(default_factory=list)
+
+
+class PracticeClassificationEntry(BaseModel):
+    """One source-recorded official Practice classification entry."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    driver: str = Field(min_length=1)
+    position: int = Field(ge=1)
+    fastest_time_seconds: float | None = Field(default=None, gt=0)
+    gap_seconds: float | None = Field(default=None, ge=0)
+    lap_count: int | None = Field(default=None, ge=0)
+    status: str | None = None
+
+
 class MissingDataField(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -231,6 +280,9 @@ class SessionDataset(BaseModel):
     timing: list[TimingStreamRecord] = Field(default_factory=list)
     timing_app: list[TimingAppRecord] = Field(default_factory=list)
     weather: list[WeatherSample] = Field(default_factory=list)
+    session_status: list[SessionStatusRecord] = Field(default_factory=list)
+    qualifying_segments: list[QualifyingSegmentClassification] = Field(default_factory=list)
+    practice_classification: list[PracticeClassificationEntry] = Field(default_factory=list)
     style: SessionStyleMetadata = Field(default_factory=SessionStyleMetadata)
     track_geometry: TrackGeometry | None = None
     circuit_info: CircuitInfo | None = None
@@ -255,6 +307,20 @@ class SessionDataset(BaseModel):
                 ],
                 "timing_app": [
                     record for record in self.timing_app if record.driver in requested
+                ],
+                "qualifying_segments": [
+                    segment.model_copy(
+                        update={
+                            "entries": [
+                                entry for entry in segment.entries if entry.driver in requested
+                            ]
+                        },
+                        deep=True,
+                    )
+                    for segment in self.qualifying_segments
+                ],
+                "practice_classification": [
+                    entry for entry in self.practice_classification if entry.driver in requested
                 ],
             },
             deep=True,

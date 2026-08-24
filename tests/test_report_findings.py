@@ -191,6 +191,7 @@ class ReportFindingTests(unittest.TestCase):
                 "pace-evolution-comparison-v1",
                 "pit-cycle-vs-race-state-v1",
                 "pace-vs-position-change-v1",
+                "qualifying-session-context-v2",
             ),
         )
 

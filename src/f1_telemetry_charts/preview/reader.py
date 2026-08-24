@@ -85,6 +85,11 @@ def read_package_view(package_path: str | Path) -> PackageView:
             evidence = _read_optional_json_object(
                 root, manifest.evidence_sidecar_path, "evidence", findings
             )
+            if evidence is not None:
+                results = _object_list(evidence.get("results"))
+                assessments = _object_list(evidence.get("assessments"))
+                report_findings = _object_list(evidence.get("findings"))
+                report_review = _object_list(evidence.get("reviews"))
         elif manifest.report_schema_version is not None:
             results = _read_optional_json_list(
                 root, manifest.results_path, "results", findings
@@ -137,6 +142,12 @@ def read_package_view(package_path: str | Path) -> PackageView:
         evidence=evidence,
         draft_markdown=draft_markdown,
     )
+
+
+def _object_list(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
 
 
 def resolve_package_asset(package_path: str | Path, relative_path: str) -> Path:

@@ -1,0 +1,47 @@
+{
+  "spec_id": "SPEC-012",
+  "category": "dry",
+  "session": {
+    "season": 2024,
+    "event": "Bahrain",
+    "session": "FP2"
+  },
+  "purpose": "Dry Practice with multiple eligible long runs and paired same-compound tyre-age evidence.",
+  "source": "FastF1 application gateway",
+  "source_snapshot_fingerprint": "fa1f5e3f30e2a856b4c852b068c46f5b1ed148a9b5d3aaf6130d7460243a08c2",
+  "package": "SPEC-012-dry-2024-bahrain-fp2.zip",
+  "package_sha256": "900a82cec16d37cb628a9fd9186f2e3bd3ff693f2bcacdff7a48832ff165ccd7",
+  "result_count": 261,
+  "long_run_count": 20,
+  "sustained_run_count": 2,
+  "comparison_counts": {
+    "comparable": 151,
+    "unknown": 39,
+    "confounded": 0
+  },
+  "condition_state": "dry",
+  "interruption_count": 0,
+  "policy_versions": {
+    "publication": "practice-publication-selection:v1",
+    "practice_results": 1,
+    "run_eligibility": 1,
+    "paired_tyre_age": 1
+  },
+  "package_ready": false,
+  "readiness_blockers": [
+    "Official practice classification current"
+  ],
+  "automated_review": "intentionally_blocked",
+  "human_editorial_acceptance": "pending",
+  "rubric": [
+    "correct official order or explicit source-unavailable block",
+    "transparent sample selection",
+    "compatible comparison basis",
+    "non-causal language",
+    "no prediction",
+    "useful charts",
+    "no duplication",
+    "readable mobile output",
+    "claim-to-lap traceability"
+  ]
+}

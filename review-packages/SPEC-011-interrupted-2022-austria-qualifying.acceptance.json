@@ -1,0 +1,40 @@
+{
+  "spec_id": "SPEC-011",
+  "category": "interrupted",
+  "session": {
+    "season": 2022,
+    "event": "Austria",
+    "session": "Qualifying"
+  },
+  "purpose": "A dry session with recorded qualifying red flags.",
+  "source": "FastF1 application gateway",
+  "editorial_sources": [
+    "https://www.formula1.com/en/results/2022/races/1115/austria/qualifying",
+    "https://www.formula1.com/en/latest/article/verstappen-beats-ferraris-to-pole-in-austria-as-both-mercedes-crash-out-of.gwiQsXrDwuXn1ZgRALzWy.gwiQsXrDwuXn1ZgRALzWy"
+  ],
+  "source_snapshot_fingerprint": "f2c972fa4d4f6d3793d19408ee674eb6ef35da26d542e5152a025c97e3846b4e",
+  "package": "SPEC-011-interrupted-2022-austria-qualifying.zip",
+  "package_sha256": "0afea9dbaa1dcd68a0a7e5f0b842be6edaf9aee8bd7042d3cce27ba09eb2aa13",
+  "policy_versions": {
+    "publication": "qualifying-publication-selection:v4",
+    "qualifying_results": 1,
+    "temporal_evolution": 2
+  },
+  "package_ready": false,
+  "readiness_blockers": [
+    "Deleted lap integrity"
+  ],
+  "automated_review": "blocked_as_expected",
+  "human_editorial_acceptance": "accepted_as_expected_integrity_block",
+  "rubric": [
+    "correct official story",
+    "sound comparison bases",
+    "honest availability",
+    "non-causal wording",
+    "useful charts",
+    "no duplication",
+    "readable mobile output",
+    "claim-to-evidence traceability",
+    "no required structural rewrite"
+  ]
+}

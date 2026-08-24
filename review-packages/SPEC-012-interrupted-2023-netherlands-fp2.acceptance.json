@@ -1,0 +1,47 @@
+{
+  "spec_id": "SPEC-012",
+  "category": "interrupted",
+  "session": {
+    "season": 2023,
+    "event": "Netherlands",
+    "session": "FP2"
+  },
+  "purpose": "Practice with recorded stoppage context and interruption-aware exclusions.",
+  "source": "FastF1 application gateway",
+  "source_snapshot_fingerprint": "4f918179557512e32a4e11e9ffcb730678ce8d21ec2a83b8bdd163efda6d4094",
+  "package": "SPEC-012-interrupted-2023-netherlands-fp2.zip",
+  "package_sha256": "812273e1a73306ca96d30843365eac1213454237a177d7e35b748f3fec3b92d9",
+  "result_count": 234,
+  "long_run_count": 17,
+  "sustained_run_count": 14,
+  "comparison_counts": {
+    "comparable": 13,
+    "unknown": 8,
+    "confounded": 115
+  },
+  "condition_state": "dry",
+  "interruption_count": 1,
+  "policy_versions": {
+    "publication": "practice-publication-selection:v1",
+    "practice_results": 1,
+    "run_eligibility": 1,
+    "paired_tyre_age": 1
+  },
+  "package_ready": false,
+  "readiness_blockers": [
+    "Official practice classification current"
+  ],
+  "automated_review": "intentionally_blocked",
+  "human_editorial_acceptance": "pending",
+  "rubric": [
+    "correct official order or explicit source-unavailable block",
+    "transparent sample selection",
+    "compatible comparison basis",
+    "non-causal language",
+    "no prediction",
+    "useful charts",
+    "no duplication",
+    "readable mobile output",
+    "claim-to-lap traceability"
+  ]
+}

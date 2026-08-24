@@ -1,0 +1,47 @@
+{
+  "spec_id": "SPEC-012",
+  "category": "wet",
+  "session": {
+    "season": 2022,
+    "event": "Japan",
+    "session": "FP2"
+  },
+  "purpose": "Wet Practice with condition-aware comparison rejection or qualification.",
+  "source": "FastF1 application gateway",
+  "source_snapshot_fingerprint": "6339efe9138968028182c3d88fe415ecd7b76702b18aacec53c69cc0ebe510f9",
+  "package": "SPEC-012-wet-2022-japan-fp2.zip",
+  "package_sha256": "9d3737519b1b9669b6ec5c800228c95370545634716ab8333ac253abe29892e7",
+  "result_count": 48,
+  "long_run_count": 5,
+  "sustained_run_count": 6,
+  "comparison_counts": {
+    "comparable": 9,
+    "unknown": 1,
+    "confounded": 0
+  },
+  "condition_state": "mixed_or_wet",
+  "interruption_count": 0,
+  "policy_versions": {
+    "publication": "practice-publication-selection:v1",
+    "practice_results": 1,
+    "run_eligibility": 1,
+    "paired_tyre_age": 1
+  },
+  "package_ready": false,
+  "readiness_blockers": [
+    "Official practice classification current"
+  ],
+  "automated_review": "intentionally_blocked",
+  "human_editorial_acceptance": "pending",
+  "rubric": [
+    "correct official order or explicit source-unavailable block",
+    "transparent sample selection",
+    "compatible comparison basis",
+    "non-causal language",
+    "no prediction",
+    "useful charts",
+    "no duplication",
+    "readable mobile output",
+    "claim-to-lap traceability"
+  ]
+}

@@ -3,6 +3,8 @@ from f1_telemetry_charts.recipes.compound_comparison import CompoundComparisonRe
 from f1_telemetry_charts.recipes.driver_battle import DriverBattleRecipe
 from f1_telemetry_charts.recipes.lap_time_delta import LapTimeDeltaRecipe
 from f1_telemetry_charts.recipes.position_progression import PositionProgressionRecipe
+from f1_telemetry_charts.recipes.qualifying import QualifyingMarginRecipe, QualifyingProgressionRecipe, QualifyingSectorContributionRecipe
+from f1_telemetry_charts.recipes.practice import PracticeLongRunPaceRecipe, PracticeObservedPaceEvolutionRecipe, PracticeRunOverviewRecipe
 from f1_telemetry_charts.recipes.pace_evolution import PaceEvolutionRecipe
 from f1_telemetry_charts.recipes.pit_cycle_comparison import PitCycleComparisonRecipe
 from f1_telemetry_charts.recipes.race_time_delta_evolution import RaceTimeDeltaEvolutionRecipe
@@ -17,6 +19,12 @@ __all__ = [
     "DriverBattleRecipe",
     "LapTimeDeltaRecipe",
     "PositionProgressionRecipe",
+    "QualifyingMarginRecipe",
+    "QualifyingProgressionRecipe",
+    "QualifyingSectorContributionRecipe",
+    "PracticeLongRunPaceRecipe",
+    "PracticeObservedPaceEvolutionRecipe",
+    "PracticeRunOverviewRecipe",
     "PaceEvolutionRecipe",
     "PitCycleComparisonRecipe",
     "RaceTimeDeltaEvolutionRecipe",

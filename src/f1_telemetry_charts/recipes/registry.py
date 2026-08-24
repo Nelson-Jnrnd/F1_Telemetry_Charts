@@ -12,6 +12,16 @@ from f1_telemetry_charts.recipes.lap_time_delta import LapTimeDeltaRecipe
 from f1_telemetry_charts.recipes.pace_evolution import PaceEvolutionRecipe
 from f1_telemetry_charts.recipes.pit_cycle_comparison import PitCycleComparisonRecipe
 from f1_telemetry_charts.recipes.position_progression import PositionProgressionRecipe
+from f1_telemetry_charts.recipes.qualifying import (
+    QualifyingMarginRecipe,
+    QualifyingProgressionRecipe,
+    QualifyingSectorContributionRecipe,
+)
+from f1_telemetry_charts.recipes.practice import (
+    PracticeLongRunPaceRecipe,
+    PracticeObservedPaceEvolutionRecipe,
+    PracticeRunOverviewRecipe,
+)
 from f1_telemetry_charts.recipes.race_time_delta_evolution import (
     RaceTimeDeltaEvolutionRecipe,
 )
@@ -130,6 +140,12 @@ def default_recipe_registry() -> RecipeRegistry:
             display_name="Position progression",
             required_dataset_fields=("laps",),
         ),
+        RecipeMetadata(recipe_id="qualifying_progression", display_name="Qualifying Progression", required_dataset_fields=("laps",), description="Q1/Q2/Q3 valid-best and attempt chronology."),
+        RecipeMetadata(recipe_id="qualifying_margin_comparison", display_name="Pole and Cutoff Margins", required_dataset_fields=("laps",), description="Official within-segment pole and advancement margins."),
+        RecipeMetadata(recipe_id="qualifying_sector_contribution", display_name="Qualifying Sector Contribution", required_dataset_fields=("laps",), description="Reconciled Q3 pole-to-P2 signed sector contributions."),
+        RecipeMetadata(recipe_id="practice_run_overview", display_name="Practice Run Overview", required_dataset_fields=("laps",), description="Pit-bounded Practice run chronology with compound and representative coverage."),
+        RecipeMetadata(recipe_id="practice_long_run_pace_summary", display_name="Practice Long-Run Pace Summary", required_dataset_fields=("laps",), description="Representative-lap median, IQR, sample, and compatibility context."),
+        RecipeMetadata(recipe_id="practice_observed_pace_evolution", display_name="Practice Observed Pace Evolution", required_dataset_fields=("laps",), description="Representative laps and non-causal fitted run-progress trend."),
     ]
     return RecipeRegistry(
         recipes,
@@ -144,5 +160,11 @@ def default_recipe_registry() -> RecipeRegistry:
             "race_time_delta_evolution": RaceTimeDeltaEvolutionRecipe,
             "pit_cycle_comparison": PitCycleComparisonRecipe,
             "driver_battle": DriverBattleRecipe,
+            "qualifying_progression": QualifyingProgressionRecipe,
+            "qualifying_margin_comparison": QualifyingMarginRecipe,
+            "qualifying_sector_contribution": QualifyingSectorContributionRecipe,
+            "practice_run_overview": PracticeRunOverviewRecipe,
+            "practice_long_run_pace_summary": PracticeLongRunPaceRecipe,
+            "practice_observed_pace_evolution": PracticeObservedPaceEvolutionRecipe,
         },
     )

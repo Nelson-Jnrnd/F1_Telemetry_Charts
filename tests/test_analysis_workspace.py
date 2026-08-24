@@ -333,7 +333,7 @@ class AnalysisWorkspaceTests(unittest.TestCase):
             export_root = Path(analysis.exported_package_path)
             self.assertEqual(
                 {item.name for item in export_root.iterdir()},
-                {"article.md", "article.json", "evidence.json", "manifest.json", "assets"},
+                {"article.md", "article.json", "evidence.json", "manifest.json", "publication-plan.json", "assets"},
             )
             export_view = read_package_view(export_root)
             self.assertEqual(export_view.health.status, "healthy")
@@ -343,6 +343,11 @@ class AnalysisWorkspaceTests(unittest.TestCase):
             article = json.loads((export_root / "article.json").read_text(encoding="utf-8"))
             evidence = json.loads((export_root / "evidence.json").read_text(encoding="utf-8"))
             self.assertEqual(article["schema_version"], 2)
+            self.assertEqual(article["publication_export_contract_version"], 3)
+            self.assertEqual(article["publication_policy"], evidence["publication_policy"])
+            self.assertEqual(article["editorial_sources"], evidence["editorial_sources"])
+            self.assertEqual(article["editorial_sources"], ["https://example.com/editorial-source"])
+            self.assertEqual(export_view.manifest.publication_plan_path, "publication-plan.json")
             published_claim_ids = {
                 paragraph["claim_id"]
                 for section in article["sections"]
@@ -1978,6 +1983,7 @@ def _ready_publication(service: AnalysisService, analysis):
             "pace_and_strategy": EditorialField(value="The representative-lap comparisons then show how the leading pair differed on pace."),
         },
         conclusion=EditorialField(value="The reviewed chronology and representative pace evidence support this final account."),
+        source_urls=["https://example.com/editorial-source"],
     )
     plan = content.publication_plan.model_copy(
         update={

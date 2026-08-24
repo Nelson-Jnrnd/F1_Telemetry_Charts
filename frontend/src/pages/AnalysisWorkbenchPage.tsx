@@ -826,7 +826,7 @@ function AnalysisSidebar({
       </div>
 
       <div className="grid grid-cols-4 gap-1 lg:mt-2 lg:grid-cols-1">
-        <div className="hidden lg:block">
+        {analysis?.sessions.some((session) => session.load_state === "loaded" && ["race", "r"].includes(session.session.session.toLowerCase())) && <div className="hidden lg:block">
           <OutlineButton
             active={selection.kind === "playback"}
             label="Race Playback"
@@ -835,7 +835,7 @@ function AnalysisSidebar({
             disabled={!analysis || !analysis.sessions.some((session) => session.load_state === "loaded")}
             collapsed={collapsed}
           />
-        </div>
+        </div>}
         <OutlineButton
           active={selection.kind === "story"}
           label="Story"
@@ -857,7 +857,7 @@ function AnalysisSidebar({
         <OutlineButton
           active={selection.kind === "preview"}
           label="Preview"
-          status={analysis?.report_freshness.publication.status}
+          status={analysis?.report_freshness?.publication?.status}
           icon={<Image className="h-4 w-4" />}
           onClick={() => setSelection({ kind: "preview" })}
           disabled={!analysis}
@@ -3011,6 +3011,34 @@ function StoryEditor({
   const updateEditorialValue = (key: "headline" | "standfirst" | "conclusion", value: string) => {
     setEditorial((current) => current ? { ...current, [key]: { ...current[key], value, review_required: false } } : current);
   };
+  const qualifying = plan.policy_id === "qualifying-publication-selection";
+  const practice = plan.policy_id === "practice-publication-selection";
+  const ledeFields = qualifying
+    ? [
+        ["how_qualifying_unfolded", "How Qualifying Unfolded lede"],
+        ["pole_and_cutoff_battles", "Pole and Cutoff Battles lede"],
+        ["sector_comparison", "Sector Comparison lede"],
+        ["session_context", "Session Context lede"]
+      ] as const
+    : practice
+    ? [
+        ["session_context", "Session Context lede"],
+        ["official_classification", "Official Classification lede"],
+        ["relevant_runs", "Relevant Runs lede"],
+        ["matched_long_run_comparison", "Matched Long-Run Comparison lede"],
+        ["observed_run_trend", "Observed Run Trend lede"]
+      ] as const
+    : [
+        ["how_the_race_developed", "How the Race Developed lede"],
+        ["pace_and_strategy", "Pace and Strategy lede"]
+      ] as const;
+  const updateLede = (section: string, value: string) => setEditorial((current) => current ? {
+    ...current,
+    section_ledes: {
+      ...current.section_ledes,
+      [section]: { value, provenance: "human", dependency_fingerprints: [], review_required: false }
+    }
+  } : current);
   return (
     <div className="grid gap-4">
       <Panel title="Story" actions={<Button variant="primary" icon={<Save className="h-4 w-4" />} onClick={() => void savePublication(plan, editorial)} loading={pending}>Save story</Button>}>
@@ -3022,8 +3050,9 @@ function StoryEditor({
           </dl>
           <Field label="Headline" value={editorial.headline.value} onChange={(event) => updateEditorialValue("headline", event.target.value)} aria-label="Publication headline" />
           <TextAreaField label="Standfirst" value={editorial.standfirst.value} onChange={(event) => updateEditorialValue("standfirst", event.target.value)} aria-label="Publication standfirst" />
-          <TextAreaField label="How the Race Developed lede" value={editorial.section_ledes.how_the_race_developed?.value ?? ""} onChange={(event) => setEditorial((current) => current ? { ...current, section_ledes: { ...current.section_ledes, how_the_race_developed: { value: event.target.value, provenance: "human", dependency_fingerprints: [], review_required: false } } } : current)} />
-          <TextAreaField label="Pace and Strategy lede" value={editorial.section_ledes.pace_and_strategy?.value ?? ""} onChange={(event) => setEditorial((current) => current ? { ...current, section_ledes: { ...current.section_ledes, pace_and_strategy: { value: event.target.value, provenance: "human", dependency_fingerprints: [], review_required: false } } } : current)} />
+          {ledeFields.map(([section, label]) => (
+            <TextAreaField key={section} label={label} value={editorial.section_ledes[section]?.value ?? ""} onChange={(event) => updateLede(section, event.target.value)} />
+          ))}
           <TextAreaField label="Conclusion" value={editorial.conclusion.value} onChange={(event) => updateEditorialValue("conclusion", event.target.value)} />
         </div>
       </Panel>
@@ -3097,17 +3126,22 @@ function ReviewEditor({
   observationPendingActions: Record<string, ObservationPendingAction>;
 }) {
   const observations = packageView?.observations ?? [];
-  const reportClaims = packageView?.findings ?? [];
-  const reportReviews = new Map((packageView?.report_review ?? []).map((entry) => [entry.item_id, entry]));
-  const reportSections = packageView?.report?.sections ?? [];
+  const authority = analysis?.report_content;
+  const reportClaims = packageView?.findings?.length ? packageView.findings : [...(authority?.findings ?? []), ...(authority?.conclusions ?? [])];
+  const reviewEntries = packageView?.report_review?.length ? packageView.report_review : (analysis?.report_reviews ?? []);
+  const reportReviews = new Map(reviewEntries.map((entry) => [entry.item_id, entry]));
+  const reportSections = packageView?.report?.sections?.length ? packageView.report.sections : (authority?.plan.sections ?? []);
+  const resultEntries = packageView?.results?.length ? packageView.results : (authority?.results ?? []);
+  const assessmentEntries = packageView?.assessments?.length ? packageView.assessments : (authority?.assessments ?? []);
   const reportCharts = new Map<string, ReportEvidence>();
-  for (const result of packageView?.results ?? []) {
+  for (const result of resultEntries) {
     for (const evidence of result.chart_evidence ?? []) reportCharts.set(evidence.chart_instance_id, evidence);
   }
   const operationalStatus = reportOperationalStatus(analysis);
   function changePlan(mutator: (plan: ReportPlan) => void) {
-    if (!packageView?.report) return;
-    const next = structuredClone(packageView.report);
+    const currentPlan = packageView?.report ?? authority?.plan;
+    if (!currentPlan) return;
+    const next = structuredClone(currentPlan);
     mutator(next);
     void updateReportPlan(next);
   }
@@ -3196,11 +3230,11 @@ function ReviewEditor({
             <div className="rounded-md border border-dashed border-line bg-slate-50 p-6 text-sm text-muted">No publishable claims. Context, excluded, and unavailable results remain listed in package evidence.</div>
           )}
         </div>
-        {(packageView?.assessments.length ?? 0) > 0 && (
+        {assessmentEntries.length > 0 && (
           <details className="rounded-md border border-line bg-slate-50 p-3">
-            <summary className="cursor-pointer text-sm font-medium">Result accounting ({packageView?.assessments.length})</summary>
+            <summary className="cursor-pointer text-sm font-medium">Result accounting ({assessmentEntries.length})</summary>
             <div className="mt-3 grid gap-2 text-sm">
-              {packageView?.assessments.map((assessment) => (
+              {assessmentEntries.map((assessment) => (
                 <div key={assessment.assessment_id} className="flex flex-wrap items-start justify-between gap-2 rounded border border-line bg-white p-2">
                   <span>{assessment.result_type}</span>
                   <span className="font-mono text-xs">{assessment.report_disposition} · {assessment.reason_code}</span>
@@ -3568,6 +3602,10 @@ function DraftPreview({ markdown }: { markdown: string | null }) {
               ol: ({ children }) => <ol className="my-3 list-decimal space-y-1 pl-6">{children}</ol>,
               blockquote: ({ children }) => <blockquote className="my-4 border-l-4 border-line pl-4 text-muted">{children}</blockquote>,
               code: ({ children }) => <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs">{children}</code>,
+              img: ({ src, alt }) => {
+                const safePath = (src ?? "").split("/").filter((part) => part && part !== ".").map(encodeURIComponent).join("/");
+                return <img src={`/api/package/assets/${safePath}`} alt={alt ?? ""} className="my-4 h-auto max-w-full rounded border border-line" />;
+              },
               table: ({ children }) => <div className="my-4 overflow-x-auto"><table className="w-full border-collapse text-left">{children}</table></div>,
               th: ({ children }) => <th className="border border-line bg-slate-50 px-3 py-2 font-semibold">{children}</th>,
               td: ({ children }) => <td className="border border-line px-3 py-2 align-top">{children}</td>

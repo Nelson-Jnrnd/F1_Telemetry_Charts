@@ -130,7 +130,7 @@ export type EditorialField = {
   review_required: boolean;
 };
 
-export type PublicationSection = "headline" | "standfirst" | "at_a_glance" | "how_the_race_developed" | "pace_and_strategy" | "key_comparison" | "conclusion" | "methods_and_evidence";
+export type PublicationSection = "headline" | "standfirst" | "at_a_glance" | "how_the_race_developed" | "pace_and_strategy" | "key_comparison" | "how_qualifying_unfolded" | "pole_and_cutoff_battles" | "sector_comparison" | "session_context" | "official_classification" | "relevant_runs" | "matched_long_run_comparison" | "observed_run_trend" | "conclusion" | "methods_and_evidence";
 
 export type PublicationClaimPlacement = {
   finding_id: string;
@@ -157,6 +157,7 @@ export type PublicationEditorial = {
   standfirst: EditorialField;
   section_ledes: Record<string, EditorialField>;
   conclusion: EditorialField;
+  source_urls: string[];
 };
 
 export type PublicationPlan = {
@@ -480,6 +481,7 @@ export type AnalysisWorkspace = {
     publication_editorial: PublicationEditorial;
     publication_readiness: PublicationReadiness;
   } | null;
+  report_reviews: ReportReviewEntry[];
   report_freshness: {
     evidence: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };
     review: { status: "current" | "stale" | "missing"; input_fingerprint?: string | null };

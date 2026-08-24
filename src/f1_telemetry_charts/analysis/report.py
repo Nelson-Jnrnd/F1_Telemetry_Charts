@@ -91,6 +91,12 @@ def write_structured_report_package(
         )
         evidence_sidecar = {
             "schema_version": content.schema_version,
+            "publication_export_contract_version": PUBLICATION_EXPORT_CONTRACT_VERSION,
+            "publication_policy": {
+                "policy_id": content.publication_plan.policy_id,
+                "policy_version": content.publication_plan.policy_version,
+            },
+            "editorial_sources": content.publication_editorial.source_urls,
             "results": [item.model_dump(mode="json") for item in content.results],
             "assessments": [item.model_dump(mode="json") for item in content.assessments],
             "findings": [item.model_dump(mode="json") for item in [*content.findings, *content.conclusions]],
@@ -195,6 +201,10 @@ def write_publication_export_package(
         output_dir / "evidence.json",
         json.dumps(evidence_sidecar, indent=2, sort_keys=True),
     )
+    _atomic_write_text(
+        output_dir / "publication-plan.json",
+        plan.model_dump_json(indent=2),
+    )
     selected_recipes = [
         item for item in manifest.recipes if item.recipe_id in set(selected_recipe_ids)
     ]
@@ -212,7 +222,7 @@ def write_publication_export_package(
             "findings_path": None,
             "report_path": None,
             "report_review_path": None,
-            "publication_plan_path": None,
+            "publication_plan_path": "publication-plan.json",
             "analyst_markdown_path": None,
             "evidence_sidecar_path": "evidence.json",
             "publication_readiness": readiness.model_dump(mode="json"),
@@ -251,13 +261,9 @@ def _publication_article_payload(
     if plan is None:
         raise ValueError("Publication article requires a publication plan.")
     publication_claims = _publication_claim_entries(content, reviews)
-    section_titles = {
-        "how_the_race_developed": "How the Race Developed",
-        "pace_and_strategy": "Pace and Strategy",
-        "key_comparison": "Key Comparison",
-    }
+    section_titles = _publication_section_titles(plan.policy_id)
     sections: list[dict[str, object]] = []
-    for section_id in ("how_the_race_developed", "pace_and_strategy", "key_comparison"):
+    for section_id in section_titles:
         paragraphs = [
             {"paragraph": item["paragraph"], "claim_id": item["claim_id"]}
             for item in publication_claims
@@ -288,6 +294,12 @@ def _publication_article_payload(
             )
     return {
         "schema_version": PUBLICATION_ARTICLE_SCHEMA_VERSION,
+        "publication_export_contract_version": PUBLICATION_EXPORT_CONTRACT_VERSION,
+        "publication_policy": {
+            "policy_id": plan.policy_id,
+            "policy_version": plan.policy_version,
+        },
+        "editorial_sources": content.publication_editorial.source_urls,
         "headline": content.publication_editorial.headline.value,
         "standfirst": content.publication_editorial.standfirst.value,
         "at_a_glance": [
@@ -370,6 +382,11 @@ def _publication_evidence_payload(
     return {
         "schema_version": content.schema_version,
         "publication_export_contract_version": PUBLICATION_EXPORT_CONTRACT_VERSION,
+        "publication_policy": {
+            "policy_id": content.publication_plan.policy_id,
+            "policy_version": content.publication_plan.policy_version,
+        },
+        "editorial_sources": content.publication_editorial.source_urls,
         "results": remap([item.model_dump(mode="json") for item in content.results]),
         "assessments": [item.model_dump(mode="json") for item in content.assessments],
         "findings": remap(
@@ -420,23 +437,20 @@ def render_publication_markdown(
     claims = {item.finding_id: item for item in [*content.findings, *content.conclusions]}
     reviews_by_id = {item.item_id: item for item in reviews}
     placements = {item.finding_id: item for item in plan.claims if item.included}
+    report_kind = "Qualifying" if plan.policy_id == "qualifying-publication-selection" else "Practice" if plan.policy_id == "practice-publication-selection" else "Race"
     title = _safe_reader_text(editorial.headline.value) or (
-        f"{manifest.session.get('season', '')} {manifest.session.get('event', '')} Race Report"
+        f"{manifest.session.get('season', '')} {manifest.session.get('event', '')} {report_kind} Report"
     ).strip()
     lines = [f"# {title}", ""]
     standfirst = _safe_reader_text(editorial.standfirst.value)
     if standfirst:
         lines.extend([standfirst, ""])
     summary = [item.summary_reference for item in plan.claims if item.included and item.summary_reference]
-    if summary:
+    if summary and plan.policy_id != "practice-publication-selection":
         lines.extend(["## At a Glance", "", *[f"- {_safe_reader_text(value)}" for value in summary], ""])
 
-    section_titles = {
-        "how_the_race_developed": "How the Race Developed",
-        "pace_and_strategy": "Pace and Strategy",
-        "key_comparison": "Key Comparison",
-    }
-    for section_id in ("how_the_race_developed", "pace_and_strategy", "key_comparison"):
+    section_titles = _publication_section_titles(plan.policy_id)
+    for section_id in section_titles:
         section_lines: list[str] = []
         reviewed_claim_texts: list[str] = []
         lede = editorial.section_ledes.get(section_id)
@@ -451,7 +465,7 @@ def render_publication_markdown(
                 continue
             text = review.edited_text if review.review_status == "edited" else claim.text
             reviewed_claim_texts.append(_safe_reader_text(text or ""))
-        if section_id == "how_the_race_developed" and reviewed_claim_texts:
+        if section_id in {"how_the_race_developed", "how_qualifying_unfolded", "official_classification"} and reviewed_claim_texts:
             section_lines.extend([" ".join(reviewed_claim_texts), ""])
         else:
             for text in reviewed_claim_texts:
@@ -470,7 +484,7 @@ def render_publication_markdown(
             )
             if evidence is None or not evidence.image_path:
                 continue
-            alt = _escape_alt(_safe_reader_text(chart.alt_text.value) or "Race analysis chart")
+            alt = _escape_alt(_safe_reader_text(chart.alt_text.value) or f"{report_kind} analysis chart")
             image_path = (asset_paths or {}).get(
                 chart.chart_instance_id, evidence.image_path
             )
@@ -491,10 +505,34 @@ def render_publication_markdown(
     )
     if methods:
         lines.extend(["## Methods and Evidence", "", *[f"- {_safe_reader_text(value)}." for value in methods], ""])
+    lines.extend(_publication_provenance_lines(content))
     output = "\n".join(lines).rstrip() + "\n"
     if "[object Object]" in output or re.search(r"(?:fingerprint|result-[0-9a-f]|finding-[0-9a-f])", output, re.I):
         raise ValueError("Internal-format leakage detected in publication Markdown.")
     return output
+
+
+def _publication_section_titles(policy_id: str) -> dict[str, str]:
+    if policy_id == "qualifying-publication-selection":
+        return {
+            "session_context": "Session Context",
+            "how_qualifying_unfolded": "How Qualifying Unfolded",
+            "pole_and_cutoff_battles": "Pole and Cutoff Battles",
+            "sector_comparison": "Sector Comparison",
+        }
+    if policy_id == "practice-publication-selection":
+        return {
+            "session_context": "Session Context",
+            "official_classification": "Official Classification",
+            "relevant_runs": "Relevant Runs",
+            "matched_long_run_comparison": "Matched Long-Run Comparison",
+            "observed_run_trend": "Observed Run Trend",
+        }
+    return {
+        "how_the_race_developed": "How the Race Developed",
+        "pace_and_strategy": "Pace and Strategy",
+        "key_comparison": "Key Comparison",
+    }
 
 
 def _safe_reader_text(value: str) -> str:
@@ -519,7 +557,11 @@ def render_structured_markdown(
     report_kind = (
         "Race Strategy Report"
         if session_name.lower() in {"race", "r"}
-        else f"{session_name} Strategy Report"
+        else "Qualifying Report"
+        if session_name.lower() in {"qualifying", "q"}
+        else "Practice Report"
+        if session_name.lower() in {"fp1", "fp2", "fp3", "practice 1", "practice 2", "practice 3"}
+        else f"{session_name} Report"
     )
     title = (
         f"{manifest.session.get('season', '')} {manifest.session.get('event', '')} "
@@ -562,9 +604,9 @@ def render_structured_markdown(
             )
             section_lines.extend([f"- {publication_text}", f"  - Confidence: `{claim.confidence}`"])
             basis = _publication_basis(claim)
-            if basis and section.section_id != "executive_summary":
+            if basis and section.section_id != "executive_summary" and not claim.finding_type.startswith("qualifying"):
                 section_lines.append(f"  - Basis: {basis.rstrip('.')}.")
-            if claim.limitations:
+            if claim.limitations and not claim.finding_type.startswith("qualifying"):
                 section_lines.append("  - Limitations: " + " ".join(claim.limitations))
             included_claims.append(claim)
         if section_lines:
@@ -574,6 +616,7 @@ def render_structured_markdown(
         assessment
         for assessment in content.assessments
         if assessment.report_disposition != "reportable"
+        and assessment.result_type not in {"qualifying_traffic_context", "practice_traffic_context"}
     ]
     if not included_claims:
         lines.extend(
@@ -590,6 +633,7 @@ def render_structured_markdown(
         for assessment in non_publishable:
             lines.append(f"- {_publication_assessment_text(assessment.result_type, assessment.report_disposition, assessment.reasons)}")
         lines.append("")
+    lines.extend(_publication_provenance_lines(content))
     lines.extend(
         [
             "---",
@@ -602,8 +646,41 @@ def render_structured_markdown(
     return "\n".join(lines)
 
 
+def _publication_provenance_lines(content: ReportContent) -> list[str]:
+    plan = content.publication_plan
+    if plan is None:
+        return []
+    lines = [
+        "## Provenance",
+        "",
+        f"- Publication policy: `{plan.policy_id}` v{plan.policy_version}",
+        f"- Publication export contract: v{PUBLICATION_EXPORT_CONTRACT_VERSION}",
+    ]
+    lines.extend(f"- Editorial source: {url}" for url in content.publication_editorial.source_urls)
+    return [*lines, ""]
+
+
 def _publication_basis(claim: ReportFinding) -> str:
     basis = claim.comparison_basis
+
+    qualifying_methods = {
+        "qualifying_segment_classification": "Official Q1/Q2/Q3 segment order, advancement outcomes, and final session classification",
+        "qualifying_attempt_progression": "Source-assigned qualifying segments; only valid, non-deleted timed laps update each driver's recorded best",
+        "qualifying_margin_comparison": "Official within-segment best times; advancement boundaries follow the official outcome before time arithmetic",
+        "qualifying_sector_contribution": "Complete recorded sectors from the selected valid Q3 laps; signed deltas reconcile within 0.003 seconds",
+    }
+    if claim.finding_type in qualifying_methods:
+        return qualifying_methods[claim.finding_type]
+    practice_methods = {
+        "practice_classification": "Official Practice classification source; lap timing is not substituted",
+        "practice_long_run_pace": "Pit-bounded representative laps; type-7 median and quantiles with 10% symmetric trimming",
+        "practice_long_run_comparison": "Same-compound overlapping runs paired at at least eight shared reliable recorded tyre ages",
+        "practice_observed_pace_evolution": "Theil-Sen observed pace evolution on one explicit run-progress or tyre-age basis; no causal interpretation",
+        "practice_conditions": "Recorded weather and compound evidence",
+        "practice_interruptions": "Recorded session-control timing",
+    }
+    if claim.finding_type in practice_methods:
+        return practice_methods[claim.finding_type]
 
     def interval_label(value: object) -> str | None:
         if not isinstance(value, dict):

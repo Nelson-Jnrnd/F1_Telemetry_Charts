@@ -317,6 +317,9 @@ def _strategy_summaries(service: AnalysisService, analysis: Any) -> list[dict[st
         "race_time_delta_evolution",
         "pit_cycle_comparison",
         "driver_battle",
+        "practice_run_overview",
+        "practice_long_run_pace_summary",
+        "practice_observed_pace_evolution",
     }
     for chart in analysis.charts:
         if chart.recipe_id not in strategy_ids:
@@ -380,6 +383,7 @@ def _report_summary(analysis: Any, *, maximum_items: int = 100) -> dict[str, Any
         return None
     claims = [*content.findings, *content.conclusions][:maximum_items]
     assessments = content.assessments[:maximum_items]
+    results = content.results[:maximum_items]
     return {
         "schema_version": content.schema_version,
         "target_session_id": content.target_session_id,
@@ -411,7 +415,21 @@ def _report_summary(analysis: Any, *, maximum_items: int = 100) -> dict[str, Any
         "truncated": (
             len(content.findings) + len(content.conclusions) > maximum_items
             or len(content.assessments) > maximum_items
+            or len(content.results) > maximum_items
         ),
+        "results": [
+            {
+                "result_id": item.result_id,
+                "result_type": item.result_type,
+                "analytical_status": item.analytical_status,
+                "measurement_category": item.measurement_category,
+                "coverage": item.coverage,
+                "quality": item.quality,
+                "limitations": item.limitations,
+                "result_fingerprint": item.result_fingerprint,
+            }
+            for item in results
+        ],
         "assessments": [
             {
                 "assessment_id": item.assessment_id,

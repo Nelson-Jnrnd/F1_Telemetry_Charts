@@ -34,6 +34,32 @@ PUBLICATION_SECTION_ORDER = [
     "conclusion",
     "methods_and_evidence",
 ]
+QUALIFYING_PUBLICATION_SECTION_ORDER = [
+    "headline",
+    "standfirst",
+    "at_a_glance",
+    "session_context",
+    "how_qualifying_unfolded",
+    "pole_and_cutoff_battles",
+    "sector_comparison",
+    "conclusion",
+    "methods_and_evidence",
+]
+QUALIFYING_SELECTION_POLICY_ID = "qualifying-publication-selection"
+QUALIFYING_SELECTION_POLICY_VERSION = 4
+PRACTICE_PUBLICATION_SECTION_ORDER = [
+    "headline",
+    "standfirst",
+    "session_context",
+    "official_classification",
+    "relevant_runs",
+    "matched_long_run_comparison",
+    "observed_run_trend",
+    "conclusion",
+    "methods_and_evidence",
+]
+PRACTICE_SELECTION_POLICY_ID = "practice-publication-selection"
+PRACTICE_SELECTION_POLICY_VERSION = 1
 SESSION_SPINE_TYPES = (
     "race_classification",
     "grid_to_finish_movement",
@@ -316,6 +342,11 @@ def materialize_session_spine(
 def propose_publication_plan(content: ReportContent) -> PublicationPlan:
     """Apply the named deterministic selection policy to current evidence."""
 
+    if _is_qualifying_content(content):
+        return _propose_qualifying_publication_plan(content)
+    if _is_practice_content(content):
+        return _propose_practice_publication_plan(content)
+
     all_claims = sorted(
         [*content.findings, *content.conclusions],
         key=lambda item: (-item.priority, item.finding_id),
@@ -393,13 +424,19 @@ def propose_publication_plan(content: ReportContent) -> PublicationPlan:
 
 
 def validate_publication_plan(content: ReportContent, plan: PublicationPlan) -> None:
-    if plan.schema_version != 1 or plan.policy_version != 2:
+    qualifying = _is_qualifying_content(content)
+    practice = _is_practice_content(content)
+    expected_policy = QUALIFYING_SELECTION_POLICY_ID if qualifying else PRACTICE_SELECTION_POLICY_ID if practice else "race-publication-selection"
+    expected_version = QUALIFYING_SELECTION_POLICY_VERSION if qualifying else PRACTICE_SELECTION_POLICY_VERSION if practice else 2
+    expected_order = QUALIFYING_PUBLICATION_SECTION_ORDER if qualifying else PRACTICE_PUBLICATION_SECTION_ORDER if practice else PUBLICATION_SECTION_ORDER
+    if plan.schema_version != 1 or plan.policy_id != expected_policy or plan.policy_version != expected_version:
         raise ValueError("Unsupported publication plan or selection policy version.")
     if plan.target_session_id != content.target_session_id:
         raise ValueError("The publication target session cannot be changed implicitly.")
-    if plan.section_order != PUBLICATION_SECTION_ORDER:
+    if plan.section_order != expected_order:
         raise ValueError("Publication sections must use the approved article order.")
-    claim_ids = {item.finding_id for item in [*content.findings, *content.conclusions]}
+    claims_by_id = {item.finding_id: item for item in [*content.findings, *content.conclusions]}
+    claim_ids = set(claims_by_id)
     seen_claims: set[str] = set()
     for placement in plan.claims:
         if placement.finding_id not in claim_ids:
@@ -408,7 +445,12 @@ def validate_publication_plan(content: ReportContent, plan: PublicationPlan) -> 
             raise ValueError("A claim may have only one canonical detailed placement.")
         if placement.included:
             seen_claims.add(placement.finding_id)
-        if placement.summary_reference and re.search(r"\d", placement.summary_reference):
+        summary_for_metric_check = re.sub(r"\bQ[123]\b", "", placement.summary_reference or "")
+        if (
+            placement.summary_reference
+            and re.search(r"\d", summary_for_metric_check)
+            and placement.summary_reference.strip() != claims_by_id[placement.finding_id].text.strip()
+        ):
             raise ValueError("At a Glance references cannot introduce numeric assertions.")
     chart_ids = {
         evidence.chart_instance_id
@@ -422,8 +464,9 @@ def validate_publication_plan(content: ReportContent, plan: PublicationPlan) -> 
         if not chart.purpose.strip():
             raise ValueError("Every included chart requires an editorial purpose.")
     automatic = [chart for chart in included_charts if chart.selection_mode == "automatic"]
-    if len(automatic) > 4:
-        raise ValueError("More than four charts requires explicit inclusion.")
+    maximum = 3 if qualifying or practice else 4
+    if len(automatic) > maximum:
+        raise ValueError(f"More than {maximum} charts requires explicit inclusion.")
     primary = [chart.result_ids[0] for chart in automatic if chart.result_ids]
     if len(primary) != len(set(primary)):
         raise ValueError("Automatic chart selection cannot repeat the same primary result.")
@@ -444,6 +487,27 @@ def evaluate_readiness(
     review_by_id = {item.item_id: item for item in reviews}
     included_claims = [item for item in plan.claims if item.included]
     included_charts = [item for item in plan.charts if item.included]
+    if _is_qualifying_content(content):
+        return _evaluate_qualifying_readiness(
+            content,
+            review_by_id,
+            plan,
+            evidence_current=evidence_current,
+            review_current=review_current,
+            publication_current=publication_current,
+            export_current=export_current,
+            package_integrity=package_integrity,
+        )
+    if _is_practice_content(content):
+        return _evaluate_practice_readiness(
+            content,
+            reviews,
+            evidence_current=evidence_current,
+            review_current=review_current,
+            publication_current=publication_current,
+            export_current=export_current,
+            package_integrity=package_integrity,
+        )
     race_development_required = any(
         item.section == "how_the_race_developed" for item in included_claims
     ) or any(item.section == "how_the_race_developed" for item in included_charts)
@@ -517,6 +581,267 @@ def evaluate_readiness(
         checks=checks,
         package_integrity="valid" if package_integrity else "invalid",
     )
+
+
+def _is_qualifying_content(content: ReportContent) -> bool:
+    return any(result.result_type == "qualifying_segment_classification" for result in content.results)
+
+
+def _is_practice_content(content: ReportContent) -> bool:
+    return any(result.result_type == "practice_classification" for result in content.results)
+
+
+def _propose_practice_publication_plan(content: ReportContent) -> PublicationPlan:
+    """Apply SPEC-012's fixed category, quality, effect, and stable-ID order."""
+
+    result_by_id = {result.result_id: result for result in content.results}
+    assessment_by_result = {item.result_id: item for item in content.assessments}
+    claims = [
+        claim for claim in [*content.findings, *content.conclusions]
+        if _claim_eligible(claim, result_by_id)
+        and all(assessment_by_result.get(result_id) is not None and assessment_by_result[result_id].report_disposition == "reportable" for result_id in claim.result_ids)
+    ]
+    category = {
+        "practice_conditions": 0,
+        "practice_interruptions": 0,
+        "practice_long_run_comparison": 1,
+        "practice_long_run_pace": 2,
+        "practice_observed_pace_evolution": 2,
+        "practice_classification": 4,
+    }
+    quality_order = {"high": 0, "medium": 1, "low": 2, "provisional": 3, "unavailable": 4}
+
+    def rank(claim: ReportFinding) -> tuple[Any, ...]:
+        result = result_by_id[claim.result_ids[0]]
+        effect = claim.metrics.get("effect_size_seconds")
+        finite_effect = float(effect) if isinstance(effect, (int, float)) else None
+        return (category.get(claim.finding_type, 99), quality_order.get(claim.confidence, 4), 0 if finite_effect is not None else 1, -(abs(finite_effect) if finite_effect is not None else 0.0), result.result_id)
+
+    ordered = sorted(claims, key=rank)
+    classification = next((claim for claim in ordered if claim.finding_type == "practice_classification"), None)
+    lead = ordered[0] if ordered else None
+    selected: list[ReportFinding] = []
+    for candidate in [lead, classification]:
+        if candidate is not None and candidate.finding_id not in {item.finding_id for item in selected}:
+            selected.append(candidate)
+    for finding_type in ("practice_long_run_pace", "practice_long_run_comparison", "practice_observed_pace_evolution"):
+        candidate = next((claim for claim in ordered if claim.finding_type == finding_type), None)
+        if candidate is not None and candidate.finding_id not in {item.finding_id for item in selected}:
+            selected.append(candidate)
+    section_by_type = {
+        "practice_conditions": "session_context",
+        "practice_interruptions": "session_context",
+        "practice_classification": "official_classification",
+        "practice_long_run_pace": "relevant_runs",
+        "practice_long_run_comparison": "matched_long_run_comparison",
+        "practice_observed_pace_evolution": "observed_run_trend",
+    }
+    placements = [PublicationClaimPlacement(finding_id=claim.finding_id, section=section_by_type[claim.finding_type], summary_reference=claim.text if claim is lead else None) for claim in selected]
+    charts: list[PublicationChartPlacement] = []
+    used_results: set[str] = set()
+    for claim in selected:
+        primary = claim.result_ids[0] if claim.result_ids else ""
+        if primary in used_results:
+            continue
+        for evidence in sorted(claim.evidence, key=lambda item: item.chart_instance_id):
+            if evidence.image_path:
+                charts.append(PublicationChartPlacement(chart_instance_id=evidence.chart_instance_id, section=section_by_type[claim.finding_type], purpose=_chart_purpose(claim), finding_ids=[claim.finding_id], result_ids=claim.result_ids))
+                used_results.add(primary)
+                break
+        if len(charts) == 3:
+            break
+    return PublicationPlan(policy_id=PRACTICE_SELECTION_POLICY_ID, policy_version=PRACTICE_SELECTION_POLICY_VERSION, target_session_id=content.target_session_id, section_order=list(PRACTICE_PUBLICATION_SECTION_ORDER), claims=placements, charts=charts)
+
+
+def _evaluate_practice_readiness(
+    content: ReportContent,
+    reviews: Iterable[ReportReviewEntry],
+    *,
+    evidence_current: bool,
+    review_current: bool,
+    publication_current: bool,
+    export_current: bool,
+    package_integrity: bool,
+) -> PublicationReadiness:
+    plan = content.publication_plan or _propose_practice_publication_plan(content)
+    editorial = content.publication_editorial
+    review_by_id = {item.item_id: item for item in reviews}
+    included_claims = [item for item in plan.claims if item.included]
+    included_charts = [item for item in plan.charts if item.included]
+    classification = next((result for result in content.results if result.result_type == "practice_classification"), None)
+    required_ledes = {item.section for item in included_claims if item.section in {"session_context", "official_classification", "relevant_runs", "matched_long_run_comparison", "observed_run_trend"}}
+    unsafe = re.compile(r"\b(fuel[- ]corrected|engine mode|setup advantage|tyre preparation|traffic loss|programme intent|race simulation|qualifying simulation|tyre degradation|race pace ranking|will qualify|will win|weekend prediction)\b", re.I)
+    editorial_values = [editorial.headline.value, editorial.standfirst.value, editorial.conclusion.value, *[field.value for field in editorial.section_ledes.values()], *[chart.caption.value for chart in included_charts], *[chart.alt_text.value for chart in included_charts], *[(review_by_id[item.finding_id].edited_text or "") for item in included_claims if item.finding_id in review_by_id and review_by_id[item.finding_id].review_status == "edited"]]
+    checks = {
+        "official_practice_classification_current": bool(evidence_current and classification and classification.analytical_status == "available"),
+        "included_evidence_current": evidence_current,
+        "included_claims_reviewed": review_current and all(item.finding_id in review_by_id and review_by_id[item.finding_id].review_status in {"accepted", "edited"} for item in included_claims),
+        "editorial_headline": _headline_is_editorial(editorial.headline.value),
+        "publication_standfirst": _minimum_words(editorial.standfirst.value, 15),
+        "practice_section_ledes": all(_minimum_words(editorial.section_ledes.get(section, EditorialField()).value, 8) for section in required_ledes),
+        "conclusion_present": _minimum_words(editorial.conclusion.value, 8),
+        "publication_captions": all(_caption_is_informative(content, chart) for chart in included_charts),
+        "accessible_alt_text": all(_alt_text_is_visual(content, chart) for chart in included_charts),
+        "editorial_current": not any(field.review_required for field in [editorial.headline, editorial.standfirst, editorial.conclusion, *editorial.section_ledes.values()]) and all(not chart.caption.review_required and not chart.alt_text.review_required for chart in included_charts),
+        "canonical_placement": len({item.finding_id for item in included_claims}) == len(included_claims),
+        "supported_language": not any(unsafe.search(value) for value in editorial_values),
+        "preview_current": publication_current,
+        "package_integrity": package_integrity,
+    }
+    blockers = [name.replace("_", " ").capitalize() for name, passed in checks.items() if not passed]
+    ready = not blockers
+    if export_current and ready: state, next_action = "export_current", "Copy Markdown or download the current package"
+    elif ready: state, next_action = "publication_draft_ready", "Export publication package"
+    elif not checks["official_practice_classification_current"]: state, next_action = "evidence_ready", "Refresh official Practice classification"
+    elif not all(checks[name] for name in ("editorial_headline", "publication_standfirst", "practice_section_ledes", "conclusion_present", "publication_captions", "accessible_alt_text")): state, next_action = "editorial_work_required", "Complete required Practice editorial fields"
+    else: state, next_action = "review_required", "Review included Practice claims and dependent editorial copy"
+    return PublicationReadiness(ready=ready, state=state, next_action=next_action, blockers=blockers, checks=checks, package_integrity="valid" if package_integrity else "invalid")
+
+
+def _propose_qualifying_publication_plan(content: ReportContent) -> PublicationPlan:
+    result_by_id = {result.result_id: result for result in content.results}
+    eligible = [
+        claim
+        for claim in [*content.findings, *content.conclusions]
+        if _claim_eligible(claim, result_by_id)
+    ]
+    order = {
+        "qualifying_segment_classification": 0,
+        "qualifying-session-context": 1,
+        "qualifying_conditions": 2,
+        "qualifying_interruptions": 3,
+        "qualifying_sector_contribution": 4,
+        "qualifying_margin_comparison": 5,
+        "qualifying_attempt_progression": 6,
+    }
+    eligible.sort(key=lambda claim: (order.get(claim.finding_type, 99), -claim.priority, claim.finding_id))
+    section_by_type = {
+        "qualifying_segment_classification": "how_qualifying_unfolded",
+        "qualifying_attempt_progression": "how_qualifying_unfolded",
+        "qualifying_margin_comparison": "pole_and_cutoff_battles",
+        "qualifying_sector_contribution": "sector_comparison",
+        "qualifying-session-context": "session_context",
+        "qualifying_conditions": "session_context",
+        "qualifying_interruptions": "session_context",
+    }
+    combined_context = any(claim.finding_type == "qualifying-session-context" for claim in eligible)
+    placements = [
+        PublicationClaimPlacement(
+            finding_id=claim.finding_id,
+            section=section_by_type[claim.finding_type],
+            summary_reference=(
+                claim.text.strip()
+                if claim.finding_type
+                in {
+                    "qualifying_segment_classification",
+                    "qualifying_margin_comparison",
+                    "qualifying_sector_contribution",
+                    "qualifying-session-context",
+                }
+                else None
+            ),
+        )
+        for claim in eligible
+        if claim.finding_type in section_by_type
+        and not (combined_context and claim.finding_type in {"qualifying_conditions", "qualifying_interruptions"})
+    ]
+    charts: list[PublicationChartPlacement] = []
+    seen_results: set[str] = set()
+    for claim in eligible:
+        # Margin values read faster as labelled findings than as separately
+        # scaled bars.  Keep the recipe available as inspectable evidence, but
+        # do not select it for the reader article.
+        if claim.finding_type == "qualifying_margin_comparison":
+            continue
+        primary = claim.result_ids[0] if claim.result_ids else ""
+        if primary in seen_results:
+            continue
+        evidence = next((item for item in sorted(claim.evidence, key=lambda item: item.chart_instance_id) if item.image_path), None)
+        if evidence is None:
+            continue
+        charts.append(
+            PublicationChartPlacement(
+                chart_instance_id=evidence.chart_instance_id,
+                section=section_by_type.get(claim.finding_type, "session_context"),
+                purpose=_chart_purpose(claim),
+                finding_ids=[claim.finding_id],
+                result_ids=claim.result_ids,
+            )
+        )
+        seen_results.add(primary)
+        if len(charts) == 3:
+            break
+    return PublicationPlan(
+        policy_id=QUALIFYING_SELECTION_POLICY_ID,
+        policy_version=QUALIFYING_SELECTION_POLICY_VERSION,
+        target_session_id=content.target_session_id,
+        section_order=list(QUALIFYING_PUBLICATION_SECTION_ORDER),
+        claims=placements,
+        charts=charts,
+    )
+
+
+def _evaluate_qualifying_readiness(
+    content: ReportContent,
+    review_by_id: dict[str, ReportReviewEntry],
+    plan: PublicationPlan,
+    *,
+    evidence_current: bool,
+    review_current: bool,
+    publication_current: bool,
+    export_current: bool,
+    package_integrity: bool,
+) -> PublicationReadiness:
+    editorial = content.publication_editorial
+    included_claims = [item for item in plan.claims if item.included]
+    included_charts = [item for item in plan.charts if item.included]
+    classification = next((result for result in content.results if result.result_type == "qualifying_segment_classification"), None)
+    deleted_laps = next((result for result in content.results if result.result_type == "qualifying_deleted_laps"), None)
+    official_complete = bool(
+        classification
+        and classification.analytical_status == "available"
+        and len(classification.payload.get("official_session_classification", [])) >= 2
+    )
+    required_ledes = {
+        item.section
+        for item in [*included_claims, *included_charts]
+        if item.section in {"how_qualifying_unfolded", "pole_and_cutoff_battles", "sector_comparison", "session_context"}
+    }
+    if any(
+        item.section == "session_context"
+        and (review := review_by_id.get(item.finding_id)) is not None
+        and review.review_status == "edited"
+        and bool((review.edited_text or "").strip())
+        for item in included_claims
+    ):
+        required_ledes.discard("session_context")
+    unsafe = re.compile(r"\b(setup|driver error|tyre preparation|traffic loss|track gain|strategy intent|would have advanced|would have taken pole)\b", re.I)
+    editorial_values = [editorial.headline.value, editorial.standfirst.value, editorial.conclusion.value, *[field.value for field in editorial.section_ledes.values()], *[chart.caption.value for chart in included_charts]]
+    checks = {
+        "official_qualifying_outcome_current": evidence_current and official_complete,
+        "deleted_lap_integrity": bool(deleted_laps and deleted_laps.analytical_status != "source_conflict"),
+        "included_evidence_current": evidence_current,
+        "included_claims_reviewed": review_current and all(item.finding_id in review_by_id and review_by_id[item.finding_id].review_status in {"accepted", "edited"} for item in included_claims),
+        "editorial_headline": _headline_is_editorial(editorial.headline.value),
+        "publication_standfirst": _minimum_words(editorial.standfirst.value, 15),
+        "qualifying_section_ledes": all(_minimum_words(editorial.section_ledes.get(section, EditorialField()).value, 8) for section in required_ledes),
+        "conclusion_present": _minimum_words(editorial.conclusion.value, 8),
+        "publication_captions": all(_caption_is_informative(content, chart) for chart in included_charts),
+        "accessible_alt_text": all(_alt_text_is_visual(content, chart) for chart in included_charts),
+        "editorial_current": not any(field.review_required for field in [editorial.headline, editorial.standfirst, editorial.conclusion, *editorial.section_ledes.values()]) and all(not chart.caption.review_required and not chart.alt_text.review_required for chart in included_charts),
+        "canonical_placement": len({item.finding_id for item in included_claims}) == len(included_claims),
+        "supported_language": not any(unsafe.search(value) for value in editorial_values),
+        "preview_current": publication_current,
+        "package_integrity": package_integrity,
+    }
+    blockers = [name.replace("_", " ").capitalize() for name, passed in checks.items() if not passed]
+    ready = not blockers
+    if export_current and ready: state, next_action = "export_current", "Copy Markdown or download the current package"
+    elif ready: state, next_action = "publication_draft_ready", "Export publication package"
+    elif not evidence_current or not official_complete: state, next_action = "evidence_ready", "Refresh official qualifying evidence"
+    elif not all(checks[name] for name in ("editorial_headline", "publication_standfirst", "qualifying_section_ledes", "conclusion_present", "publication_captions", "accessible_alt_text")): state, next_action = "editorial_work_required", "Complete required qualifying editorial fields"
+    else: state, next_action = "review_required", "Review included qualifying claims and dependent editorial copy"
+    return PublicationReadiness(ready=ready, state=state, next_action=next_action, blockers=blockers, checks=checks, package_integrity="valid" if package_integrity else "invalid")
 
 
 def preserve_editorial_on_refresh(
@@ -701,6 +1026,8 @@ def _claim_eligible(claim: ReportFinding, results: dict[str, AnalyticalResultRec
     if claim.confidence in {"low", "provisional", "unavailable"}:
         return False
     owned = [results[result_id] for result_id in claim.result_ids if result_id in results]
+    if any(result.analytical_status in {"unavailable", "unsupported", "source_conflict"} for result in owned):
+        return False
     if any(result.measurement_category == "estimated" for result in owned):
         return False
     text = " ".join([*claim.limitations, *(warning for result in owned for warning in result.warnings)]).lower()

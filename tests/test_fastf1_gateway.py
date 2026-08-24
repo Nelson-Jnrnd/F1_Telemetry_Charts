@@ -16,6 +16,7 @@ from f1_telemetry_charts.data.gateways.fastf1 import (
     _merge_position_columns,
     _percentage_or_none,
     _session_to_dataset,
+    _practice_classification_from_results,
     _telemetry_samples_from_lap_methods,
     _telemetry_samples_from_laps,
     _timing_app_records_from_session,
@@ -265,6 +266,7 @@ class FastF1GatewayTests(unittest.TestCase):
                     "LapNumber": 1,
                     "LapTime": _Duration(96.0),
                     "Compound": "SOFT",
+                    "TyreLife": 7.0,
                     "Stint": 1,
                     "Position": 1,
                     "PitInTime": "NaT",
@@ -290,6 +292,17 @@ class FastF1GatewayTests(unittest.TestCase):
         self.assertFalse(records[0].is_generated)
         self.assertIsNone(records[0].is_accurate)
         self.assertIsNone(records[0].sector_1_time_seconds)
+        self.assertEqual(records[0].tyre_age, 7.0)
+
+    def test_fastf1_practice_classification_uses_only_official_result_rows(self) -> None:
+        rows = _FakeRows([
+            {"Abbreviation": "AAA", "Position": 1, "FastestLapTime": _Duration(90.1), "Laps": 24, "Status": ""},
+            {"Abbreviation": "BBB", "Position": 2, "FastestLapTime": _Duration(90.3), "Laps": 25, "Status": ""},
+        ])
+        entries = _practice_classification_from_results(rows, "FP2")
+        self.assertEqual([item.driver for item in entries], ["AAA", "BBB"])
+        self.assertAlmostEqual(entries[1].gap_seconds or 0.0, 0.2)
+        self.assertEqual(_practice_classification_from_results(rows, "Race"), [])
 
     def test_fastf1_position_columns_merge_into_telemetry(self) -> None:
         try:

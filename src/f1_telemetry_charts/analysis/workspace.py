@@ -45,6 +45,14 @@ from f1_telemetry_charts.analysis.publication import (
     propose_publication_plan,
     validate_publication_plan,
 )
+from f1_telemetry_charts.analysis.qualifying import (
+    is_standard_qualifying,
+    materialize_qualifying_results,
+)
+from f1_telemetry_charts.analysis.practice import (
+    is_standard_practice,
+    materialize_practice_results,
+)
 from f1_telemetry_charts.analysis.report import (
     PUBLICATION_EXPORT_CONTRACT_VERSION,
     write_publication_export_package,
@@ -894,12 +902,19 @@ class AnalysisService:
         _materialize_package_artifacts(self.root, package_dir, manifest)
         target_session = _report_target_session(analysis)
         if target_session.snapshot is None:
-            raise ValueError("A loaded Race session is required to build the publication report.")
+            raise ValueError("A loaded Race, standard Qualifying, or standard Practice session is required to build the publication report.")
         dataset = _read_snapshot_dataset(self.root, target_session.snapshot)
+        session_results = (
+            materialize_qualifying_results(target_session.session_id, dataset)
+            if is_standard_qualifying(dataset.metadata.session)
+            else materialize_practice_results(target_session.session_id, dataset)
+            if is_standard_practice(dataset.metadata.session)
+            else materialize_session_spine(target_session.session_id, dataset)
+        )
         content = build_report_content(
             target_session.session_id,
             _report_result_sources(self.root, analysis, target_session.session_id),
-            materialize_session_spine(target_session.session_id, dataset),
+            session_results,
         )
         current_fingerprints = {item.result_fingerprint for item in content.results}
         prior_editorial = (
@@ -2804,18 +2819,18 @@ def _report_target_session(analysis: AnalysisWorkspace) -> AnalysisSession:
         )
         if selected is None:
             raise ValueError("The selected report target session no longer exists.")
-        if str(selected.session.session).strip().lower() not in {"race", "r"}:
-            raise ValueError("SPEC-009 reports require one Race session.")
+        if str(selected.session.session).strip().lower() not in {"race", "r", "qualifying", "q", "fp1", "fp2", "fp3", "practice 1", "practice 2", "practice 3"}:
+            raise ValueError("Publication reports require one Race, standard Qualifying, or standard Practice session.")
         return selected
-    races = [
+    supported = [
         session
         for session in analysis.sessions
-        if str(session.session.session).strip().lower() in {"race", "r"}
+        if str(session.session.session).strip().lower() in {"race", "r", "qualifying", "q", "fp1", "fp2", "fp3", "practice 1", "practice 2", "practice 3"}
         and session.snapshot is not None
     ]
-    if not races:
-        raise ValueError("A loaded Race session is required to build the report.")
-    return races[0]
+    if not supported:
+        raise ValueError("A loaded Race, standard Qualifying, or standard Practice session is required to build the report.")
+    return supported[0]
 
 
 def _report_result_sources(

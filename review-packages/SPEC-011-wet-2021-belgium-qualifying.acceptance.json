@@ -1,0 +1,38 @@
+{
+  "spec_id": "SPEC-011",
+  "category": "wet",
+  "session": {
+    "season": 2021,
+    "event": "Belgium",
+    "session": "Qualifying"
+  },
+  "purpose": "A wet session with recorded interruptions and condition variation.",
+  "source": "FastF1 application gateway",
+  "editorial_sources": [
+    "https://www.formula1.com/en/latest/article/qualifying-verstappen-denies-russell-shock-pole-in-dramatic-wet-qualifying.XP92uMlcsG9ZQbF0vpqYn",
+    "https://www.formula1.com/en/latest/article/norris-cleared-to-race-in-belgian-grand-prix-after-high-speed-crash-in.6YgE5dp9k71zm36LXRSeux.6YgE5dp9k71zm36LXRSeux"
+  ],
+  "source_snapshot_fingerprint": "5f02906ed31138f0fa85635fa01d0445db415a6403aa3666462b12cf497b3e57",
+  "package": "SPEC-011-wet-2021-belgium-qualifying.zip",
+  "package_sha256": "4719182e6a638ee9f75dbf2a308df236ad1ebfa456f1103f14c981393db32910",
+  "policy_versions": {
+    "publication": "qualifying-publication-selection:v4",
+    "qualifying_results": 1,
+    "temporal_evolution": 2
+  },
+  "package_ready": true,
+  "readiness_blockers": [],
+  "automated_review": "passed",
+  "human_editorial_acceptance": "accepted",
+  "rubric": [
+    "correct official story",
+    "sound comparison bases",
+    "honest availability",
+    "non-causal wording",
+    "useful charts",
+    "no duplication",
+    "readable mobile output",
+    "claim-to-evidence traceability",
+    "no required structural rewrite"
+  ]
+}

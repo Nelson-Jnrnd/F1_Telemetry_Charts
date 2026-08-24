@@ -17,9 +17,13 @@ from f1_telemetry_charts.data.models import (
     DriverMetadata,
     LapRecord,
     MissingDataField,
+    PracticeClassificationEntry,
+    QualifyingClassificationEntry,
+    QualifyingSegmentClassification,
     SessionDataset,
     SessionMetadata,
     SessionQuery,
+    SessionStatusRecord,
     SessionStyleMetadata,
     SourceProvenance,
     StyleColor,
@@ -60,7 +64,12 @@ class FastF1SessionGateway:
 
         try:
             session = fastf1.get_session(query.season, query.event, query.session)
-            session.load(laps=True, telemetry=True, weather=True, messages=False)
+            session.load(
+                laps=True,
+                telemetry=True,
+                weather=True,
+                messages=query.session.strip().lower() in {"qualifying", "q"},
+            )
         except Exception as exc:
             raise DataGatewayError(
                 f"FastF1 could not load {query.season} {query.event} {query.session}: {exc}"
@@ -93,7 +102,8 @@ def _session_to_dataset(
 
     driver_rows = getattr(session, "results", None)
     drivers = _drivers_from_results(driver_rows, selected_driver_codes)
-    lap_records = _lap_records_from_laps(laps)
+    qualifying_split_times = _qualifying_split_times(session, query.session)
+    lap_records = _lap_records_from_laps(laps, qualifying_split_times=qualifying_split_times)
     telemetry = _telemetry_samples_from_laps(laps, session=session)
     timing = _timing_stream_records_from_session(
         session,
@@ -144,6 +154,9 @@ def _session_to_dataset(
         timing=timing,
         timing_app=timing_app,
         weather=weather,
+        session_status=_session_status_records_from_session(session),
+        qualifying_segments=_qualifying_segments_from_results(driver_rows, query.session),
+        practice_classification=_practice_classification_from_results(driver_rows, query.session),
         style=style,
         circuit_info=circuit_info,
         provenance=SourceProvenance(
@@ -157,7 +170,7 @@ def _session_to_dataset(
     geometry_dataset = dataset.model_copy(
         update={
             "drivers": _drivers_from_results(driver_rows, all_driver_codes),
-            "laps": _lap_records_from_laps(all_laps),
+            "laps": _lap_records_from_laps(all_laps, qualifying_split_times=qualifying_split_times),
             "telemetry": geometry_telemetry,
         },
         deep=True,
@@ -378,21 +391,24 @@ def _drivers_from_results(results: Any, fallback_drivers: list[str]) -> list[Dri
     return [DriverMetadata(abbreviation=driver) for driver in fallback_drivers]
 
 
-def _lap_records_from_laps(laps: Any) -> list[LapRecord]:
+def _lap_records_from_laps(
+    laps: Any, *, qualifying_split_times: list[float] | None = None
+) -> list[LapRecord]:
     records: list[LapRecord] = []
     for _, row in laps.iterrows():
         lap_time = row.get("LapTime")
-        lap_time_seconds = (
-            float(lap_time.total_seconds()) if hasattr(lap_time, "total_seconds") else None
-        )
+        lap_time_seconds = _duration_seconds_or_none(lap_time)
+        lap_end_seconds = _duration_seconds_or_none(row.get("Time"))
+        explicit_segment = _qualifying_segment_or_none(row.get("QualifyingSegment"))
         records.append(
             LapRecord(
                 driver=str(row.get("Driver")),
                 lap_number=int(row.get("LapNumber")),
                 lap_start_time_seconds=_duration_seconds_or_none(row.get("LapStartTime")),
-                lap_end_time_seconds=_duration_seconds_or_none(row.get("Time")),
+                lap_end_time_seconds=lap_end_seconds,
                 lap_time_seconds=lap_time_seconds,
                 compound=_string_or_none(row.get("Compound")),
+                tyre_age=_float_or_none(row.get("TyreLife")),
                 stint=_int_or_none(row.get("Stint")),
                 position=_int_or_none(row.get("Position")),
                 is_pit_in_lap=_has_value(row.get("PitInTime")),
@@ -400,6 +416,8 @@ def _lap_records_from_laps(laps: Any) -> list[LapRecord]:
                 pit_in_time_seconds=_duration_seconds_or_none(row.get("PitInTime")),
                 pit_out_time_seconds=_duration_seconds_or_none(row.get("PitOutTime")),
                 is_deleted=_bool_or_false(row.get("Deleted")),
+                deletion_reason=_string_or_none(row.get("DeletedReason")),
+                qualifying_segment=explicit_segment or _segment_from_split_times(lap_end_seconds, qualifying_split_times),
                 is_generated=_bool_or_false(row.get("IsGenerated")),
                 is_accurate=_bool_or_none(row.get("IsAccurate")),
                 sector_1_time_seconds=_duration_seconds_or_none(row.get("Sector1Time")),
@@ -409,6 +427,153 @@ def _lap_records_from_laps(laps: Any) -> list[LapRecord]:
             )
         )
     return records
+
+
+def _session_status_records_from_session(session: Any) -> list[SessionStatusRecord]:
+    rows = getattr(session, "session_status", None)
+    if rows is None:
+        return []
+    records: list[SessionStatusRecord] = []
+    try:
+        iterator = rows.iterrows()
+    except Exception:
+        return []
+    for _, row in iterator:
+        time_seconds = _duration_seconds_or_none(row.get("Time"))
+        status = _string_or_none(row.get("Status"))
+        if time_seconds is not None and status:
+            records.append(SessionStatusRecord(time_seconds=time_seconds, status=status))
+    return records
+
+
+def _practice_classification_from_results(
+    results: Any, session_name: str
+) -> list[PracticeClassificationEntry]:
+    if session_name.strip().lower() not in {
+        "fp1", "fp2", "fp3", "practice 1", "practice 2", "practice 3",
+    } or results is None:
+        return []
+    rows: list[PracticeClassificationEntry] = []
+    leader_time: float | None = None
+    for _, row in results.iterrows():
+        driver = _string_or_none(row.get("Abbreviation"))
+        position = _int_or_none(row.get("Position"))
+        if not driver or position is None:
+            continue
+        fastest = _duration_seconds_or_none(row.get("FastestLapTime"))
+        if fastest is None:
+            fastest = _duration_seconds_or_none(row.get("Time"))
+        if position == 1 and fastest is not None:
+            leader_time = fastest
+        rows.append(
+            PracticeClassificationEntry(
+                driver=driver,
+                position=position,
+                fastest_time_seconds=fastest,
+                gap_seconds=(fastest - leader_time if fastest is not None and leader_time is not None else None),
+                lap_count=_int_or_none(row.get("Laps")),
+                status=_string_or_none(row.get("Status")),
+            )
+        )
+    return sorted(rows, key=lambda item: (item.position, item.driver))
+
+
+def _qualifying_segments_from_results(
+    results: Any, session_name: str
+) -> list[QualifyingSegmentClassification]:
+    if session_name.strip().lower() not in {"qualifying", "q"} or results is None:
+        return []
+    raw_rows = list(results.iterrows())
+    segments: list[QualifyingSegmentClassification] = []
+    advancement_cutoffs = {"Q1": 15, "Q2": 10, "Q3": None}
+    participation_cutoffs = {"Q1": len(raw_rows), "Q2": min(15, len(raw_rows)), "Q3": min(10, len(raw_rows))}
+    for segment in ("Q1", "Q2", "Q3"):
+        rows: list[tuple[str, float | None, str | None, bool | None, int | None]] = []
+        for _, row in raw_rows:
+            driver = _string_or_none(row.get("Abbreviation"))
+            if not driver:
+                continue
+            time_value = _duration_seconds_or_none(row.get(segment))
+            official_position = _int_or_none(row.get("Position"))
+            cutoff = advancement_cutoffs[segment]
+            advanced = (
+                official_position <= cutoff
+                if cutoff is not None and official_position is not None
+                else None
+            )
+            participates = official_position is not None and official_position <= participation_cutoffs[segment]
+            if time_value is not None or participates:
+                rows.append((driver, time_value, _string_or_none(row.get("Status")), advanced, official_position))
+        timed = sorted(
+            (item for item in rows if item[1] is not None),
+            key=lambda item: (item[1], item[4] or 999, item[0]),
+        )
+        untimed = sorted((item for item in rows if item[1] is None), key=lambda item: (item[4] or 999, item[0]))
+        ordered = [*timed, *untimed]
+        time_counts: dict[float, int] = {}
+        for _, time_seconds, _, _, _ in timed:
+            if time_seconds is not None:
+                time_counts[time_seconds] = time_counts.get(time_seconds, 0) + 1
+        ties = any(count > 1 for count in time_counts.values())
+        entries = [
+            QualifyingClassificationEntry(
+                driver=driver,
+                position=index,
+                time_seconds=time_seconds,
+                status=status,
+                advanced=advanced,
+                advancement_basis=(
+                    "not_applicable"
+                    if segment == "Q3"
+                    else "tie"
+                    if time_seconds is not None and time_counts.get(time_seconds, 0) > 1
+                    else "time"
+                ),
+            )
+            for index, (driver, time_seconds, status, advanced, _) in enumerate(ordered, start=1)
+        ]
+        segments.append(
+            QualifyingSegmentClassification(
+                segment=segment,
+                entries=entries,
+                status=("complete" if len(entries) == participation_cutoffs[segment] else "partial"),
+            )
+        )
+    return segments
+
+
+def _qualifying_segment_or_none(value: Any) -> str | None:
+    normalized = _string_or_none(value)
+    if normalized is None:
+        return None
+    normalized = normalized.upper()
+    return normalized if normalized in {"Q1", "Q2", "Q3"} else None
+
+
+def _qualifying_split_times(session: Any, session_name: str) -> list[float] | None:
+    if session_name.strip().lower() not in {"qualifying", "q"}:
+        return None
+    values = getattr(session, "_session_split_times", None)
+    if not values:
+        return None
+    converted = [
+        seconds
+        for value in values
+        if (seconds := _duration_seconds_or_none(value)) is not None and seconds > 0
+    ]
+    return sorted(converted)[:2] if len(converted) >= 2 else None
+
+
+def _segment_from_split_times(
+    lap_end_seconds: float | None, split_times: list[float] | None
+) -> str | None:
+    if lap_end_seconds is None or not split_times or len(split_times) < 2:
+        return None
+    if lap_end_seconds <= split_times[0]:
+        return "Q1"
+    if lap_end_seconds <= split_times[1]:
+        return "Q2"
+    return "Q3"
 
 
 def _weather_samples_from_session(session: Any) -> list[WeatherSample]:

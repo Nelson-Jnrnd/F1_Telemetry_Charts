@@ -32,6 +32,14 @@ ReportSectionKind = Literal[
     "pace_and_tyre_performance",
     "pit_cycles_and_key_comparisons",
     "limitations_and_evidence",
+    "qualifying_unfolded",
+    "pole_and_cutoff_battles",
+    "sector_comparison",
+    "session_context",
+    "practice_classification",
+    "relevant_runs",
+    "matched_long_run_comparison",
+    "observed_run_trend",
 ]
 ReportReviewStatus = Literal["pending", "accepted", "edited", "rejected"]
 FreshnessStatus = Literal["current", "stale", "missing"]
@@ -48,6 +56,14 @@ PublicationSectionKind = Literal[
     "key_comparison",
     "conclusion",
     "methods_and_evidence",
+    "how_qualifying_unfolded",
+    "pole_and_cutoff_battles",
+    "sector_comparison",
+    "session_context",
+    "official_classification",
+    "relevant_runs",
+    "matched_long_run_comparison",
+    "observed_run_trend",
 ]
 PublicationWorkflowState = Literal[
     "evidence_ready",
@@ -243,6 +259,7 @@ class PublicationEditorial(BaseModel):
     standfirst: EditorialField = Field(default_factory=EditorialField)
     section_ledes: dict[str, EditorialField] = Field(default_factory=dict)
     conclusion: EditorialField = Field(default_factory=EditorialField)
+    source_urls: list[str] = Field(default_factory=list)
 
 
 class PublicationPlan(BaseModel):
@@ -1139,6 +1156,92 @@ def _session_spine_provider(result: AnalyticalResultRecord):
     ), [finding]
 
 
+def _qualifying_provider(result: AnalyticalResultRecord):
+    """Own qualifying claims without converting chronology into causality."""
+
+    provider_id, version = "qualifying-result-provider", 2
+    if result.analytical_status == "unavailable":
+        return _unavailable(result, provider_id, version)
+    if result.analytical_status == "source_conflict":
+        return _assessment(
+            result,
+            provider_id=provider_id,
+            provider_version=version,
+            disposition="not_reportable",
+            reason_code="source_conflict",
+            reasons=["Official qualifying results conflict with lap-level validity or deletion evidence."],
+            next_action="Resolve the source conflict before publication.",
+        ), []
+    reportable = {
+        "qualifying_segment_classification": ("qualifying_unfolded", 100),
+        "qualifying_attempt_progression": ("qualifying_unfolded", 82),
+        "qualifying_margin_comparison": ("pole_and_cutoff_battles", 94),
+        "qualifying_sector_contribution": ("sector_comparison", 86),
+        "qualifying_interruptions": ("session_context", 98),
+        "qualifying_conditions": ("session_context", 97),
+    }
+    if result.result_type == "qualifying_sector_contribution" and result.payload.get("comparison_status") != "comparable":
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["The selected sector comparison is unavailable, unknown, or confounded and is evidence-only."]), []
+    if result.result_type in {"qualifying_interruptions", "qualifying_conditions"} and not result.payload.get("material"):
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["The recorded context was not material enough to define the session story."]), []
+    if result.result_type not in reportable:
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["The qualifying context remains independently inspectable but is not promoted automatically."]), []
+    text = result.payload.get("summary")
+    if not isinstance(text, str) or not text.strip():
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["No bounded qualifying summary is available."]), []
+    section, priority = reportable[result.result_type]
+    finding = _finding(
+        result,
+        provider_id=provider_id,
+        provider_version=version,
+        finding_type=result.result_type,
+        text=text.strip(),
+        section=section,
+        confidence="high" if result.quality.get("level") == "high" else "medium",
+        comparison_basis={"session_id": result.target_session_id, **result.boundaries},
+        metrics={},
+        limitations=result.limitations,
+        priority=priority,
+    )
+    return _assessment(result, provider_id=provider_id, provider_version=version, disposition="reportable", reasons=["The typed qualifying result supports a bounded, non-causal claim."], findings=[finding]), [finding]
+
+
+def _practice_provider(result: AnalyticalResultRecord):
+    """Own bounded Practice claims while preserving unknown programme variables."""
+
+    provider_id, version = "practice-result-provider", 1
+    if result.analytical_status == "unavailable":
+        return _unavailable(result, provider_id, version)
+    if result.analytical_status == "source_conflict":
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="not_reportable", reason_code="source_conflict", reasons=["Practice source authority is conflicting."], next_action="Resolve the source conflict before publication."), []
+    section_priority = {
+        "practice_classification": ("practice_classification", 100),
+        "practice_long_run_pace": ("relevant_runs", 84),
+        "practice_observed_pace_evolution": ("observed_run_trend", 82),
+        "practice_long_run_comparison": ("matched_long_run_comparison", 94),
+        "practice_conditions": ("session_context", 98),
+        "practice_interruptions": ("session_context", 99),
+    }
+    if result.result_type == "practice_long_run_pace" and (result.payload.get("run_status") != "long_run" or float(result.payload.get("coverage", 0)) < 0.75):
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["Sustained or low-coverage running remains evidence-only."]), []
+    if result.result_type == "practice_observed_pace_evolution" and not result.payload.get("publishable"):
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["The fit does not meet the long-run sample and quality publication threshold."]), []
+    if result.result_type == "practice_long_run_comparison" and result.payload.get("comparison_status") != "comparable":
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["Unknown or confounded run comparability exposes no publishable scalar."]), []
+    if result.result_type in {"practice_conditions", "practice_interruptions"} and not result.payload.get("material"):
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["The independently owned Practice context is inspectable but not material."]), []
+    if result.result_type not in section_priority:
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["The Practice evidence remains inspectable but is not promoted automatically."]), []
+    text = result.payload.get("summary")
+    if not isinstance(text, str) or not text.strip():
+        return _assessment(result, provider_id=provider_id, provider_version=version, disposition="context_only", reasons=["No bounded Practice summary is available."]), []
+    section, priority = section_priority[result.result_type]
+    level = str(result.quality.get("level", "low"))
+    confidence: Confidence = level if level in {"high", "medium", "low", "provisional"} else "low"  # type: ignore[assignment]
+    finding = _finding(result, provider_id=provider_id, provider_version=version, finding_type=result.result_type, text=text.strip(), section=section, confidence=confidence, comparison_basis={"session_id": result.target_session_id, **result.boundaries}, metrics={"effect_size_seconds": result.payload.get("effect_size_seconds")}, limitations=result.limitations, priority=priority)
+    return _assessment(result, provider_id=provider_id, provider_version=version, disposition="reportable", reasons=["The typed Practice result supports a bounded, non-causal observation."], findings=[finding]), [finding]
+
+
 _register(
     FindingProviderDescriptor(
         provider_id="strategy-timeline-provider",
@@ -1244,6 +1347,43 @@ _register(
     ),
     _session_spine_provider,
 )
+_register(
+    FindingProviderDescriptor(
+        provider_id="qualifying-result-provider",
+        provider_version=1,
+        result_types=[
+            "qualifying_segment_classification",
+            "qualifying_attempt_progression",
+            "qualifying_margin_comparison",
+            "qualifying_sector_contribution",
+            "qualifying_temporal_evolution",
+            "qualifying_interruptions",
+            "qualifying_traffic_context",
+            "qualifying_deleted_laps",
+            "qualifying_conditions",
+        ],
+        criteria={"qualifying_only": True, "causal_or_counterfactual_language": False},
+    ),
+    _qualifying_provider,
+)
+_register(
+    FindingProviderDescriptor(
+        provider_id="practice-result-provider",
+        provider_version=1,
+        result_types=[
+            "practice_classification",
+            "practice_run_chronology",
+            "practice_long_run_pace",
+            "practice_observed_pace_evolution",
+            "practice_long_run_comparison",
+            "practice_conditions",
+            "practice_interruptions",
+            "practice_traffic_context",
+        ],
+        criteria={"practice_only": True, "minimum_long_run_samples": 8, "paired_tyre_age_required": True, "causal_or_predictive_language": False},
+    ),
+    _practice_provider,
+)
 
 
 SYNTHESIS_RULE_IDS = (
@@ -1251,6 +1391,7 @@ SYNTHESIS_RULE_IDS = (
     "pace-evolution-comparison-v1",
     "pit-cycle-vs-race-state-v1",
     "pace-vs-position-change-v1",
+    "qualifying-session-context-v2",
 )
 _CONFIDENCE_ORDER = {"unavailable": 0, "provisional": 1, "low": 2, "medium": 3, "high": 4}
 
@@ -1264,6 +1405,7 @@ def synthesize_findings(findings: Iterable[ReportFinding]) -> list[ReportFinding
         *_pace_evolution_comparison(values),
         *_pit_cycle_vs_race_state(values),
         *_pace_vs_position_change(values),
+        *_qualifying_session_context(values),
     ]
     return sorted(conclusions, key=lambda item: item.finding_id)
 
@@ -1297,7 +1439,7 @@ def _conclusion(rule_id: str, supports: list[ReportFinding], text: str, section:
     return ReportFinding(
         finding_id=conclusion_id,
         finding_kind="conclusion",
-        finding_type=rule_id.removesuffix("-v1"),
+        finding_type=(rule_id.rsplit("-v", 1)[0] if rule_id.rsplit("-v", 1)[-1].isdigit() else rule_id),
         evidence_fingerprint=canonical_fingerprint({"rule_id": rule_id, "supports": support_fingerprints}),
         text=text,
         section=section,
@@ -1422,6 +1564,21 @@ def _pace_vs_position_change(findings: list[ReportFinding]) -> list[ReportFindin
     return []
 
 
+def _qualifying_session_context(findings: list[ReportFinding]) -> list[ReportFinding]:
+    conditions = [item for item in findings if item.finding_type == "qualifying_conditions"]
+    interruptions = [item for item in findings if item.finding_type == "qualifying_interruptions"]
+    if not conditions or not interruptions or not _compatible_pair(conditions[0], interruptions[0]):
+        return []
+    return [
+        _conclusion(
+            "qualifying-session-context-v2",
+            [conditions[0], interruptions[0]],
+            f"Conditions and stoppages defined the qualifying sequence. {conditions[0].text} {interruptions[0].text}",
+            "session_context",
+        )
+    ]
+
+
 _SECTION_TITLES: tuple[tuple[ReportSectionKind, str], ...] = (
     ("executive_summary", "Executive Summary"),
     ("strategy_and_race_evolution", "Strategy and Race Evolution"),
@@ -1440,6 +1597,30 @@ def default_report_plan(
     finding_values = list(findings)
     conclusion_values = list(conclusions)
     result_values = list(results)
+    qualifying = any(result.result_type == "qualifying_segment_classification" for result in result_values)
+    practice = any(result.result_type == "practice_classification" for result in result_values)
+    section_titles: tuple[tuple[ReportSectionKind, str], ...] = (
+        (
+            ("executive_summary", "Executive Summary"),
+            ("session_context", "Session Context"),
+            ("qualifying_unfolded", "How Qualifying Unfolded"),
+            ("pole_and_cutoff_battles", "Pole and Cutoff Battles"),
+            ("sector_comparison", "Sector Comparison"),
+            ("limitations_and_evidence", "Limitations and Evidence"),
+        )
+        if qualifying
+        else (
+            ("executive_summary", "Executive Summary"),
+            ("session_context", "Session Context"),
+            ("practice_classification", "Official Classification"),
+            ("relevant_runs", "Relevant Runs"),
+            ("matched_long_run_comparison", "Matched Long-Run Comparison"),
+            ("observed_run_trend", "Observed Run Trend"),
+            ("limitations_and_evidence", "Limitations and Evidence"),
+        )
+        if practice
+        else _SECTION_TITLES
+    )
     claims = sorted(
         [*finding_values, *conclusion_values],
         key=lambda item: (-item.priority, item.finding_id),
@@ -1465,7 +1646,7 @@ def default_report_plan(
             chart_section_by_id.setdefault(evidence.chart_instance_id, claim.section)
     executive_claims = _select_executive_claims(claims)
     sections: list[ReportPlanSection] = []
-    for section_id, title in _SECTION_TITLES:
+    for section_id, title in section_titles:
         section_claims = executive_claims if section_id == "executive_summary" else [
             claim
             for claim in claims
@@ -1525,9 +1706,25 @@ def build_report_content(
     source_values = list(sources)
     if any(source.target_session_id != target_session_id for source in source_values):
         raise ValueError("A report may contain analytical results from one target session only")
+    reference_sources = [source for source in source_values if source.metadata.get("result_reference_only") is True]
+    materialized_sources = [source for source in source_values if source.metadata.get("result_reference_only") is not True]
+    additional_values = [result.model_copy(deep=True) for result in additional_results]
+    for result in additional_values:
+        for source in reference_sources:
+            if source.metadata.get("result_kind") != result.result_type:
+                continue
+            evidence = ChartEvidence(
+                chart_instance_id=source.chart_instance_id,
+                artifact_id=source.artifact_id,
+                title=source.title,
+                image_path=source.image_path,
+                metadata_path=source.metadata_path,
+            )
+            if evidence not in result.chart_evidence:
+                result.chart_evidence.append(evidence)
     results_by_fingerprint = {
         result.result_fingerprint: result
-        for result in [*materialize_results(source_values), *additional_results]
+        for result in [*materialize_results(materialized_sources), *additional_values]
     }
     results = sorted(results_by_fingerprint.values(), key=lambda item: item.result_fingerprint)
     assessments, findings = assess_results(results)
