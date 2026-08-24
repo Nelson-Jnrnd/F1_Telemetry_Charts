@@ -6,7 +6,8 @@ status: In Implementation
 owner: Nelson Jeanrenaud
 related_issue:
 related_prs: []
-delivery_refs: []
+delivery_refs:
+  - https://github.com/Nelson-Jnrnd/F1_Telemetry_Charts/commit/027d5b2
 affected_components:
   - practice analytical result providers
   - practice chart templates
