@@ -53,6 +53,13 @@ python scripts/validate_specs.py
 python scripts/validate_drift.py
 ```
 
+On Windows, double-click `Launch F1 Telemetry Charts.cmd` in File Explorer to
+start the local browser application. You can also drag a generated package
+folder onto the launcher to open that package immediately. Keep the launcher
+window open while using the application; close it or press `Ctrl+C` to stop.
+The first launch creates an isolated `.venv` and installs the application
+dependencies, which can take several minutes.
+
 With a populated FastF1 smoke cache, the cache-only data-load benchmark is:
 
 ```powershell

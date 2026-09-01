@@ -222,6 +222,60 @@ class QualifyingReportTests(unittest.TestCase):
         plan = propose_publication_plan(content)
         self.assertNotIn("chart-margin", [chart.chart_instance_id for chart in plan.charts])
 
+    def test_chart_scope_excludes_unselected_qualifying_findings(self) -> None:
+        source = ResultSource(
+            target_session_id="session-q",
+            chart_instance_id="chart-margin",
+            metadata={
+                "result_kind": "qualifying_margin_comparison",
+                "result_reference_only": True,
+            },
+        )
+        content = build_report_content(
+            "session-q",
+            [source],
+            materialize_qualifying_results("session-q", qualifying_dataset()),
+            foundational_result_types={
+                "qualifying_segment_classification",
+                "qualifying_conditions",
+                "qualifying_deleted_laps",
+                "qualifying_interruptions",
+            },
+        )
+
+        self.assertEqual(
+            {result.result_type for result in content.results},
+            {
+                "qualifying_segment_classification",
+                "qualifying_conditions",
+                "qualifying_deleted_laps",
+                "qualifying_interruptions",
+                "qualifying_margin_comparison",
+            },
+        )
+        self.assertTrue(content.findings)
+        self.assertEqual(
+            {finding.result_ids[0] for finding in content.findings},
+            {
+                link.result_id
+                for link in content.evidence_scope.result_links
+                if link.role == "narrative"
+            },
+        )
+        self.assertEqual(
+            {
+                link.result_type
+                for link in content.evidence_scope.result_links
+                if link.role == "foundational"
+            },
+            {
+                "qualifying_segment_classification",
+                "qualifying_conditions",
+                "qualifying_deleted_laps",
+                "qualifying_interruptions",
+            },
+        )
+
     def test_three_purposeful_chart_contracts(self) -> None:
         dataset = qualifying_dataset(interrupted=True)
         specs = [

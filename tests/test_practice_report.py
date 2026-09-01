@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from f1_telemetry_charts.analysis.findings import build_report_content
+from f1_telemetry_charts.analysis.findings import ResultSource, build_report_content
 from f1_telemetry_charts.analysis.practice import (
     is_standard_practice,
     materialize_practice_results,
@@ -225,6 +225,55 @@ class PracticeReportTests(unittest.TestCase):
         self.assertTrue(specs[1].horizontal_bars)
         self.assertTrue(specs[1].y_axis_inverted)
         self.assertNotIn("residual", specs[2].subtitle.lower())
+
+    def test_chart_scope_keeps_only_selected_practice_analysis_and_context(self) -> None:
+        source = ResultSource(
+            target_session_id="practice",
+            chart_instance_id="long-run-chart",
+            metadata={
+                "result_kind": "practice_long_run_pace",
+                "result_reference_only": True,
+            },
+        )
+        content = build_report_content(
+            "practice",
+            [source],
+            materialize_practice_results("practice", practice_dataset()),
+            foundational_result_types={
+                "practice_classification",
+                "practice_conditions",
+                "practice_interruptions",
+            },
+        )
+
+        result_types = {result.result_type for result in content.results}
+        self.assertEqual(
+            result_types,
+            {
+                "practice_classification",
+                "practice_conditions",
+                "practice_interruptions",
+                "practice_long_run_pace",
+            },
+        )
+        self.assertNotIn("practice_run_chronology", result_types)
+        narrative = {
+            link.result_type
+            for link in content.evidence_scope.result_links
+            if link.role == "narrative"
+        }
+        self.assertEqual(narrative, {"practice_long_run_pace"})
+        self.assertTrue(
+            all(
+                finding.result_ids[0]
+                in {
+                    link.result_id
+                    for link in content.evidence_scope.result_links
+                    if link.role == "narrative"
+                }
+                for finding in content.findings
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -45,6 +45,55 @@ class PublicationReportTests(unittest.TestCase):
         )
         self.results = materialize_session_spine("race-2023-bahrain", self.dataset)
 
+    def test_race_chart_scope_does_not_create_session_wide_narrative(self) -> None:
+        source = ResultSource(
+            target_session_id="race",
+            chart_instance_id="movement-chart",
+            metadata={
+                "result_kind": "grid_to_finish_movement",
+                "result_reference_only": True,
+            },
+        )
+        content = build_report_content(
+            "race",
+            [source],
+            materialize_session_spine("race", self.dataset),
+            foundational_result_types={
+                "race_classification",
+                "neutralisation_periods",
+                "retirement_status",
+            },
+        )
+
+        self.assertEqual(
+            {result.result_type for result in content.results},
+            {
+                "race_classification",
+                "grid_to_finish_movement",
+                "neutralisation_periods",
+                "retirement_status",
+            },
+        )
+        narrative_ids = {
+            link.result_id
+            for link in content.evidence_scope.result_links
+            if link.role == "narrative"
+        }
+        self.assertEqual(
+            {
+                result.result_id
+                for result in content.results
+                if result.result_type == "grid_to_finish_movement"
+            },
+            narrative_ids,
+        )
+        self.assertTrue(
+            all(
+                result_id in narrative_ids
+                for finding in content.findings
+                for result_id in finding.result_ids
+            )
+        )
     def test_session_spine_materializes_six_typed_provenance_qualified_results(self) -> None:
         self.assertEqual({item.result_type for item in self.results}, set(SESSION_SPINE_TYPES))
         categories = {item.result_type: item.measurement_category for item in self.results}

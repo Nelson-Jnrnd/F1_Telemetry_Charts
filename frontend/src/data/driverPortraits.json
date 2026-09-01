@@ -1,0 +1,1763 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-01T09:56:25.578488+00:00",
+  "first_season": 2017,
+  "last_season": 2026,
+  "roster_source": "https://api.jolpi.ca/ergast/f1/{season}/drivers.json?limit=100",
+  "portrait_source_projects": [
+    "https://github.com/JustJoostNL/f1-headshots",
+    "https://github.com/toUpperCase78/formula1-datasets"
+  ],
+  "portrait_source_templates": [
+    "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/{season}/{reference}.png",
+    "https://assets.multiviewer.dev/driver-headshots/{season}/{code}.png"
+  ],
+  "entries": {
+    "2017": {
+      "BOT": {
+        "code": "BOT",
+        "driver_id": "bottas",
+        "full_name": "Valtteri Bottas",
+        "path": "/portraits/2017/BOT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2017/VALBOT01.png",
+        "sha256": "838f2d2ec81c95466840d9bc073b068be1df67f29f729c35a543923f060e4083"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2017/HAM.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2017/LEWHAM01.png",
+        "sha256": "d19b40cce216af4808f37b8f96ecc6d12b05540b41a7198cf435b34884c50261"
+      },
+      "RAI": {
+        "code": "RAI",
+        "driver_id": "raikkonen",
+        "full_name": "Kimi Räikkönen",
+        "path": "/portraits/2017/RAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2017/KIMRAI01.png",
+        "sha256": "9c9e3e015f8a8c9fbbe4ed9e3e134eb7b18fb0b021e027b600d43f810b67db79"
+      },
+      "RIC": {
+        "code": "RIC",
+        "driver_id": "ricciardo",
+        "full_name": "Daniel Ricciardo",
+        "path": "/portraits/2017/RIC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2017/DANRIC01.png",
+        "sha256": "56315acb6b995651db95a2c4343fc8c36cd3fd2e18938a361af95e7900cbae69"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2017/STR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2017/LANSTR01.png",
+        "sha256": "3c4b43aea3d85b574ed93669677333a538c930e39891cc7c7d0ee2eb7a1903ad"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2017/VER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2017/MAXVER01.png",
+        "sha256": "cdf356386444f7c28c085b4d137e8848013910f5a7837cb9108fa0d65f6cc58d"
+      },
+      "VET": {
+        "code": "VET",
+        "driver_id": "vettel",
+        "full_name": "Sebastian Vettel",
+        "path": "/portraits/2017/VET.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2017/SEBVET01.png",
+        "sha256": "ffb99554ab646cd6b20094785ae32b3d43d6a869cfd7afb3ee2bd8892a872732"
+      }
+    },
+    "2018": {
+      "ALO": {
+        "code": "ALO",
+        "driver_id": "alonso",
+        "full_name": "Fernando Alonso",
+        "path": "/portraits/2018/ALO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/FERALO01.png",
+        "sha256": "2796a53330af0b14adefc966a789f9cc2003f93dd5d6732554a6616457f94f1b"
+      },
+      "BOT": {
+        "code": "BOT",
+        "driver_id": "bottas",
+        "full_name": "Valtteri Bottas",
+        "path": "/portraits/2018/BOT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/VALBOT01.png",
+        "sha256": "855d7c1e30712e995652e24731aec27621c26883cf049afd1db394b5ba8ea8aa"
+      },
+      "ERI": {
+        "code": "ERI",
+        "driver_id": "ericsson",
+        "full_name": "Marcus Ericsson",
+        "path": "/portraits/2018/ERI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/MARERI01.png",
+        "sha256": "13e786e8a726af3a02b0a5abdd167c0a62e6b50e4e64c414a853026af29629c3"
+      },
+      "GAS": {
+        "code": "GAS",
+        "driver_id": "gasly",
+        "full_name": "Pierre Gasly",
+        "path": "/portraits/2018/GAS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/PIEGAS01.png",
+        "sha256": "6e42f0e9469787f244cb8ef65dc32f1a08b302df78ad18ccbc2ad0392ceabe64"
+      },
+      "GRO": {
+        "code": "GRO",
+        "driver_id": "grosjean",
+        "full_name": "Romain Grosjean",
+        "path": "/portraits/2018/GRO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/ROMGRO01.png",
+        "sha256": "4db10c58864243ea856060c4cd1e264d07acbfc9f053222395e46d883756a09e"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2018/HAM.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/LEWHAM01.png",
+        "sha256": "9d31cf6aedb131c9e0d4e962a87fc8652caf4c11e30543c16278e517b28fc5e0"
+      },
+      "HAR": {
+        "code": "HAR",
+        "driver_id": "brendon_hartley",
+        "full_name": "Brendon Hartley",
+        "path": "/portraits/2018/HAR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/BREHAR01.png",
+        "sha256": "830daf141a32b7123d602eed4e24761ac4124199583ad5a1fd787a7932f98fcb"
+      },
+      "HUL": {
+        "code": "HUL",
+        "driver_id": "hulkenberg",
+        "full_name": "Nico Hülkenberg",
+        "path": "/portraits/2018/HUL.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/NICHUL01.png",
+        "sha256": "39cb374674f2ad63295ddb827910c1fe99214d4e918f1a91171ea858931ebf8e"
+      },
+      "LEC": {
+        "code": "LEC",
+        "driver_id": "leclerc",
+        "full_name": "Charles Leclerc",
+        "path": "/portraits/2018/LEC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/CHALEC01.png",
+        "sha256": "98a424a9597c0076584c5c9b62e2520385a702db9c3f042f0547a9b84b651087"
+      },
+      "MAG": {
+        "code": "MAG",
+        "driver_id": "kevin_magnussen",
+        "full_name": "Kevin Magnussen",
+        "path": "/portraits/2018/MAG.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/KEVMAG01.png",
+        "sha256": "e0ae44b26fa509eb210c247fd56ec7f37268245a9a521db8c31a6cf502eee225"
+      },
+      "OCO": {
+        "code": "OCO",
+        "driver_id": "ocon",
+        "full_name": "Esteban Ocon",
+        "path": "/portraits/2018/OCO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/ESTOCO01.png",
+        "sha256": "35139312f5af1541d5e7b50b93dc94d05f3ba311f7a64d78d41404ec0677f0cd"
+      },
+      "PER": {
+        "code": "PER",
+        "driver_id": "perez",
+        "full_name": "Sergio Pérez",
+        "path": "/portraits/2018/PER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/SERPER01.png",
+        "sha256": "e9c79f703dbd4e0e3879d61bc180d8d826fdbf1134ff48133cc913e2505a080f"
+      },
+      "RAI": {
+        "code": "RAI",
+        "driver_id": "raikkonen",
+        "full_name": "Kimi Räikkönen",
+        "path": "/portraits/2018/RAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/KIMRAI01.png",
+        "sha256": "1fedb565c95b2c5fadd1b8fcb5eec9f7ae7df182c4cff0de3a38e42ddfce800d"
+      },
+      "RIC": {
+        "code": "RIC",
+        "driver_id": "ricciardo",
+        "full_name": "Daniel Ricciardo",
+        "path": "/portraits/2018/RIC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/DANRIC01.png",
+        "sha256": "6732289db640981574a0715147498d89de0be271c55238dbdcde41a8000e9192"
+      },
+      "SAI": {
+        "code": "SAI",
+        "driver_id": "sainz",
+        "full_name": "Carlos Sainz",
+        "path": "/portraits/2018/SAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/CARSAI01.png",
+        "sha256": "3d9f3a928f2b055af4612f5a3471cc6338e798dda488a1c204a51987e179fb1e"
+      },
+      "SIR": {
+        "code": "SIR",
+        "driver_id": "sirotkin",
+        "full_name": "Sergey Sirotkin",
+        "path": "/portraits/2018/SIR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/SERSIR01.png",
+        "sha256": "7ae08c4c065c9837192f1fdd0f9db01410cbfae6d7efd9f76f8ab0a85ab72c75"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2018/STR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/LANSTR01.png",
+        "sha256": "e80f2c9c349aa58fbf3a1072e5fc443f89e9cb9fb29642964a01591048a57474"
+      },
+      "VAN": {
+        "code": "VAN",
+        "driver_id": "vandoorne",
+        "full_name": "Stoffel Vandoorne",
+        "path": "/portraits/2018/VAN.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/STOVAN01.png",
+        "sha256": "be8d8c69913947e12149904c41c35a2a31fc80fdf46587c31632b90938c24f2a"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2018/VER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/MAXVER01.png",
+        "sha256": "985337b86c48f5e575580522358b97520eff3d56aa41b7a921e0d48e177ecc5a"
+      },
+      "VET": {
+        "code": "VET",
+        "driver_id": "vettel",
+        "full_name": "Sebastian Vettel",
+        "path": "/portraits/2018/VET.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2018/SEBVET01.png",
+        "sha256": "a14d44439fbc7f76cb5e64cc52a2b1fdcb4dbad8c3e8020467267c9b070004c9"
+      }
+    },
+    "2019": {
+      "ALB": {
+        "code": "ALB",
+        "driver_id": "albon",
+        "full_name": "Alexander Albon",
+        "path": "/portraits/2019/ALB.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/ALEALB01.png",
+        "sha256": "c0c1b0dbd8489236ff318961495f58d564dcac956bc47fb39004c306d1b85277"
+      },
+      "BOT": {
+        "code": "BOT",
+        "driver_id": "bottas",
+        "full_name": "Valtteri Bottas",
+        "path": "/portraits/2019/BOT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/VALBOT01.png",
+        "sha256": "f0f635012a8bd157dd6790b81b513d9c8533bf2e9b2ac94d75e4637592790edf"
+      },
+      "GAS": {
+        "code": "GAS",
+        "driver_id": "gasly",
+        "full_name": "Pierre Gasly",
+        "path": "/portraits/2019/GAS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/PIEGAS01.png",
+        "sha256": "375039bdae9ff42d31923c3fcdc52d8cca036ccc385090c6ab95f83f958a8134"
+      },
+      "GIO": {
+        "code": "GIO",
+        "driver_id": "giovinazzi",
+        "full_name": "Antonio Giovinazzi",
+        "path": "/portraits/2019/GIO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/ANTGIO01.png",
+        "sha256": "cb38ba8845448cedc059f17b28cc9e8f44a6e621d175d7e4ebaf909d8f07e483"
+      },
+      "GRO": {
+        "code": "GRO",
+        "driver_id": "grosjean",
+        "full_name": "Romain Grosjean",
+        "path": "/portraits/2019/GRO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/ROMGRO01.png",
+        "sha256": "318c7b921c198a23afb04c1ca0aa69594d2e019712aa7f48065349183f25e422"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2019/HAM.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/LEWHAM01.png",
+        "sha256": "3e1a82cd4ff7f9824d83caa53a864817b51af5b204f3191e653743b0aa0f082d"
+      },
+      "HUL": {
+        "code": "HUL",
+        "driver_id": "hulkenberg",
+        "full_name": "Nico Hülkenberg",
+        "path": "/portraits/2019/HUL.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/NICHUL01.png",
+        "sha256": "77cdb8f66bc0e29a16377d2256cd33d73253b0907a2164023976b4ca844a3a4b"
+      },
+      "KUB": {
+        "code": "KUB",
+        "driver_id": "kubica",
+        "full_name": "Robert Kubica",
+        "path": "/portraits/2019/KUB.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/ROBKUB01.png",
+        "sha256": "938cb651b7c351214515512c24a2cbc6709f4c8e3d8f6e38c9115f510a491cff"
+      },
+      "KVY": {
+        "code": "KVY",
+        "driver_id": "kvyat",
+        "full_name": "Daniil Kvyat",
+        "path": "/portraits/2019/KVY.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/DANKVY01.png",
+        "sha256": "db97b11b9bf32a0fc5da777738fe946e8f030f56835bcf800d64e500f650ebd5"
+      },
+      "LEC": {
+        "code": "LEC",
+        "driver_id": "leclerc",
+        "full_name": "Charles Leclerc",
+        "path": "/portraits/2019/LEC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/CHALEC01.png",
+        "sha256": "b00bca33fdc59e7cb2390748ad11860551857b693b5fee2474ea91ea249460b6"
+      },
+      "MAG": {
+        "code": "MAG",
+        "driver_id": "kevin_magnussen",
+        "full_name": "Kevin Magnussen",
+        "path": "/portraits/2019/MAG.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/KEVMAG01.png",
+        "sha256": "d42d3443889b88e6b6bd05fdd2b3d90bbbe3ed8fe47f06f84aa5a3efcec1edf9"
+      },
+      "NOR": {
+        "code": "NOR",
+        "driver_id": "norris",
+        "full_name": "Lando Norris",
+        "path": "/portraits/2019/NOR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/LANNOR01.png",
+        "sha256": "8550b050519aa2f023f9bd393456fc2e6989ad85014b23b1946fd1451883f4ed"
+      },
+      "PER": {
+        "code": "PER",
+        "driver_id": "perez",
+        "full_name": "Sergio Pérez",
+        "path": "/portraits/2019/PER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/SERPER01.png",
+        "sha256": "f1afb36e83d8f8eca1d0b2c227179db53b4071e76780d837d13de56a99363f12"
+      },
+      "RAI": {
+        "code": "RAI",
+        "driver_id": "raikkonen",
+        "full_name": "Kimi Räikkönen",
+        "path": "/portraits/2019/RAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/KIMRAI01.png",
+        "sha256": "5bd597121d1ca7988d6f747ec2aea2741745d0d37dc21ee2c45a386e2d01ba00"
+      },
+      "RIC": {
+        "code": "RIC",
+        "driver_id": "ricciardo",
+        "full_name": "Daniel Ricciardo",
+        "path": "/portraits/2019/RIC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/DANRIC01.png",
+        "sha256": "ae46aef851e244962c0d77657f2e4d7c9da6ad06ab1d517a4bfde96ad8c60901"
+      },
+      "RUS": {
+        "code": "RUS",
+        "driver_id": "russell",
+        "full_name": "George Russell",
+        "path": "/portraits/2019/RUS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/GEORUS01.png",
+        "sha256": "8d87ac35454cf9e179b6dfc94a2db6396487c4df85fe38529df9ebf8ee65f991"
+      },
+      "SAI": {
+        "code": "SAI",
+        "driver_id": "sainz",
+        "full_name": "Carlos Sainz",
+        "path": "/portraits/2019/SAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/CARSAI01.png",
+        "sha256": "c51f28eb9c3cdb4f536c9eb15409cd773e18112d9f6a8c97129f82539dcefd6c"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2019/STR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/LANSTR01.png",
+        "sha256": "cd27fb1c424bc6241e009a942b5b0d3cec0a5a415377f69b8a26a86030ae8214"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2019/VER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/MAXVER01.png",
+        "sha256": "71ff637cac5901299ab8ca98cb87dc9a2255534d1d4ec8bc94043aab8d94b763"
+      },
+      "VET": {
+        "code": "VET",
+        "driver_id": "vettel",
+        "full_name": "Sebastian Vettel",
+        "path": "/portraits/2019/VET.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2019/SEBVET01.png",
+        "sha256": "89c21afc215a573c3dcd9d29a37d824ca4a7703bf7737203f6b595da6450a993"
+      }
+    },
+    "2020": {
+      "AIT": {
+        "code": "AIT",
+        "driver_id": "aitken",
+        "full_name": "Jack Aitken",
+        "path": "/portraits/2020/AIT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/JACAIT01.png",
+        "sha256": "8a76ead4b7e7f040a8076725c4d66003503e46aa55a9c7094aafdc0f797b751d"
+      },
+      "ALB": {
+        "code": "ALB",
+        "driver_id": "albon",
+        "full_name": "Alexander Albon",
+        "path": "/portraits/2020/ALB.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/ALEALB01.png",
+        "sha256": "c0c1b0dbd8489236ff318961495f58d564dcac956bc47fb39004c306d1b85277"
+      },
+      "BOT": {
+        "code": "BOT",
+        "driver_id": "bottas",
+        "full_name": "Valtteri Bottas",
+        "path": "/portraits/2020/BOT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/VALBOT01.png",
+        "sha256": "353c0d15844283a086f54d7e4138de4895f9e04686bb087ceb2d607a99c740a8"
+      },
+      "FIT": {
+        "code": "FIT",
+        "driver_id": "pietro_fittipaldi",
+        "full_name": "Pietro Fittipaldi",
+        "path": "/portraits/2020/FIT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/PIEFIT01.png",
+        "sha256": "83288f8c4780be2b6b9de0e3fba700d51514b7b15e39accd028bcacfd56e1fd2"
+      },
+      "GAS": {
+        "code": "GAS",
+        "driver_id": "gasly",
+        "full_name": "Pierre Gasly",
+        "path": "/portraits/2020/GAS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/PIEGAS01.png",
+        "sha256": "f0b4f0f3ffc7e9f0fd9a5a03b17a9fe70c966e29e7b7ff0aadc39c1f97903ddf"
+      },
+      "GIO": {
+        "code": "GIO",
+        "driver_id": "giovinazzi",
+        "full_name": "Antonio Giovinazzi",
+        "path": "/portraits/2020/GIO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/ANTGIO01.png",
+        "sha256": "cb38ba8845448cedc059f17b28cc9e8f44a6e621d175d7e4ebaf909d8f07e483"
+      },
+      "GRO": {
+        "code": "GRO",
+        "driver_id": "grosjean",
+        "full_name": "Romain Grosjean",
+        "path": "/portraits/2020/GRO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/ROMGRO01.png",
+        "sha256": "318c7b921c198a23afb04c1ca0aa69594d2e019712aa7f48065349183f25e422"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2020/HAM.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/LEWHAM01.png",
+        "sha256": "415cc44d489586afc62400f9fa5f91650df5c3cc2a71adbdbde20cb424fcfa55"
+      },
+      "HUL": {
+        "code": "HUL",
+        "driver_id": "hulkenberg",
+        "full_name": "Nico Hülkenberg",
+        "path": "/portraits/2020/HUL.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/NICHUL01.png",
+        "sha256": "2e3d7dec7d24c8c63446640a2cc64899de48c97867e6853bc2c279f826fb2716"
+      },
+      "KVY": {
+        "code": "KVY",
+        "driver_id": "kvyat",
+        "full_name": "Daniil Kvyat",
+        "path": "/portraits/2020/KVY.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/DANKVY01.png",
+        "sha256": "36209f8e47716c9e7b1338f66389124ee9edb3dd3983892a421faf691c3ae25e"
+      },
+      "LAT": {
+        "code": "LAT",
+        "driver_id": "latifi",
+        "full_name": "Nicholas Latifi",
+        "path": "/portraits/2020/LAT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/NICLAT01.png",
+        "sha256": "6f0f9b0ce5d603638ec88292decd72072afeca89cfe2225c760d51bc9c255782"
+      },
+      "LEC": {
+        "code": "LEC",
+        "driver_id": "leclerc",
+        "full_name": "Charles Leclerc",
+        "path": "/portraits/2020/LEC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/CHALEC01.png",
+        "sha256": "b00bca33fdc59e7cb2390748ad11860551857b693b5fee2474ea91ea249460b6"
+      },
+      "MAG": {
+        "code": "MAG",
+        "driver_id": "kevin_magnussen",
+        "full_name": "Kevin Magnussen",
+        "path": "/portraits/2020/MAG.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/KEVMAG01.png",
+        "sha256": "d42d3443889b88e6b6bd05fdd2b3d90bbbe3ed8fe47f06f84aa5a3efcec1edf9"
+      },
+      "NOR": {
+        "code": "NOR",
+        "driver_id": "norris",
+        "full_name": "Lando Norris",
+        "path": "/portraits/2020/NOR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/LANNOR01.png",
+        "sha256": "ca9e49f584f894fe07b73b5782737c4aa012cbb6cc9a0035af90782e302618c8"
+      },
+      "OCO": {
+        "code": "OCO",
+        "driver_id": "ocon",
+        "full_name": "Esteban Ocon",
+        "path": "/portraits/2020/OCO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/ESTOCO01.png",
+        "sha256": "3b9c8768337ab160899b8460db06a45f96f6c2d8b877d933d3b1ba7de7a159e9"
+      },
+      "PER": {
+        "code": "PER",
+        "driver_id": "perez",
+        "full_name": "Sergio Pérez",
+        "path": "/portraits/2020/PER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/SERPER01.png",
+        "sha256": "518f1f9dfdda98d1abd7bd1cfbe74c9f7716ddc49795593fd99f0bf82008e1d6"
+      },
+      "RAI": {
+        "code": "RAI",
+        "driver_id": "raikkonen",
+        "full_name": "Kimi Räikkönen",
+        "path": "/portraits/2020/RAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/KIMRAI01.png",
+        "sha256": "5bd597121d1ca7988d6f747ec2aea2741745d0d37dc21ee2c45a386e2d01ba00"
+      },
+      "RIC": {
+        "code": "RIC",
+        "driver_id": "ricciardo",
+        "full_name": "Daniel Ricciardo",
+        "path": "/portraits/2020/RIC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/DANRIC01.png",
+        "sha256": "f47be9f11d17171487d6e9dc3d3dcb90f388727e9b81330752b3ce1a5c1cbb80"
+      },
+      "RUS": {
+        "code": "RUS",
+        "driver_id": "russell",
+        "full_name": "George Russell",
+        "path": "/portraits/2020/RUS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/GEORUS01.png",
+        "sha256": "688645ec8ab53137d2560840d6df138a5fee0ac76abf055bd6152f41c4c17431"
+      },
+      "SAI": {
+        "code": "SAI",
+        "driver_id": "sainz",
+        "full_name": "Carlos Sainz",
+        "path": "/portraits/2020/SAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/CARSAI01.png",
+        "sha256": "1ade9d586fcfab1caa610d4e892ff28178e1b3946cf405aa7603254aaaa145bd"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2020/STR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/LANSTR01.png",
+        "sha256": "e07a1660e67475a931b4ed23100740f5fdb02a39d037489c8b6af08616b64676"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2020/VER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/MAXVER01.png",
+        "sha256": "71ff637cac5901299ab8ca98cb87dc9a2255534d1d4ec8bc94043aab8d94b763"
+      },
+      "VET": {
+        "code": "VET",
+        "driver_id": "vettel",
+        "full_name": "Sebastian Vettel",
+        "path": "/portraits/2020/VET.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2020/SEBVET01.png",
+        "sha256": "89c21afc215a573c3dcd9d29a37d824ca4a7703bf7737203f6b595da6450a993"
+      }
+    },
+    "2021": {
+      "ALO": {
+        "code": "ALO",
+        "driver_id": "alonso",
+        "full_name": "Fernando Alonso",
+        "path": "/portraits/2021/ALO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/FERALO01.png",
+        "sha256": "ed27ee4b726d0c96488a3b918c9989462ef40b887f529e1398c1327171b532c8"
+      },
+      "BOT": {
+        "code": "BOT",
+        "driver_id": "bottas",
+        "full_name": "Valtteri Bottas",
+        "path": "/portraits/2021/BOT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/VALBOT01.png",
+        "sha256": "b8365286295b585e24ae658093a3d53ffa91840b418d34c607c8d2ceffc35e41"
+      },
+      "GAS": {
+        "code": "GAS",
+        "driver_id": "gasly",
+        "full_name": "Pierre Gasly",
+        "path": "/portraits/2021/GAS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/PIEGAS01.png",
+        "sha256": "88eb8000f8bd25a36af1017e079c209e26665f4295b1ffe2569c8c0b208188ff"
+      },
+      "GIO": {
+        "code": "GIO",
+        "driver_id": "giovinazzi",
+        "full_name": "Antonio Giovinazzi",
+        "path": "/portraits/2021/GIO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/ANTGIO01.png",
+        "sha256": "04c086bdea8962a426696d3b7b87c3a1e254ef526a5cd378c977dcbb01079b31"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2021/HAM.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/LEWHAM01.png",
+        "sha256": "da2b181e28ca783385ea4e7fed3c448fa88df9bfc3e94d2c9cb01498e504ff0a"
+      },
+      "KUB": {
+        "code": "KUB",
+        "driver_id": "kubica",
+        "full_name": "Robert Kubica",
+        "path": "/portraits/2021/KUB.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/ROBKUB01.png",
+        "sha256": "e48e5c7ef0b38ad003be08822a103bfcb620e7c7e944c8c75169d252ee9d84d8"
+      },
+      "LAT": {
+        "code": "LAT",
+        "driver_id": "latifi",
+        "full_name": "Nicholas Latifi",
+        "path": "/portraits/2021/LAT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/NICLAT01.png",
+        "sha256": "84a7c448f15f7bbe59a706975a2f039f0f1595fc9e6a0aafa4ca586498c2bbf1"
+      },
+      "LEC": {
+        "code": "LEC",
+        "driver_id": "leclerc",
+        "full_name": "Charles Leclerc",
+        "path": "/portraits/2021/LEC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/CHALEC01.png",
+        "sha256": "188ef7b5b367662ca41fb0ebbed34b30e3e094f53d695af5b6e7b13e2574fa19"
+      },
+      "MAZ": {
+        "code": "MAZ",
+        "driver_id": "mazepin",
+        "full_name": "Nikita Mazepin",
+        "path": "/portraits/2021/MAZ.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/NIKMAZ01.png",
+        "sha256": "527f41cd5a73467142504cf33e66923911ddc99b91fa485cb25e8d90cc74a5bf"
+      },
+      "MSC": {
+        "code": "MSC",
+        "driver_id": "mick_schumacher",
+        "full_name": "Mick Schumacher",
+        "path": "/portraits/2021/MSC.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2021/MSC.png",
+        "sha256": "bbce03609eb152c112e4fe943a65247bae8ef8ce33551a6cf625ad4b687a984e"
+      },
+      "NOR": {
+        "code": "NOR",
+        "driver_id": "norris",
+        "full_name": "Lando Norris",
+        "path": "/portraits/2021/NOR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/LANNOR01.png",
+        "sha256": "59fbb4c0402d8c9704aa3ff1b36ab75ba10760a1f6fad95a5fb97e0f6ba1c880"
+      },
+      "OCO": {
+        "code": "OCO",
+        "driver_id": "ocon",
+        "full_name": "Esteban Ocon",
+        "path": "/portraits/2021/OCO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/ESTOCO01.png",
+        "sha256": "b9d07975b36aa43fb13100d3c08209e9b5d4c82f02b4735f06d16342105a63f2"
+      },
+      "PER": {
+        "code": "PER",
+        "driver_id": "perez",
+        "full_name": "Sergio Pérez",
+        "path": "/portraits/2021/PER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/SERPER01.png",
+        "sha256": "4912842044393f76f9913e0f9707f40cc255b013bbf1589aa38db87b16b0f694"
+      },
+      "RAI": {
+        "code": "RAI",
+        "driver_id": "raikkonen",
+        "full_name": "Kimi Räikkönen",
+        "path": "/portraits/2021/RAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/KIMRAI01.png",
+        "sha256": "4a7027cb4392e7afead1d5b1fee257bf3698de71e5be5666e1c09624e2e5e277"
+      },
+      "RIC": {
+        "code": "RIC",
+        "driver_id": "ricciardo",
+        "full_name": "Daniel Ricciardo",
+        "path": "/portraits/2021/RIC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/DANRIC01.png",
+        "sha256": "8cb89173b2bc7d7e643bcc6e6d589b5586557ceab3479740f8ce2b34b2dbd1e9"
+      },
+      "RUS": {
+        "code": "RUS",
+        "driver_id": "russell",
+        "full_name": "George Russell",
+        "path": "/portraits/2021/RUS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/GEORUS01.png",
+        "sha256": "5f9312142908ef08eaba6eb5bf004044bc7b21ba32b3b0f95ea204e46826e7c7"
+      },
+      "SAI": {
+        "code": "SAI",
+        "driver_id": "sainz",
+        "full_name": "Carlos Sainz",
+        "path": "/portraits/2021/SAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/CARSAI01.png",
+        "sha256": "b77bb842033f701b43bf40aed256dfde421921db7a6e62500bb2a53a3d6304ea"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2021/STR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/LANSTR01.png",
+        "sha256": "c94ded39df2b10b5eee588a94168e7d1fb2b78274889df3de9fabda12a930f9f"
+      },
+      "TSU": {
+        "code": "TSU",
+        "driver_id": "tsunoda",
+        "full_name": "Yuki Tsunoda",
+        "path": "/portraits/2021/TSU.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/YUKTSU01.png",
+        "sha256": "315160a5595db3e08780f0c95950f70962064ccc6bbcb6eacf94f5fe2af77893"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2021/VER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/MAXVER01.png",
+        "sha256": "8ef92a4b62dc8c225b33ef21c6d6a59fb99d685d218e11d8c5079b4dc6bc1540"
+      },
+      "VET": {
+        "code": "VET",
+        "driver_id": "vettel",
+        "full_name": "Sebastian Vettel",
+        "path": "/portraits/2021/VET.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2021/SEBVET01.png",
+        "sha256": "a79bf2c8360ba075df2048f3aebf3ff27e44c52adcb2ab83f2e6ddaa43b82048"
+      }
+    },
+    "2022": {
+      "ALB": {
+        "code": "ALB",
+        "driver_id": "albon",
+        "full_name": "Alexander Albon",
+        "path": "/portraits/2022/ALB.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/ALEALB01.png",
+        "sha256": "8b2d034ae9dd1adb7b993c6f039da60569fc2a57cf20f7d090f8350fce43f039"
+      },
+      "ALO": {
+        "code": "ALO",
+        "driver_id": "alonso",
+        "full_name": "Fernando Alonso",
+        "path": "/portraits/2022/ALO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/FERALO01.png",
+        "sha256": "1ec01c6aec08f3b534d9d0ed5be3e5ab2ac8e0f700fc238b6689d9a57e730f8b"
+      },
+      "BOT": {
+        "code": "BOT",
+        "driver_id": "bottas",
+        "full_name": "Valtteri Bottas",
+        "path": "/portraits/2022/BOT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/VALBOT01.png",
+        "sha256": "23c3f5919258db55503250611947bdde0fa1dec050d35d47d0659f8acdb4d0ad"
+      },
+      "DEV": {
+        "code": "DEV",
+        "driver_id": "de_vries",
+        "full_name": "Nyck de Vries",
+        "path": "/portraits/2022/DEV.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2022/DEV.png",
+        "sha256": "58e713c951dbb612b9020ebe4bb763d262653f6c1ebbd9c39e0f1d2aeb346027"
+      },
+      "GAS": {
+        "code": "GAS",
+        "driver_id": "gasly",
+        "full_name": "Pierre Gasly",
+        "path": "/portraits/2022/GAS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/PIEGAS01.png",
+        "sha256": "6628fc2ac728cc8947218e28b075eb152661facdad7fd06085312c04cf7dcb36"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2022/HAM.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/LEWHAM01.png",
+        "sha256": "8c24e3923dc8f947f9d74e11a8ca09362bcf18fa23c790d7522a9874abe61439"
+      },
+      "HUL": {
+        "code": "HUL",
+        "driver_id": "hulkenberg",
+        "full_name": "Nico Hülkenberg",
+        "path": "/portraits/2022/HUL.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/NICHUL01.png",
+        "sha256": "994de313089f1f84606c9e567b7953a9ee279439999719daf32593f4234c88a4"
+      },
+      "LAT": {
+        "code": "LAT",
+        "driver_id": "latifi",
+        "full_name": "Nicholas Latifi",
+        "path": "/portraits/2022/LAT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/NICLAT01.png",
+        "sha256": "84a7c448f15f7bbe59a706975a2f039f0f1595fc9e6a0aafa4ca586498c2bbf1"
+      },
+      "LEC": {
+        "code": "LEC",
+        "driver_id": "leclerc",
+        "full_name": "Charles Leclerc",
+        "path": "/portraits/2022/LEC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/CHALEC01.png",
+        "sha256": "e952c027b0afd358413862f8e4c234ecef24f5a1dc2cffbf7e6db36fc923cf08"
+      },
+      "MAG": {
+        "code": "MAG",
+        "driver_id": "kevin_magnussen",
+        "full_name": "Kevin Magnussen",
+        "path": "/portraits/2022/MAG.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/KEVMAG01.png",
+        "sha256": "93cdfd31fb36632c709f1cad5d9d9173368d915012fe1bac4bf8821eac9f0abb"
+      },
+      "MSC": {
+        "code": "MSC",
+        "driver_id": "mick_schumacher",
+        "full_name": "Mick Schumacher",
+        "path": "/portraits/2022/MSC.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2022/MSC.png",
+        "sha256": "8a23665cb8594fcad5e07b9dfc8fbe357e77c0d3c11e260fef8cc9f7804b58e6"
+      },
+      "NOR": {
+        "code": "NOR",
+        "driver_id": "norris",
+        "full_name": "Lando Norris",
+        "path": "/portraits/2022/NOR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/LANNOR01.png",
+        "sha256": "84fe151e914c05ce2888eaf4c792f306c7c8ee3b3547c20590cd24bb619ee3a1"
+      },
+      "OCO": {
+        "code": "OCO",
+        "driver_id": "ocon",
+        "full_name": "Esteban Ocon",
+        "path": "/portraits/2022/OCO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/ESTOCO01.png",
+        "sha256": "3f40be6a116a176053d9702973f9bec19e27adf3bf60742a12072ec8260f31e7"
+      },
+      "PER": {
+        "code": "PER",
+        "driver_id": "perez",
+        "full_name": "Sergio Pérez",
+        "path": "/portraits/2022/PER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/SERPER01.png",
+        "sha256": "6ffd12f31ee92d79f7302552182777430107a2192e87386aef57fe8f5dc1957a"
+      },
+      "RIC": {
+        "code": "RIC",
+        "driver_id": "ricciardo",
+        "full_name": "Daniel Ricciardo",
+        "path": "/portraits/2022/RIC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/DANRIC01.png",
+        "sha256": "a97abeef6b9e5c865f97a1f853dbb2692fc967d722ba2e6aa74af74427ab0b8a"
+      },
+      "RUS": {
+        "code": "RUS",
+        "driver_id": "russell",
+        "full_name": "George Russell",
+        "path": "/portraits/2022/RUS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/GEORUS01.png",
+        "sha256": "b0e3a093faf4e6707387ad97119eb1ef9e79642a25531ef5b85c872231c86d32"
+      },
+      "SAI": {
+        "code": "SAI",
+        "driver_id": "sainz",
+        "full_name": "Carlos Sainz",
+        "path": "/portraits/2022/SAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/CARSAI01.png",
+        "sha256": "12d8eb3a6fc63b38111fc7a938fa02fa8a90d0d913951f22f25f273c28ab86c0"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2022/STR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/LANSTR01.png",
+        "sha256": "d319a0a9375d05ecf68803bfa9e068f8ecddb6d25715b4a4eb4897504cfea485"
+      },
+      "TSU": {
+        "code": "TSU",
+        "driver_id": "tsunoda",
+        "full_name": "Yuki Tsunoda",
+        "path": "/portraits/2022/TSU.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/YUKTSU01.png",
+        "sha256": "e6eec3eda7bbc579c1ed2abc3bc1becd0197ee57843c193f9ec3b0836cab4e50"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2022/VER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/MAXVER01.png",
+        "sha256": "d591aefea1cf1863f97a4de578fd8e6da17e214271100e4c623bcc0ceef4ce30"
+      },
+      "VET": {
+        "code": "VET",
+        "driver_id": "vettel",
+        "full_name": "Sebastian Vettel",
+        "path": "/portraits/2022/VET.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/SEBVET01.png",
+        "sha256": "637066ee3291a08a459b4fc54e1fed0156642a39fad601f61ad9bc9057139221"
+      },
+      "ZHO": {
+        "code": "ZHO",
+        "driver_id": "zhou",
+        "full_name": "Guanyu Zhou",
+        "path": "/portraits/2022/ZHO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2022/GUAZHO01.png",
+        "sha256": "496309a9018bc7d324da3cbe57518144aa378336176742f41a16fe9c18730732"
+      }
+    },
+    "2023": {
+      "ALB": {
+        "code": "ALB",
+        "driver_id": "albon",
+        "full_name": "Alexander Albon",
+        "path": "/portraits/2023/ALB.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/ALEALB01.png",
+        "sha256": "6b5e47b85401500ebdfface5af00ca26b1641d772edc989e0567cdbaf9f269df"
+      },
+      "ALO": {
+        "code": "ALO",
+        "driver_id": "alonso",
+        "full_name": "Fernando Alonso",
+        "path": "/portraits/2023/ALO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/FERALO01.png",
+        "sha256": "3ed87b5328bb479250afb013f19a5ff3dc935026422cf7bf80531b98ebb37dac"
+      },
+      "BOT": {
+        "code": "BOT",
+        "driver_id": "bottas",
+        "full_name": "Valtteri Bottas",
+        "path": "/portraits/2023/BOT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/VALBOT01.png",
+        "sha256": "3a377b676e0878b48a1e162abc1ae4ebd9ced750012e123801e7faa58531b7a8"
+      },
+      "DEV": {
+        "code": "DEV",
+        "driver_id": "de_vries",
+        "full_name": "Nyck de Vries",
+        "path": "/portraits/2023/DEV.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2023/DEV.png",
+        "sha256": "860c63c37c1126a73468617b1830bb8aa6cd8ec9fab5a33b924c7ba380ef6bbb"
+      },
+      "GAS": {
+        "code": "GAS",
+        "driver_id": "gasly",
+        "full_name": "Pierre Gasly",
+        "path": "/portraits/2023/GAS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/PIEGAS01.png",
+        "sha256": "c0efa6443b95b3d2c5c1262b2e2714d78d4b2b8cf3dae372ec750df632e7068a"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2023/HAM.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/LEWHAM01.png",
+        "sha256": "054a5b885544b86afbebd10248118b06a8c7a62ef6dda5853d724363c6c97bb1"
+      },
+      "HUL": {
+        "code": "HUL",
+        "driver_id": "hulkenberg",
+        "full_name": "Nico Hülkenberg",
+        "path": "/portraits/2023/HUL.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/NICHUL01.png",
+        "sha256": "2708c7d533a988b687d06950e2a8b69f41966568c8119d3de83579be31a00a8c"
+      },
+      "LAW": {
+        "code": "LAW",
+        "driver_id": "lawson",
+        "full_name": "Liam Lawson",
+        "path": "/portraits/2023/LAW.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/LIALAW01.png",
+        "sha256": "abd8f3695fbc39b5fa979c2125b94c220292179e10e49d08b823914862e07be4"
+      },
+      "LEC": {
+        "code": "LEC",
+        "driver_id": "leclerc",
+        "full_name": "Charles Leclerc",
+        "path": "/portraits/2023/LEC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/CHALEC01.png",
+        "sha256": "fb5cb469eec07c2afcc1d8429ca21b6a991ba5dc5a76ba30891ccd442edf0070"
+      },
+      "MAG": {
+        "code": "MAG",
+        "driver_id": "kevin_magnussen",
+        "full_name": "Kevin Magnussen",
+        "path": "/portraits/2023/MAG.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/KEVMAG01.png",
+        "sha256": "45c32da41c68654533d06694c5bc332ab10772ca2f8751daea5ff446fb117559"
+      },
+      "NOR": {
+        "code": "NOR",
+        "driver_id": "norris",
+        "full_name": "Lando Norris",
+        "path": "/portraits/2023/NOR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/LANNOR01.png",
+        "sha256": "ec6ed327bedb366c838d5fbf6de22d4b57bc3fa49c449244055306f5c25bd468"
+      },
+      "OCO": {
+        "code": "OCO",
+        "driver_id": "ocon",
+        "full_name": "Esteban Ocon",
+        "path": "/portraits/2023/OCO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/ESTOCO01.png",
+        "sha256": "8e1e0ecd00a597015aec65c05fad46791b1500fb269217696fbc8e46d5310100"
+      },
+      "PER": {
+        "code": "PER",
+        "driver_id": "perez",
+        "full_name": "Sergio Pérez",
+        "path": "/portraits/2023/PER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/SERPER01.png",
+        "sha256": "632d69c2814da8bd676cc92f5a13af66268dfc28f9ab63b4213525db2ee650f8"
+      },
+      "PIA": {
+        "code": "PIA",
+        "driver_id": "piastri",
+        "full_name": "Oscar Piastri",
+        "path": "/portraits/2023/PIA.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/OSCPIA01.png",
+        "sha256": "9b6ee9a9dd4a96229cd1f77da303b31737d1b2072ee68c6dde541e72be6c6e90"
+      },
+      "RIC": {
+        "code": "RIC",
+        "driver_id": "ricciardo",
+        "full_name": "Daniel Ricciardo",
+        "path": "/portraits/2023/RIC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/DANRIC01.png",
+        "sha256": "d5c96880dfe05a15723cb5d0f45b05cbf419769fcd9e39783c3c38bdf579ed83"
+      },
+      "RUS": {
+        "code": "RUS",
+        "driver_id": "russell",
+        "full_name": "George Russell",
+        "path": "/portraits/2023/RUS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/GEORUS01.png",
+        "sha256": "7a2a397cc18bc0eb0c4efe1b687255c1fa1ad6b7c4959a28e01557598b0fc6c2"
+      },
+      "SAI": {
+        "code": "SAI",
+        "driver_id": "sainz",
+        "full_name": "Carlos Sainz",
+        "path": "/portraits/2023/SAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/CARSAI01.png",
+        "sha256": "25a18b9778081180333b360c87b66a2c261a07c5274e9814001945177dec4c03"
+      },
+      "SAR": {
+        "code": "SAR",
+        "driver_id": "sargeant",
+        "full_name": "Logan Sargeant",
+        "path": "/portraits/2023/SAR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/LOGSAR01.png",
+        "sha256": "6706ee943d418ebb9fbeaa8eb5ab4f105e6e6c31d11dd8189e6b6c4de1b35934"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2023/STR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/LANSTR01.png",
+        "sha256": "b2568df0d254a24ff50e6cdc66456b18656f4bfa5f1ef98c6f1b9d2eb05488fc"
+      },
+      "TSU": {
+        "code": "TSU",
+        "driver_id": "tsunoda",
+        "full_name": "Yuki Tsunoda",
+        "path": "/portraits/2023/TSU.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/YUKTSU01.png",
+        "sha256": "74616c056c87a4bce205765251d6b291e40dcec95c5c978f015a3041abfd4e43"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2023/VER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/MAXVER01.png",
+        "sha256": "df145a6ed133fdeeadacdbf35840ef2a3ba8a5d1f869009c62aa9a0eefb0dec6"
+      },
+      "ZHO": {
+        "code": "ZHO",
+        "driver_id": "zhou",
+        "full_name": "Guanyu Zhou",
+        "path": "/portraits/2023/ZHO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2023/GUAZHO01.png",
+        "sha256": "81da12a9c265328cc43f4e1a869208d0aff9e89664629bfa19a5e2aa92e8730c"
+      }
+    },
+    "2024": {
+      "ALB": {
+        "code": "ALB",
+        "driver_id": "albon",
+        "full_name": "Alexander Albon",
+        "path": "/portraits/2024/ALB.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/ALEALB01.png",
+        "sha256": "34c05615cda9459425a6340d2445afa5690118f00d63a89acb9528fc167b6444"
+      },
+      "ALO": {
+        "code": "ALO",
+        "driver_id": "alonso",
+        "full_name": "Fernando Alonso",
+        "path": "/portraits/2024/ALO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/FERALO01.png",
+        "sha256": "0c590b8604e25290a07c180e4327c58c8c4952df409c88df18eb901fd366dac4"
+      },
+      "ANT": {
+        "code": "ANT",
+        "driver_id": "antonelli",
+        "full_name": "Andrea Kimi Antonelli",
+        "path": "/portraits/2024/ANT.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2024/ANT.png",
+        "sha256": "a00f9c926871d29200cf51e42cbdccb4c4bb758ae132528af38f24326db6a3c9"
+      },
+      "BEA": {
+        "code": "BEA",
+        "driver_id": "bearman",
+        "full_name": "Oliver Bearman",
+        "path": "/portraits/2024/BEA.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/OLIBEA01.png",
+        "sha256": "df6c6a6c6388ab6d9fb68fb66f15df02e220b3f6239b90a6e7dbd16fd95584ce"
+      },
+      "BOT": {
+        "code": "BOT",
+        "driver_id": "bottas",
+        "full_name": "Valtteri Bottas",
+        "path": "/portraits/2024/BOT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/VALBOT01.png",
+        "sha256": "23c3f5919258db55503250611947bdde0fa1dec050d35d47d0659f8acdb4d0ad"
+      },
+      "COL": {
+        "code": "COL",
+        "driver_id": "colapinto",
+        "full_name": "Franco Colapinto",
+        "path": "/portraits/2024/COL.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/FRACOL01.png",
+        "sha256": "6d8e47860883ece074b013b6f314ac2c1d5ab8d1eabcccff25f555bb12fae1c0"
+      },
+      "DOO": {
+        "code": "DOO",
+        "driver_id": "doohan",
+        "full_name": "Jack Doohan",
+        "path": "/portraits/2024/DOO.png",
+        "source_url": "https://raw.githubusercontent.com/toUpperCase78/formula1-datasets/master/F1%202024%20Season%20Drivers/Jack_Doohan_61.png",
+        "sha256": "2c8a08c257c68b2352b3deef1c1d7f01ece4a6133a55039f7241e4217f983d44"
+      },
+      "GAS": {
+        "code": "GAS",
+        "driver_id": "gasly",
+        "full_name": "Pierre Gasly",
+        "path": "/portraits/2024/GAS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/PIEGAS01.png",
+        "sha256": "3a341d400b79e4799735b78ae5086a331220a260f3f0ee2133f33278649dd77b"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2024/HAM.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/LEWHAM01.png",
+        "sha256": "9b1549c999a73004f14767ca6eb6cb29c7d27fd0742566008cec5dbe1aab402c"
+      },
+      "HUL": {
+        "code": "HUL",
+        "driver_id": "hulkenberg",
+        "full_name": "Nico Hülkenberg",
+        "path": "/portraits/2024/HUL.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/NICHUL01.png",
+        "sha256": "994de313089f1f84606c9e567b7953a9ee279439999719daf32593f4234c88a4"
+      },
+      "LAW": {
+        "code": "LAW",
+        "driver_id": "lawson",
+        "full_name": "Liam Lawson",
+        "path": "/portraits/2024/LAW.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/LIALAW01.png",
+        "sha256": "81a4db758f9836ea4060f51774e5e66f84719d4c24486d75b61e104ba258188e"
+      },
+      "LEC": {
+        "code": "LEC",
+        "driver_id": "leclerc",
+        "full_name": "Charles Leclerc",
+        "path": "/portraits/2024/LEC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/CHALEC01.png",
+        "sha256": "16c62e7951fe60c80d33a425b650e09453382e19b423751f24acb7b2e76a7eab"
+      },
+      "MAG": {
+        "code": "MAG",
+        "driver_id": "kevin_magnussen",
+        "full_name": "Kevin Magnussen",
+        "path": "/portraits/2024/MAG.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/KEVMAG01.png",
+        "sha256": "93cdfd31fb36632c709f1cad5d9d9173368d915012fe1bac4bf8821eac9f0abb"
+      },
+      "NOR": {
+        "code": "NOR",
+        "driver_id": "norris",
+        "full_name": "Lando Norris",
+        "path": "/portraits/2024/NOR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/LANNOR01.png",
+        "sha256": "84fe151e914c05ce2888eaf4c792f306c7c8ee3b3547c20590cd24bb619ee3a1"
+      },
+      "OCO": {
+        "code": "OCO",
+        "driver_id": "ocon",
+        "full_name": "Esteban Ocon",
+        "path": "/portraits/2024/OCO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/ESTOCO01.png",
+        "sha256": "c1432600e7ff313bf7203485667b12961a5c88fed0849276cecbaf9e430e711f"
+      },
+      "PER": {
+        "code": "PER",
+        "driver_id": "perez",
+        "full_name": "Sergio Pérez",
+        "path": "/portraits/2024/PER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/SERPER01.png",
+        "sha256": "6ffd12f31ee92d79f7302552182777430107a2192e87386aef57fe8f5dc1957a"
+      },
+      "PIA": {
+        "code": "PIA",
+        "driver_id": "piastri",
+        "full_name": "Oscar Piastri",
+        "path": "/portraits/2024/PIA.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/OSCPIA01.png",
+        "sha256": "74a64f5042e1e6f9493779b826c1d82585dce2a4d986fedfdaf2b84fd9fdceda"
+      },
+      "RIC": {
+        "code": "RIC",
+        "driver_id": "ricciardo",
+        "full_name": "Daniel Ricciardo",
+        "path": "/portraits/2024/RIC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/DANRIC01.png",
+        "sha256": "417fecdb398979764ca4134589c20e74d139194f84baa5a72b939a23d40442de"
+      },
+      "RUS": {
+        "code": "RUS",
+        "driver_id": "russell",
+        "full_name": "George Russell",
+        "path": "/portraits/2024/RUS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/GEORUS01.png",
+        "sha256": "b7ddf6c6f56b8860221b39875d65c8e84f2139f327c530879dea16971566f7c0"
+      },
+      "SAI": {
+        "code": "SAI",
+        "driver_id": "sainz",
+        "full_name": "Carlos Sainz",
+        "path": "/portraits/2024/SAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/CARSAI01.png",
+        "sha256": "a44e0c1549f2b47f01bd8b0780756ffe7a8f7e67a4829578320ccf78e8961d34"
+      },
+      "SAR": {
+        "code": "SAR",
+        "driver_id": "sargeant",
+        "full_name": "Logan Sargeant",
+        "path": "/portraits/2024/SAR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/LOGSAR01.png",
+        "sha256": "d2780e372319f8baee99cbfcd98bb7e205d749e19646613a573ed5416deab155"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2024/STR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/LANSTR01.png",
+        "sha256": "07e06e8437a25c4bf7caf762207afb5cac741747d7787a5fc3d617a6d8631b4a"
+      },
+      "TSU": {
+        "code": "TSU",
+        "driver_id": "tsunoda",
+        "full_name": "Yuki Tsunoda",
+        "path": "/portraits/2024/TSU.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/YUKTSU01.png",
+        "sha256": "9cc2e2b5392dfdd4e74020a99199939a6e6616c0f15bc44ceb77f553b7e94eaf"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2024/VER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/MAXVER01.png",
+        "sha256": "0281d4f71cea21f55000413ed5b957ae9b28d2b407709897ecd18532d7c5ad8f"
+      },
+      "ZHO": {
+        "code": "ZHO",
+        "driver_id": "zhou",
+        "full_name": "Guanyu Zhou",
+        "path": "/portraits/2024/ZHO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2024/GUAZHO01.png",
+        "sha256": "496309a9018bc7d324da3cbe57518144aa378336176742f41a16fe9c18730732"
+      }
+    },
+    "2025": {
+      "ALB": {
+        "code": "ALB",
+        "driver_id": "albon",
+        "full_name": "Alexander Albon",
+        "path": "/portraits/2025/ALB.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/ALEALB01.png",
+        "sha256": "a4a687ece283a8db7729da866d9657eca6668f2e96df38c6127097f2c3f19185"
+      },
+      "ALO": {
+        "code": "ALO",
+        "driver_id": "alonso",
+        "full_name": "Fernando Alonso",
+        "path": "/portraits/2025/ALO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/FERALO01.png",
+        "sha256": "7b3a1bc9613ed0309ee5bf777aafcb366331f687a07f233fa0022fcdce162912"
+      },
+      "ANT": {
+        "code": "ANT",
+        "driver_id": "antonelli",
+        "full_name": "Andrea Kimi Antonelli",
+        "path": "/portraits/2025/ANT.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/ANDANT01.png",
+        "sha256": "3618c4a423e0636ba3b8f39dd54065e208c316a2a0577b78b553d9f4fb8d26d0"
+      },
+      "BEA": {
+        "code": "BEA",
+        "driver_id": "bearman",
+        "full_name": "Oliver Bearman",
+        "path": "/portraits/2025/BEA.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/OLIBEA01.png",
+        "sha256": "3e60400549be2052a9a0661e6a20f3d58459a2af046f082f9884898be38b1232"
+      },
+      "BOR": {
+        "code": "BOR",
+        "driver_id": "bortoleto",
+        "full_name": "Gabriel Bortoleto",
+        "path": "/portraits/2025/BOR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/GABBOR01.png",
+        "sha256": "557d27527803abdb1ea61b700377ef687899b9f74ced06382373a3252fede60e"
+      },
+      "COL": {
+        "code": "COL",
+        "driver_id": "colapinto",
+        "full_name": "Franco Colapinto",
+        "path": "/portraits/2025/COL.png",
+        "source_url": "https://raw.githubusercontent.com/toUpperCase78/formula1-datasets/master/F1%202025%20Season%20Drivers/Franco_Colapinto_43.png",
+        "sha256": "007f42ce559ba3d68dbc77bc3bdbb2efa1e667a257d98910dc4cfbdad9c85d8b"
+      },
+      "DOO": {
+        "code": "DOO",
+        "driver_id": "doohan",
+        "full_name": "Jack Doohan",
+        "path": "/portraits/2025/DOO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/JACDOO01.png",
+        "sha256": "236ed528571e3ac21967eff7c38f937251fd9a1318a3d121f629ab15ef9a64bb"
+      },
+      "GAS": {
+        "code": "GAS",
+        "driver_id": "gasly",
+        "full_name": "Pierre Gasly",
+        "path": "/portraits/2025/GAS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/PIEGAS01.png",
+        "sha256": "1f58133dec2b97c308f97f6ffc57c225b5dc46817894eaa883d01a0a46c9e6e6"
+      },
+      "HAD": {
+        "code": "HAD",
+        "driver_id": "hadjar",
+        "full_name": "Isack Hadjar",
+        "path": "/portraits/2025/HAD.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/ISAHAD01.png",
+        "sha256": "e4656067b28ddcccb852eb5e480acfe1ac44dc768b3a25aa1620193318dfa1d6"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2025/HAM.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/LEWHAM01.png",
+        "sha256": "98b4607f4ce3df73fcb154db3ec5082c425d5259b600f52f7f44e27de0078939"
+      },
+      "HUL": {
+        "code": "HUL",
+        "driver_id": "hulkenberg",
+        "full_name": "Nico Hülkenberg",
+        "path": "/portraits/2025/HUL.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/NICHUL01.png",
+        "sha256": "efde036646c4da1a51bb7628b6511c7866f5e6fe7d57b230b2fdbc11493f4247"
+      },
+      "LAW": {
+        "code": "LAW",
+        "driver_id": "lawson",
+        "full_name": "Liam Lawson",
+        "path": "/portraits/2025/LAW.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/LIALAW01.png",
+        "sha256": "676502053eca470610f8d27d615f7c208727092ca1ac0a40efc9784c5bd08259"
+      },
+      "LEC": {
+        "code": "LEC",
+        "driver_id": "leclerc",
+        "full_name": "Charles Leclerc",
+        "path": "/portraits/2025/LEC.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/CHALEC01.png",
+        "sha256": "7fc3aec4c7715f4aaa395d85107919e6f7e41da3b5396e91ada3f4defc00ddc0"
+      },
+      "NOR": {
+        "code": "NOR",
+        "driver_id": "norris",
+        "full_name": "Lando Norris",
+        "path": "/portraits/2025/NOR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/LANNOR01.png",
+        "sha256": "11bde2ae6883fa0496817c5b3c543d077becb9105804d86154d21989d7627bdb"
+      },
+      "OCO": {
+        "code": "OCO",
+        "driver_id": "ocon",
+        "full_name": "Esteban Ocon",
+        "path": "/portraits/2025/OCO.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/ESTOCO01.png",
+        "sha256": "6543622ea4face807b52ba2cb1cd84115df44454227d6d792346480c7d454cad"
+      },
+      "PIA": {
+        "code": "PIA",
+        "driver_id": "piastri",
+        "full_name": "Oscar Piastri",
+        "path": "/portraits/2025/PIA.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/OSCPIA01.png",
+        "sha256": "f1af7c37b22bcd1a340c770f68b0d296fb53cdc85df8c2515912c5610e07fdf4"
+      },
+      "RUS": {
+        "code": "RUS",
+        "driver_id": "russell",
+        "full_name": "George Russell",
+        "path": "/portraits/2025/RUS.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/GEORUS01.png",
+        "sha256": "3d772c5cae1a522f37e523f03fc256b8b6c9fd405afdb0f1ade1daa12829389e"
+      },
+      "SAI": {
+        "code": "SAI",
+        "driver_id": "sainz",
+        "full_name": "Carlos Sainz",
+        "path": "/portraits/2025/SAI.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/CARSAI01.png",
+        "sha256": "0720b1400e5250ea85f264411d6572c182028bdbed0e7e41cfb14b3bb6ecb46b"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2025/STR.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/LANSTR01.png",
+        "sha256": "d933d35bdbecdcc5243ed09e87179bf098537f45f554647c89408ba6e82bc935"
+      },
+      "TSU": {
+        "code": "TSU",
+        "driver_id": "tsunoda",
+        "full_name": "Yuki Tsunoda",
+        "path": "/portraits/2025/TSU.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/YUKTSU01.png",
+        "sha256": "a8b5ca5ca3d604aa9bdd8c675173b316598f7fc9a3912fa76742f86b8ef57ca4"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2025/VER.png",
+        "source_url": "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/drivers/2025/MAXVER01.png",
+        "sha256": "0f18ca2f66aa971e62d828eac1842e1bb6476b686744a98de089c2484badd051"
+      }
+    },
+    "2026": {
+      "ALB": {
+        "code": "ALB",
+        "driver_id": "albon",
+        "full_name": "Alexander Albon",
+        "path": "/portraits/2026/ALB.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/ALB.png",
+        "sha256": "2697ef78f63a22aa75cefdc61029cacdbc03b79a64831d3e38e32b5a43b9da2b"
+      },
+      "ALO": {
+        "code": "ALO",
+        "driver_id": "alonso",
+        "full_name": "Fernando Alonso",
+        "path": "/portraits/2026/ALO.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/ALO.png",
+        "sha256": "4e00ebebf5f675493c6e02d961492051ae1f5d852dbbc1422fda987c96e1332a"
+      },
+      "ANT": {
+        "code": "ANT",
+        "driver_id": "antonelli",
+        "full_name": "Andrea Kimi Antonelli",
+        "path": "/portraits/2026/ANT.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/ANT.png",
+        "sha256": "351e62a2bd6fd8d2c3bd9939075728afa7091f50b9accb2a12d40e0b3da16554"
+      },
+      "BEA": {
+        "code": "BEA",
+        "driver_id": "bearman",
+        "full_name": "Oliver Bearman",
+        "path": "/portraits/2026/BEA.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/BEA.png",
+        "sha256": "507d1ea9c5f24082070469173f7133675429e307f5ab5335a86e9d509087cb51"
+      },
+      "BOR": {
+        "code": "BOR",
+        "driver_id": "bortoleto",
+        "full_name": "Gabriel Bortoleto",
+        "path": "/portraits/2026/BOR.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/BOR.png",
+        "sha256": "642e7a36793918a4b4619afc9c6b0570af4e3a5a841eea59d0491ed1a0a5cf71"
+      },
+      "BOT": {
+        "code": "BOT",
+        "driver_id": "bottas",
+        "full_name": "Valtteri Bottas",
+        "path": "/portraits/2026/BOT.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/BOT.png",
+        "sha256": "53d33547ed21ff4ba8dfb79903eb256c5d0115fb1b57831789c6c450d3b7eb45"
+      },
+      "COL": {
+        "code": "COL",
+        "driver_id": "colapinto",
+        "full_name": "Franco Colapinto",
+        "path": "/portraits/2026/COL.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/COL.png",
+        "sha256": "00c7a95f6844cd7e02d037f9996bab363614c67790805aabd7c9b70338d9ddee"
+      },
+      "GAS": {
+        "code": "GAS",
+        "driver_id": "gasly",
+        "full_name": "Pierre Gasly",
+        "path": "/portraits/2026/GAS.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/GAS.png",
+        "sha256": "19c89ce465723e7678c7c4a2cac4dbe1bba46bf0ec132110dc6043a94912641d"
+      },
+      "HAD": {
+        "code": "HAD",
+        "driver_id": "hadjar",
+        "full_name": "Isack Hadjar",
+        "path": "/portraits/2026/HAD.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/HAD.png",
+        "sha256": "bf35e363de359b045b5a941b4c49451744e09f4326658d5374d3849bad800ad2"
+      },
+      "HAM": {
+        "code": "HAM",
+        "driver_id": "hamilton",
+        "full_name": "Lewis Hamilton",
+        "path": "/portraits/2026/HAM.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/HAM.png",
+        "sha256": "0a040b6b99193a97e190b5d55dacc19bb843754f2ccb5221b2e019854985ac64"
+      },
+      "HUL": {
+        "code": "HUL",
+        "driver_id": "hulkenberg",
+        "full_name": "Nico Hülkenberg",
+        "path": "/portraits/2026/HUL.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/HUL.png",
+        "sha256": "a5593d199e78f3bbb6966f94a0e5dea9b2e27a6c0ce5aa78930f3be97f356d1d"
+      },
+      "LAW": {
+        "code": "LAW",
+        "driver_id": "lawson",
+        "full_name": "Liam Lawson",
+        "path": "/portraits/2026/LAW.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/LAW.png",
+        "sha256": "faaaccb8370e849da5f63046ce1bed39489648a27c0eea8f0d80b35765eacd52"
+      },
+      "LEC": {
+        "code": "LEC",
+        "driver_id": "leclerc",
+        "full_name": "Charles Leclerc",
+        "path": "/portraits/2026/LEC.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/LEC.png",
+        "sha256": "ba55f5844613ca86fc7d9bd1505b283026908fb6d842d8c9bba485ccd67d6716"
+      },
+      "LIN": {
+        "code": "LIN",
+        "driver_id": "arvid_lindblad",
+        "full_name": "Arvid Lindblad",
+        "path": "/portraits/2026/LIN.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/LIN.png",
+        "sha256": "d87cc18cfe9f91388ced976b22085e06072a684f5024aa6c0870386b24829d87"
+      },
+      "NOR": {
+        "code": "NOR",
+        "driver_id": "norris",
+        "full_name": "Lando Norris",
+        "path": "/portraits/2026/NOR.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/NOR.png",
+        "sha256": "0d0826e9e01cebfbfe035ba7669667d6531098442b02c8686a21e3a1eda296dc"
+      },
+      "OCO": {
+        "code": "OCO",
+        "driver_id": "ocon",
+        "full_name": "Esteban Ocon",
+        "path": "/portraits/2026/OCO.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/OCO.png",
+        "sha256": "c176b887208799645295039d23ad4ef7522006f86228b0942cd2ee02545a38db"
+      },
+      "PER": {
+        "code": "PER",
+        "driver_id": "perez",
+        "full_name": "Sergio Pérez",
+        "path": "/portraits/2026/PER.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/PER.png",
+        "sha256": "2b5360bfea12970d38204e337141fdfd2bc396d02c560a0ab0fe0ffe7eca6dc0"
+      },
+      "PIA": {
+        "code": "PIA",
+        "driver_id": "piastri",
+        "full_name": "Oscar Piastri",
+        "path": "/portraits/2026/PIA.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/PIA.png",
+        "sha256": "d879abc3214d87c29ce6b30c7f4b05e4afb1f6d08a04873a7aec69e585c99713"
+      },
+      "RUS": {
+        "code": "RUS",
+        "driver_id": "russell",
+        "full_name": "George Russell",
+        "path": "/portraits/2026/RUS.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/RUS.png",
+        "sha256": "bf2ba92783623a5c051567e7100e6a4754da5b6dbc772e828fea5b0ddb413508"
+      },
+      "SAI": {
+        "code": "SAI",
+        "driver_id": "sainz",
+        "full_name": "Carlos Sainz",
+        "path": "/portraits/2026/SAI.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/SAI.png",
+        "sha256": "8b8ce803bc2d654cb5d9cccdb39ff15fba544d3f8e828bc469c11bfa3a503960"
+      },
+      "STR": {
+        "code": "STR",
+        "driver_id": "stroll",
+        "full_name": "Lance Stroll",
+        "path": "/portraits/2026/STR.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/STR.png",
+        "sha256": "79a9d3daaa67b0fa29785962698e4ec2ee9e0e6b3dcf6a039deb80388b52ae6e"
+      },
+      "VER": {
+        "code": "VER",
+        "driver_id": "max_verstappen",
+        "full_name": "Max Verstappen",
+        "path": "/portraits/2026/VER.png",
+        "source_url": "https://assets.multiviewer.dev/driver-headshots/2026/VER.png",
+        "sha256": "5d874c9a37825c1591226f4a3e52096cab3b7512df0567428a6424b2f43aaeac"
+      }
+    }
+  },
+  "missing": [
+    {
+      "season": 2017,
+      "code": "ALO",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "BUT",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "DIR",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "ERI",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "GAS",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "GIO",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "GRO",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "HAR",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "HUL",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "KVY",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "MAG",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "MAS",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "OCO",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "PAL",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "PER",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "SAI",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "VAN",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2017,
+      "code": "WEH",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2025,
+      "code": "LIN",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    },
+    {
+      "season": 2026,
+      "code": "TSU",
+      "reason": "HTTP Error 404: Not Found; HTTP Error 404: Not Found"
+    }
+  ]
+}

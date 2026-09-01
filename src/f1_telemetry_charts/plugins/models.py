@@ -16,6 +16,9 @@ class PluginRecipeDefinition(BaseModel):
     required_dataset_fields: list[str] = Field(default_factory=list)
     factory: str = Field(min_length=1)
     output_artifact_types: list[str] = Field(default_factory=lambda: ["png", "json"])
+    supported_session_types: list[str] = Field(default_factory=list)
+    preview_asset: str | None = None
+    icon: str | None = None
 
 
 class PluginDefinition(BaseModel):

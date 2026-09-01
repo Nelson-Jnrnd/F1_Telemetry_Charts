@@ -1257,8 +1257,32 @@ implementation plan once their exact interfaces exist.
 
 ## Spec amendments
 
-No amendments. The implementation follows the architecture approved on
-2026-08-10.
+### AMEND-001: Scope narrative evidence to generated Analysis charts
+
+- **Date:** 2026-08-27
+- **Reason:** Product review rejected session-wide report synthesis because
+  loading a session should not implicitly turn every computable session result
+  into the subject of the user's Analysis.
+- **Changed requirements:** REQ-001 through REQ-004, REQ-007 through REQ-014,
+  NFR-001, NFR-003, DATA-001 through DATA-005, API-001, UX-001 through UX-004.
+- **Behavioral impact:** Typed analytical results remain authoritative and
+  chart pixels remain non-authoritative, but generated chart instances now
+  define the narrative evidence scope of an Analysis. Only result identities
+  linked by the included generated charts are eligible for findings,
+  conclusions, automatic story selection, and narrative review. Mandatory
+  session identity, official classification, integrity, and essential context
+  remain typed, inspectable foundational evidence and may gate correctness or
+  readiness; they do not independently create unrelated narrative claims.
+  Evidence inspection distinguishes foundational sources, chart-scoped
+  findings, and selected story material. Removing or adding a generated chart
+  changes the evidence fingerprint and invalidates only dependent review,
+  story, draft, and export state.
+- **Test impact:** Add no-chart, unrelated-session-result, generated-chart
+  inclusion/removal, foundational-context, fingerprint, review-invalidation,
+  and report-selection tests across Race, Qualifying, and Practice.
+- **Human approval reference:** Nelson Jeanrenaud explicitly rejected the
+  session-wide behavior and approved this amendment in the Codex task
+  conversation on 2026-08-27.
 
 ## Review checklist
 

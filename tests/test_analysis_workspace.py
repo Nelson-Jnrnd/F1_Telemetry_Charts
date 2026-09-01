@@ -346,6 +346,14 @@ class AnalysisWorkspaceTests(unittest.TestCase):
             self.assertEqual(article["publication_export_contract_version"], 3)
             self.assertEqual(article["publication_policy"], evidence["publication_policy"])
             self.assertEqual(article["editorial_sources"], evidence["editorial_sources"])
+            self.assertEqual(
+                evidence["evidence_scope"]["target_session_id"],
+                analysis.report_target_session_id,
+            )
+            self.assertEqual(
+                evidence["evidence_scope"]["included_chart_instance_ids"],
+                [analysis.charts[0].chart_instance_id],
+            )
             self.assertEqual(article["editorial_sources"], ["https://example.com/editorial-source"])
             self.assertEqual(export_view.manifest.publication_plan_path, "publication-plan.json")
             published_claim_ids = {
@@ -675,6 +683,10 @@ class AnalysisWorkspaceTests(unittest.TestCase):
 
             session = analysis.sessions[0]
             self.assertEqual(session.drivers, ["VER", "PER", "ALO"])
+            self.assertEqual(
+                [driver.abbreviation for driver in session.driver_details],
+                ["VER", "PER", "ALO"],
+            )
             self.assertEqual(session.snapshot.query.drivers, ["VER", "PER", "ALO"])
 
     def test_full_field_fixture_request_loads_twenty_drivers(self) -> None:
@@ -780,6 +792,13 @@ class AnalysisApiTests(unittest.TestCase):
         recipes = response.json()
         self.assertTrue(recipes)
         self.assertIn("parameter_schema", recipes[0])
+        self.assertIn("supported_session_types", recipes[0])
+        self.assertIn("preview_asset", recipes[0])
+        self.assertIn("icon", recipes[0])
+        qualifying = next(
+            item for item in recipes if item["template_id"] == "qualifying_progression"
+        )
+        self.assertEqual(qualifying["supported_session_types"], ["qualifying"])
         self.assertFalse(Path(".analysis").exists())
 
     def test_analysis_directory_picker_endpoint_reports_selected_cancelled_and_unavailable(self) -> None:

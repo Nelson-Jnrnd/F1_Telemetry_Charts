@@ -102,6 +102,18 @@ class ReportFindingTests(unittest.TestCase):
             ["battle", "delta"],
         )
 
+    def test_selected_chart_identity_participates_in_claim_freshness(self) -> None:
+        first = build_report_content("2023-bahrain-race", [source(chart="chart-a")])
+        second = build_report_content("2023-bahrain-race", [source(chart="chart-b")])
+
+        self.assertNotEqual(first.evidence_fingerprint, second.evidence_fingerprint)
+        self.assertNotEqual(
+            first.findings[0].evidence_fingerprint,
+            second.findings[0].evidence_fingerprint,
+        )
+        self.assertEqual(first.evidence_scope.included_chart_instance_ids, ["chart-a"])
+        self.assertEqual(first.evidence_scope.result_links[0].role, "narrative")
+
     def test_presentation_only_metadata_does_not_change_fingerprint(self) -> None:
         left = source(chart="a")
         right = source(chart="b")

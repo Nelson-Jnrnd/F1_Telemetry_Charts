@@ -91,6 +91,7 @@ def write_structured_report_package(
         )
         evidence_sidecar = {
             "schema_version": content.schema_version,
+            "evidence_scope": content.evidence_scope.model_dump(mode="json"),
             "publication_export_contract_version": PUBLICATION_EXPORT_CONTRACT_VERSION,
             "publication_policy": {
                 "policy_id": content.publication_plan.policy_id,
@@ -381,6 +382,7 @@ def _publication_evidence_payload(
 
     return {
         "schema_version": content.schema_version,
+        "evidence_scope": content.evidence_scope.model_dump(mode="json"),
         "publication_export_contract_version": PUBLICATION_EXPORT_CONTRACT_VERSION,
         "publication_policy": {
             "policy_id": content.publication_plan.policy_id,

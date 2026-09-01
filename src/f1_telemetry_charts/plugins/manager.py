@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from f1_telemetry_charts.config.models import PluginConfig
 from f1_telemetry_charts.recipes.base import ChartRecipe
 from f1_telemetry_charts.recipes.registry import (
+    ALL_SUPPORTED_SESSION_TYPES,
     RecipeMetadata,
     RecipeRegistry,
     default_recipe_registry,
@@ -77,6 +78,10 @@ class PluginManager:
                         required_dataset_fields=tuple(recipe.required_dataset_fields),
                         output_artifact_types=tuple(recipe.output_artifact_types),
                         source=loaded.definition.plugin_id,
+                        supported_session_types=tuple(recipe.supported_session_types)
+                        or ALL_SUPPORTED_SESSION_TYPES,
+                        preview_asset=recipe.preview_asset,
+                        icon=recipe.icon or "chart",
                     ),
                     factory,
                 )

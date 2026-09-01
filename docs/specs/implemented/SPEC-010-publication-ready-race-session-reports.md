@@ -872,6 +872,23 @@ explicitly authorised the commit on 2026-08-13.
   closeout verdict listing these four bounded correctness issues as required
   changes.
 
+### AMEND-006: Apply Analysis chart scope to Race narrative evidence
+
+- **Date:** 2026-08-27
+- **Reason:** SPEC-009 AMEND-001 changes the boundary between session evidence
+  and the subject matter deliberately selected for an Analysis.
+- **Changed requirements:** REQ-003 through REQ-010, REQ-012 through REQ-014,
+  DATA-001 through DATA-003, UX-001 through UX-004.
+- **Behavioral impact:** Race classification, integrity, and essential context
+  remain foundational and auditable. Automatic Race findings, conclusions,
+  chart selection, and story content are limited to result identities supported
+  by generated Analysis charts. The workflow is presented as Scope, Findings,
+  Story, Preview, and Export with a visible next action and readiness state.
+- **Test impact:** Race acceptance covers chart-scoped claims, foundational
+  evidence visibility, scope changes, and exact preview/export parity.
+- **Human approval reference:** Approved by Nelson Jeanrenaud in the Codex task
+  conversation on 2026-08-27.
+
 ## Closeout
 
 - **Final status:** Implemented in delivery commit `63f2fc5` after AMEND-005

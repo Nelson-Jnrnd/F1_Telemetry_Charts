@@ -29,6 +29,14 @@ from f1_telemetry_charts.recipes.stint_pace import StintPaceRecipe
 from f1_telemetry_charts.recipes.telemetry_trace import TelemetryTraceRecipe
 from f1_telemetry_charts.recipes.tyre_strategy import TyreStrategyRecipe
 
+ALL_SUPPORTED_SESSION_TYPES = (
+    "practice",
+    "qualifying",
+    "sprint_qualifying",
+    "sprint",
+    "race",
+)
+
 
 @dataclass(frozen=True)
 class RecipeMetadata:
@@ -38,6 +46,9 @@ class RecipeMetadata:
     output_artifact_types: tuple[str, ...] = ("png", "json")
     source: str = "core"
     description: str | None = None
+    supported_session_types: tuple[str, ...] = ALL_SUPPORTED_SESSION_TYPES
+    preview_asset: str | None = None
+    icon: str | None = "chart"
 
 
 class RecipeRegistry:
@@ -87,65 +98,83 @@ def default_recipe_registry() -> RecipeRegistry:
             recipe_id="telemetry_trace",
             display_name="Telemetry trace",
             required_dataset_fields=("telemetry",),
+            icon="activity",
         ),
         RecipeMetadata(
             recipe_id="lap_time_delta",
             display_name="Lap time delta",
             required_dataset_fields=("laps",),
+            icon="timer",
         ),
         RecipeMetadata(
             recipe_id="tyre_strategy",
             display_name="Strategy Timeline",
             required_dataset_fields=("laps",),
             description="Full-race compound stints, pit events, and shared race context.",
+            supported_session_types=("sprint", "race"),
+            icon="tyre",
         ),
         RecipeMetadata(
             recipe_id="stint_pace",
             display_name="Stint Pace",
             required_dataset_fields=("laps",),
             description="Representative lap-time progression and robust driver-stint summaries.",
+            supported_session_types=("sprint", "race"),
+            icon="line-chart",
         ),
         RecipeMetadata(
             recipe_id="pace_evolution",
             display_name="Pace Evolution",
             required_dataset_fields=("laps",),
             description="Theil-Sen observed pace evolution by tyre age or stint progress.",
+            supported_session_types=("sprint", "race"),
+            icon="trending-up",
         ),
         RecipeMetadata(
             recipe_id="compound_comparison",
             display_name="Compound Comparison",
             required_dataset_fields=("laps",),
             description="Controlled descriptive compound samples without causal offsets.",
+            supported_session_types=("sprint", "race"),
+            icon="layers",
         ),
         RecipeMetadata(
             recipe_id="race_time_delta_evolution",
             display_name="Race-Time Delta Evolution",
             required_dataset_fields=("laps",),
             description="Measured direct-gap change or derived cumulative representative pace delta.",
+            supported_session_types=("sprint", "race"),
+            icon="git-compare",
         ),
         RecipeMetadata(
             recipe_id="pit_cycle_comparison",
             display_name="Pit-Cycle Comparison",
             required_dataset_fields=("laps",),
             description="Measured focal-versus-rival change across one bounded stop cycle.",
+            supported_session_types=("sprint", "race"),
+            icon="repeat",
         ),
         RecipeMetadata(
             recipe_id="driver_battle",
             display_name="Driver Battle",
             required_dataset_fields=("laps",),
             description="Synchronized representative pace, direct gap, and tyre context for two drivers.",
+            supported_session_types=("sprint", "race"),
+            icon="users",
         ),
         RecipeMetadata(
             recipe_id="position_progression",
             display_name="Position progression",
             required_dataset_fields=("laps",),
+            supported_session_types=("sprint", "race"),
+            icon="list-ordered",
         ),
-        RecipeMetadata(recipe_id="qualifying_progression", display_name="Qualifying Progression", required_dataset_fields=("laps",), description="Q1/Q2/Q3 valid-best and attempt chronology."),
-        RecipeMetadata(recipe_id="qualifying_margin_comparison", display_name="Pole and Cutoff Margins", required_dataset_fields=("laps",), description="Official within-segment pole and advancement margins."),
-        RecipeMetadata(recipe_id="qualifying_sector_contribution", display_name="Qualifying Sector Contribution", required_dataset_fields=("laps",), description="Reconciled Q3 pole-to-P2 signed sector contributions."),
-        RecipeMetadata(recipe_id="practice_run_overview", display_name="Practice Run Overview", required_dataset_fields=("laps",), description="Pit-bounded Practice run chronology with compound and representative coverage."),
-        RecipeMetadata(recipe_id="practice_long_run_pace_summary", display_name="Practice Long-Run Pace Summary", required_dataset_fields=("laps",), description="Representative-lap median, IQR, sample, and compatibility context."),
-        RecipeMetadata(recipe_id="practice_observed_pace_evolution", display_name="Practice Observed Pace Evolution", required_dataset_fields=("laps",), description="Representative laps and non-causal fitted run-progress trend."),
+        RecipeMetadata(recipe_id="qualifying_progression", display_name="Qualifying Progression", required_dataset_fields=("laps",), description="Q1/Q2/Q3 valid-best and attempt chronology.", supported_session_types=("qualifying",), icon="gauge"),
+        RecipeMetadata(recipe_id="qualifying_margin_comparison", display_name="Pole and Cutoff Margins", required_dataset_fields=("laps",), description="Official within-segment pole and advancement margins.", supported_session_types=("qualifying",), icon="bar-chart"),
+        RecipeMetadata(recipe_id="qualifying_sector_contribution", display_name="Qualifying Sector Contribution", required_dataset_fields=("laps",), description="Reconciled Q3 pole-to-P2 signed sector contributions.", supported_session_types=("qualifying",), icon="split"),
+        RecipeMetadata(recipe_id="practice_run_overview", display_name="Practice Run Overview", required_dataset_fields=("laps",), description="Pit-bounded Practice run chronology with compound and representative coverage.", supported_session_types=("practice",), icon="calendar-clock"),
+        RecipeMetadata(recipe_id="practice_long_run_pace_summary", display_name="Practice Long-Run Pace Summary", required_dataset_fields=("laps",), description="Representative-lap median, IQR, sample, and compatibility context.", supported_session_types=("practice",), icon="chart-no-axes-combined"),
+        RecipeMetadata(recipe_id="practice_observed_pace_evolution", display_name="Practice Observed Pace Evolution", required_dataset_fields=("laps",), description="Representative laps and non-causal fitted run-progress trend.", supported_session_types=("practice",), icon="trending-up"),
     ]
     return RecipeRegistry(
         recipes,

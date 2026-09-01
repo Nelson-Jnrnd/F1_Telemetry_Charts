@@ -249,6 +249,14 @@ export type AnalysisSession = {
   name: string;
   session: { season: number; event: string; session: string };
   drivers: string[];
+  driver_details: Array<{
+    abbreviation: string;
+    full_name?: string | null;
+    team_name?: string | null;
+    team_color?: string | null;
+    headshot_url?: string | null;
+    country_code?: string | null;
+  }>;
   available_teams: string[];
   data_cache: { directory: string; mode: "cache-or-fetch" | "cache-only"; fixture_path: string | null };
   load_state: "not_loaded" | "loading" | "loaded" | "failed" | "stale";
@@ -458,6 +466,48 @@ export type ParameterPreset = {
   notes?: string | null;
 };
 
+export type WeekendSynthesis = {
+  schema_version: number;
+  policy_id: string;
+  policy_version: number;
+  weekend_id: string;
+  event: { season: number; event_id: string; event_name: string; format: "standard" | "sprint" | "ambiguous" };
+  inventory: Array<{
+    session_id: string;
+    session_kind: "fp1" | "fp2" | "fp3" | "qualifying" | "race";
+    session_time: string;
+    package_id: string;
+    source_status: "included" | "unavailable" | "cancelled" | "omitted";
+    inclusion_reason: string;
+    source_fingerprint: string;
+  }>;
+  claims: Array<{
+    claim_id: string;
+    text: string;
+    subject: string;
+    predicate: string;
+    temporal_scope: string;
+    measurement_category: "measured" | "derived" | "descriptive" | "estimated";
+    quality: string;
+    limitations: string[];
+    source_claim_ids: string[];
+    source_session_ids: string[];
+    source_result_ids: string[];
+    source_chart_asset_ids: string[];
+    section: "practice_to_grid" | "race_outcome";
+  }>;
+  summary_claim_ids: string[];
+  expectations: Array<{ comparison_id: string; expectation_id: string; outcome_claim_id: string; state: "aligned" | "partially_aligned" | "not_aligned" | "not_comparable" }>;
+  figures: Array<{ figure_id: string; source_session_id: string; source_chart_asset_id: string; section: "practice_to_grid" | "race_outcome"; caption: string; alt_text: string }>;
+  editorial: { headline: string; standfirst: string; lede: string; conclusion: string; author: string; source_result_ids: string[]; reviewed: boolean };
+  section_order: string[];
+  limitations: string[];
+  conflicts: string[];
+  evidence_fingerprint: string;
+  package_hash: string;
+  readiness: { ready: boolean; blockers: string[]; checks: Record<string, boolean>; next_action: string };
+};
+
 export type AnalysisWorkspace = {
   analysis_id: string;
   name: string;
@@ -493,6 +543,8 @@ export type AnalysisWorkspace = {
   };
   report_package_path?: string | null;
   exported_package_path?: string | null;
+  weekend_synthesis?: WeekendSynthesis | null;
+  weekend_package_path?: string | null;
   errors: string[];
 };
 
@@ -507,6 +559,40 @@ export type AnalysisRecipe = PluginRecipe & {
   diagnostics: string[];
   source: string;
   parameter_schema: RecipeParameterSchema;
+  supported_session_types?: string[];
+  preview_image?: string | null;
+  preview_image_path?: string | null;
+  preview_asset?: string | null;
+  icon?: string | null;
+  category?: string | null;
+};
+
+export type EventCatalogSession = {
+  name: string;
+  short_name?: string | null;
+  date?: string | null;
+  session_type?: string | null;
+  starts_at?: string | null;
+};
+
+export type EventCatalogEvent = {
+  season: number;
+  event?: string;
+  event_name?: string | null;
+  official_name?: string | null;
+  country?: string | null;
+  country_code?: string | null;
+  location?: string | null;
+  round_number?: number | null;
+  event_format?: string | null;
+  date?: string | null;
+  event_date?: string | null;
+  sessions: Array<string | EventCatalogSession>;
+};
+
+export type EventCatalog = {
+  season: number;
+  events: EventCatalogEvent[];
 };
 
 export type AnalysisView = {

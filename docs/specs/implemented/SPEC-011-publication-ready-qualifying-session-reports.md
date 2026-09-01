@@ -1000,6 +1000,16 @@ SPEC-011 closure on 2026-08-14.
 Nelson Jeanrenaud approved the original spec on 2026-08-13 and approved this
 amendment through the recorded editorial verdict on 2026-08-14.
 
+- **2026-08-27 — Analysis-scoped narrative evidence (approved by Nelson
+  Jeanrenaud):** In accordance with SPEC-009 AMEND-001, official Qualifying
+  classification, integrity conflicts, and essential session context remain
+  foundational evidence, while only result identities supported by generated
+  Analysis charts may produce automatic narrative findings, conclusions, and
+  Story selections. The Evidence surface separates Scope, Findings, and source
+  detail and does not present every available session result as the subject of
+  the Analysis. Tests cover zero, one, and several generated qualifying chart
+  families plus scope-change freshness.
+
 ## Review checklist
 
 - [x] spec_id is unique and follows the SPEC-XXX format.

@@ -1,4 +1,13 @@
 from f1_telemetry_charts.data.gateways.base import DataGatewayError, SessionDataGateway
+from f1_telemetry_charts.data.events import (
+    AvailableSession,
+    EventCatalog,
+    EventSummary,
+    FastF1EventCatalog,
+    FixtureEventCatalog,
+    SeasonEventSchedule,
+    normalize_session_type,
+)
 from f1_telemetry_charts.data.models import (
     CircuitCorner,
     CircuitInfo,
@@ -26,6 +35,13 @@ from f1_telemetry_charts.data.models import (
 
 __all__ = [
     "DataGatewayError",
+    "AvailableSession",
+    "EventCatalog",
+    "EventSummary",
+    "FastF1EventCatalog",
+    "FixtureEventCatalog",
+    "SeasonEventSchedule",
+    "normalize_session_type",
     "CircuitCorner",
     "CircuitInfo",
     "DriverMetadata",

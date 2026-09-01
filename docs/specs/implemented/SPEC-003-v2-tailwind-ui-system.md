@@ -1073,13 +1073,13 @@ backend behavior change.
 | REQ-004 | ChartLightbox | `frontend/src/components/ChartLightbox.tsx` | `pnpm typecheck`; Chromium interaction check | Implemented and verified |
 | REQ-005 | Observation editing | Analysis Review editor; review APIs | `pnpm typecheck`; preview/Analysis tests | Implemented via SPEC-004 |
 | REQ-006 | DetailPanel | `frontend/src/components/DetailPanel.tsx` | `pnpm typecheck` | Implemented |
-| REQ-007 | Analysis Workbench forms | `AnalysisWorkbenchPage.tsx`; schema-driven controls | `pnpm typecheck`; Analysis tests | Superseded by SPEC-004 Analysis Workbench |
+| REQ-007 | Analysis Workbench forms | `AnalysisWorkbenchPage.tsx`; schema-driven controls; season-aware local driver portrait resolver and catalog | `pnpm typecheck`; Analysis tests; `tests.test_driver_portrait_catalog` | Implemented via SPEC-004 and AMEND-005 |
 | REQ-008 | Chart-template selector | `AnalysisWorkbenchPage.tsx` Add Chart flow | `pnpm typecheck`; plugin/Analysis tests | Implemented via SPEC-004/SPEC-005 |
 | REQ-009 | Plugins page | `frontend/src/pages/PluginsPage.tsx` | `pnpm typecheck`; `tests.test_plugins` | Implemented |
 | REQ-010 | Run History page | `frontend/src/pages/RunHistoryPage.tsx` | `pnpm typecheck`; `tests.test_workbench_api` | Implemented |
 | REQ-011 | Toast/notification system | `frontend/src/components/ui/Toast.tsx`; `frontend/src/App.tsx` | `pnpm typecheck` | Implemented |
 | REQ-012 | Advanced raw data disclosure | `AnalysisWorkbenchPage.tsx`; `DetailPanel.tsx` | `pnpm typecheck`; code inspection | Implemented |
-| NFR-001 | Build reproducibility | `frontend/package.json`; `frontend/pnpm-lock.yaml`; built static assets | `pnpm typecheck`; `pnpm build` | Implemented |
+| NFR-001 | Build reproducibility | `frontend/package.json`; `frontend/pnpm-lock.yaml`; `scripts/backfill_driver_portraits.py`; versioned portrait manifest and built static assets | `pnpm typecheck`; `pnpm build`; `tests.test_driver_portrait_catalog` | Implemented |
 | NFR-002 | Layout stability | `frontend/src/components/AppShell.tsx`; `frontend/src/pages/` | `pnpm build`; responsive browser evidence at desktop, tablet, and mobile widths | Implemented, visual verified |
 | NFR-003 | Accessibility | Radix wrappers and uniquely labeled Review actions | `pnpm typecheck`; targeted Chromium keyboard navigation | Implemented and verified for governed surfaces |
 | NFR-004 | Package scale | Analysis Export inspection structures | `pnpm typecheck`; generated 20-chart/50-observation fixture | Implemented and verified |
@@ -1093,11 +1093,11 @@ backend behavior change.
 | API-001 | Backend validation authority | `frontend/src/api.ts`; `AnalysisWorkbenchPage` actions | Analysis API tests; `pnpm typecheck` | Implemented via SPEC-004 |
 | API-002 | API error mapping | `frontend/src/api.ts`; `App.tsx`; `AnalysisWorkbenchPage` | `pnpm typecheck`; Analysis API tests | Implemented via SPEC-004 |
 | API-003 | SPEC-002 API compatibility | No API contract changes | Targeted Python tests | Implemented |
-| UX-001 | Work-focused visual system | `AppShell`; page panels/tables/forms | `pnpm build`; responsive browser evidence dated 2026-08-03 | Implemented, visual verified |
-| UX-002 | Component reuse | `frontend/src/components/ui/` reused by all pages | `pnpm typecheck`; code inspection | Implemented |
+| UX-001 | Work-focused visual system | `AppShell`; page panels/tables/forms; season-correct local driver identity assets | `pnpm build`; responsive browser evidence dated 2026-08-03; historical-session browser check dated 2026-09-01 | Implemented, visual verified |
+| UX-002 | Component reuse | `frontend/src/components/ui/` reused by all pages; shared `driverPortraitUrl` resolver | `pnpm typecheck`; code inspection | Implemented |
 | UX-003 | Review workflow clarity | Analysis Review editor | preview/Analysis tests; Chromium save/cancel interaction | Implemented and verified |
 | UX-004 | Chart inspection | `ChartLightbox` | `pnpm typecheck`; Chromium open/Escape/backdrop interaction | Implemented and verified |
-| UX-005 | Detail readability | `DetailPanel` domain branches | `pnpm typecheck`; code inspection | Implemented |
+| UX-005 | Detail readability | `DetailPanel` domain branches; season-aware driver identity in Workbench selectors | `pnpm typecheck`; catalog integrity test; browser inspection | Implemented |
 | UX-006 | Field-level feedback | Analysis chart/session diagnostics and form rendering | Analysis tests; `pnpm typecheck` | Implemented via SPEC-004 |
 | UX-007 | Responsive layout | `AppShell`; responsive Tailwind grids; stacked chart-options panel | `docs/reports/SPEC-003-UX-007-responsive-evidence.md`; desktop/tablet/mobile screenshots | Implemented and verified |
 
@@ -1210,6 +1210,54 @@ Closeout verification update 2026-08-04:
   lightbox interaction evidence remain explicit verification gaps.
 - **Human approval reference:** Nelson Jeanrenaud approved amending SPEC-002
   and SPEC-003 in the Codex task conversation on 2026-08-03.
+
+### AMEND-004
+
+- **Date:** 2026-08-27
+- **Reason:** Product review found that the application exposes its internal
+  configuration model through dense forms, select-only comboboxes, unstable
+  expanding regions, and low-context labels instead of guiding analysts through
+  recognizable Formula 1 tasks.
+- **Changed requirements:** REQ-005, REQ-006, REQ-008, NFR-001, NFR-003,
+  NFR-004, UX-001, UX-002, UX-003, UX-005, and UX-006.
+- **Behavioral impact:** Primary workflows use progressive disclosure and
+  domain-rich selection surfaces. Events, sessions, chart templates, presets,
+  and drivers are presented with the context needed to choose them; compact
+  comboboxes are reserved for short, familiar option sets. Advanced or rare
+  fields remain available behind an explicit disclosure. Long-running work has
+  stable phase/progress feedback. Modal and drawer workflows use bounded scroll
+  regions, reserved feedback space, and fixed actions so asynchronous content
+  does not move the user's controls. Restrained Formula 1 color, flags, driver
+  identity, and meaningful icons improve scanability without decorative badge
+  proliferation or explanatory UI copy.
+- **Test impact:** Frontend typecheck/build plus desktop, tablet, and narrow
+  browser interaction checks must cover keyboard access, focus return,
+  progressive disclosure, stable layout, and non-color-only meaning.
+- **Human approval reference:** Nelson Jeanrenaud approved the review feedback
+  and direct implementation in the Codex task conversation on 2026-08-27.
+
+### AMEND-005
+
+- **Date:** 2026-09-01
+- **Reason:** Product review found that FastF1's driver-image URL can resolve to
+  the latest portrait even when an older session is loaded, making historical
+  driver identity visually incorrect.
+- **Changed requirements:** REQ-007, NFR-001, UX-001, UX-002, UX-005.
+- **Behavioral impact:** Driver identity surfaces resolve portraits from a
+  versioned local catalog keyed by session season and driver abbreviation.
+  Catalog assets are generated by an explicit maintenance script from a
+  season roster and a historical portrait source, retain source provenance in
+  a manifest, and are never fetched from third-party hosts at application
+  runtime. Missing entries degrade to driver initials. Upstream
+  `headshot_url` values remain data provenance and are not used as the visual
+  portrait authority.
+- **Test impact:** Add catalog integrity and season-resolution tests. Frontend
+  typecheck/build and a historical-session browser check must verify that
+  different seasons resolve different local assets and that missing portraits
+  retain a stable initials fallback.
+- **Human approval reference:** Nelson Jeanrenaud approved a season-aware local
+  portrait catalog and historical online backfill in the Codex task
+  conversation on 2026-09-01.
 
 ## Review checklist
 

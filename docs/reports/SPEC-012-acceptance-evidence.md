@@ -3,10 +3,11 @@
 ## Status
 
 Automated implementation and verification are complete as of 2026-08-24.
-Human editorial acceptance remains pending. All three real-session packages are
-intentionally blocked only because the configured FastF1 source does not expose
-a current official Practice classification; recorded laps are not substituted
-for official order.
+Nelson Jeanrenaud validated SPEC-012 on 2026-08-24. All three real-session
+packages are accepted as evidence of correct behavior and remain intentionally
+blocked only because the configured FastF1 source does not expose a current
+official Practice classification; recorded laps are not substituted for
+official order.
 
 SPEC-012 AMEND-001 is effective: representative laps apply SPEC-008's explicit
 exclusions only. No statistical outlier-removal rule is applied.
@@ -22,7 +23,7 @@ exclusions only. No statistical outlier-removal rule is applied.
 The corresponding `.zip` and `.acceptance.json` files are under
 `review-packages/`. The acceptance JSON records session identity, source,
 snapshot, policy versions, package hash, typed fixture metrics, readiness,
-blockers, rubric, and pending human verdict.
+blockers, rubric, and human verdict.
 
 ## Automated evidence
 
@@ -65,10 +66,12 @@ the existing Vite chunk-size advisory.
 
 ## Human acceptance
 
-Verdict: pending.
+Verdict: accepted by Nelson Jeanrenaud on 2026-08-24.
 
-The reviewer should apply the common rubric recorded in each acceptance JSON:
+The reviewer accepted the packages using the common rubric recorded in each
+acceptance JSON:
 official-order handling, transparent samples, compatible comparison basis,
 non-causal and non-predictive language, useful non-duplicative charts, mobile
-readability, and claim-to-lap traceability. A source that supplies current
-official Practice classification is also required before readiness can pass.
+readability, and claim-to-lap traceability. The absence of current official
+Practice classification remains a correctly enforced package-readiness blocker
+and does not prevent SPEC-012 lifecycle completion.

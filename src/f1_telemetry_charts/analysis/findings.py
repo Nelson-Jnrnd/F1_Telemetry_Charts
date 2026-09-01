@@ -340,11 +340,35 @@ class ReportFreshness(BaseModel):
         }[self.operational_status]
 
 
+class ReportScopeResultLink(BaseModel):
+    """Explain why a typed result is present and which selected charts expose it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    result_id: str
+    result_type: str
+    role: Literal["narrative", "foundational"]
+    chart_instance_ids: list[str] = Field(default_factory=list)
+
+
+class ReportEvidenceScope(BaseModel):
+    """The explicit session and generated-chart boundary of one report refresh."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_session_id: str
+    included_chart_instance_ids: list[str] = Field(default_factory=list)
+    result_links: list[ReportScopeResultLink] = Field(default_factory=list)
+
+
 class ReportContent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     schema_version: int = REPORT_CONTENT_SCHEMA_VERSION
     target_session_id: str
+    evidence_scope: ReportEvidenceScope = Field(
+        default_factory=lambda: ReportEvidenceScope(target_session_id="")
+    )
     results: list[AnalyticalResultRecord]
     assessments: list[ResultReportAssessment]
     findings: list[ReportFinding]
@@ -590,6 +614,9 @@ def _finding(
     )
     support = {
         "result_fingerprint": result.result_fingerprint,
+        "chart_instance_ids": sorted(
+            evidence.chart_instance_id for evidence in result.chart_evidence
+        ),
         "finding_type": finding_type,
         "provider_id": provider_id,
         "provider_version": provider_version,
@@ -1702,13 +1729,38 @@ def build_report_content(
     target_session_id: str,
     sources: Iterable[ResultSource],
     additional_results: Iterable[AnalyticalResultRecord] = (),
+    *,
+    foundational_result_types: Iterable[str] | None = None,
 ) -> ReportContent:
+    """Build evidence inside the generated-chart narrative scope.
+
+    If foundational types are supplied, other session-derived results are
+    excluded unless a selected chart references them. Foundational records
+    stay inspectable, but do not generate narrative claims on their own.
+    """
+
     source_values = list(sources)
     if any(source.target_session_id != target_session_id for source in source_values):
         raise ValueError("A report may contain analytical results from one target session only")
     reference_sources = [source for source in source_values if source.metadata.get("result_reference_only") is True]
     materialized_sources = [source for source in source_values if source.metadata.get("result_reference_only") is not True]
-    additional_values = [result.model_copy(deep=True) for result in additional_results]
+    selected_result_types = {
+        str(source.metadata.get("result_kind"))
+        for source in reference_sources
+        if source.metadata.get("result_kind")
+    }
+    foundation_types = (
+        None
+        if foundational_result_types is None
+        else {str(result_type) for result_type in foundational_result_types}
+    )
+    additional_values = [
+        result.model_copy(deep=True)
+        for result in additional_results
+        if foundation_types is None
+        or result.result_type in selected_result_types
+        or result.result_type in foundation_types
+    ]
     for result in additional_values:
         for source in reference_sources:
             if source.metadata.get("result_kind") != result.result_type:
@@ -1727,12 +1779,58 @@ def build_report_content(
         for result in [*materialize_results(materialized_sources), *additional_values]
     }
     results = sorted(results_by_fingerprint.values(), key=lambda item: item.result_fingerprint)
-    assessments, findings = assess_results(results)
+    narrative_result_ids = {
+        result.result_id
+        for result in results
+        if foundation_types is None
+        or result.result_type in selected_result_types
+        or bool(result.chart_evidence)
+    }
+    assessments, findings = assess_results(
+        result for result in results if result.result_id in narrative_result_ids
+    )
+    assessments.extend(
+        _assessment(
+            result,
+            provider_id="foundational-session-context",
+            provider_version=1,
+            disposition="context_only",
+            reason_code="foundational_context_only",
+            reasons=[
+                "This mandatory session fact is retained for correctness but is outside the generated-chart narrative scope."
+            ],
+        )
+        for result in results
+        if result.result_id not in narrative_result_ids
+    )
+    assessments.sort(key=lambda item: item.result_fingerprint)
     conclusions = synthesize_findings(findings)
     plan = default_report_plan(target_session_id, results, findings, conclusions)
+    evidence_scope = ReportEvidenceScope(
+        target_session_id=target_session_id,
+        included_chart_instance_ids=sorted(
+            {source.chart_instance_id for source in source_values}
+        ),
+        result_links=[
+            ReportScopeResultLink(
+                result_id=result.result_id,
+                result_type=result.result_type,
+                role=(
+                    "narrative"
+                    if result.result_id in narrative_result_ids
+                    else "foundational"
+                ),
+                chart_instance_ids=sorted(
+                    evidence.chart_instance_id for evidence in result.chart_evidence
+                ),
+            )
+            for result in results
+        ],
+    )
     evidence_fingerprint = canonical_fingerprint(
         {
             "target_session_id": target_session_id,
+            "evidence_scope": evidence_scope.model_dump(mode="json"),
             "results": [result.result_fingerprint for result in results],
             "assessments": [assessment.model_dump(mode="json") for assessment in assessments],
             "findings": [finding.evidence_fingerprint for finding in findings],
@@ -1741,6 +1839,7 @@ def build_report_content(
     )
     return ReportContent(
         target_session_id=target_session_id,
+        evidence_scope=evidence_scope,
         results=results,
         assessments=assessments,
         findings=findings,

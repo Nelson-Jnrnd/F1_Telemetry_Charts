@@ -996,12 +996,26 @@ compatibility.
 
 ### AMEND-001
 
-- **Date:**
-- **Reason:**
-- **Changed requirements:**
-- **Behavioral impact:**
-- **Test impact:**
-- **Human approval reference:**
+- **Date:** 2026-08-27
+- **Reason:** Review found that a title-only template combobox and a separate
+  preset-filter textbox do not provide enough information for an analyst to
+  choose a chart or understand what a preset will change.
+- **Changed requirements:** REQ-001 through REQ-004, REQ-010 through REQ-014,
+  DATA-001, API-001, API-002, UX-001 through UX-005.
+- **Behavioral impact:** Template metadata declares supported session types,
+  description, category/icon, and an optional deterministic preview asset.
+  Session-incompatible templates are excluded from the normal chooser before
+  validation. The chooser is a searchable, keyboard-accessible card dialog;
+  built-in previews are fixture-generated versioned resources and plugin
+  templates fall back to meaningful icons. Presets are selected from a single
+  contextual list grouped by Analysis and Global scope, with notes and affected
+  settings visible. Chart naming occurs at final confirmation and defaults to
+  the resolved chart title; the workspace name is not silently overwritten by
+  later title edits.
+- **Test impact:** Add metadata-contract, compatibility-filter, preview
+  fallback, preset grouping/application, final-name, and keyboard/focus tests.
+- **Human approval reference:** Nelson Jeanrenaud approved the review feedback
+  and direct implementation in the Codex task conversation on 2026-08-27.
 
 ## Review checklist
 

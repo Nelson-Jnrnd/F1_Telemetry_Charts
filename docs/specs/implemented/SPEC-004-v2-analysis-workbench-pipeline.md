@@ -1017,12 +1017,47 @@ Implementation has started.
 
 ### AMEND-001
 
-- **Date:**
-- **Reason:**
-- **Changed requirements:**
-- **Behavioral impact:**
-- **Test impact:**
-- **Human approval reference:**
+- **Date:** 2026-08-27
+- **Reason:** Review found that Analysis creation and loading behave like a raw
+  configurator and provide insufficient feedback during expensive data work.
+- **Changed requirements:** REQ-004 through REQ-006, REQ-008 through REQ-011,
+  REQ-013, REQ-014, NFR-001, API-002 through API-005, UX-001 through UX-005.
+- **Behavioral impact:** Adding a session starts from a browsable season/event
+  catalog with country, date, and actually available session choices; manual
+  event/session/cache fields remain available under Advanced. Adding a chart is
+  session-first and never silently targets the first session. Template
+  availability is resolved before selection from session type and loaded data.
+  Long session load, chart generation, evidence refresh, weekend composition,
+  and export operations expose stable named phases and countable progress where
+  available; unknown-duration phases remain explicitly indeterminate rather
+  than showing fabricated percentages.
+- **Test impact:** Add catalog, compatibility, progress-state, no-silent-
+  fallback, and failure-recovery API/UI tests. Existing snapshot and batch
+  compatibility tests remain required.
+- **Human approval reference:** Nelson Jeanrenaud approved the review feedback
+  and direct implementation in the Codex task conversation on 2026-08-27.
+
+### AMEND-002
+
+- **Date:** 2026-08-28
+- **Reason:** Product review accepted the catalog direction but found the
+  desktop event/session selector visually sparse and still too similar to a
+  multi-section configurator.
+- **Changed requirements:** REQ-004, API-002, UX-002.
+- **Behavioral impact:** The desktop Add Session flow uses a master-detail
+  event browser. The event list is searchable and grouped chronologically,
+  with reliable flag imagery, round, location, weekend dates, and format where
+  available. Selecting an event opens its detail and dated session choices in
+  the adjacent pane. A persistent summary confirms the event, session,
+  drivers, and source before Add session. No event is selected implicitly;
+  technical overrides remain in Advanced settings. Mobile-specific redesign
+  is outside this amendment.
+- **Test impact:** Frontend typecheck/build and desktop browser interaction must
+  verify event search, explicit selection, event metadata, session details,
+  selection summary, and Add session enablement. Existing API and session
+  lifecycle tests remain required.
+- **Human approval reference:** Nelson Jeanrenaud approved the proposed desktop
+  master-detail design in the Codex task conversation on 2026-08-28.
 
 ## Review checklist
 

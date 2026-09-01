@@ -1070,17 +1070,23 @@ class StrategyAnalysisTests(unittest.TestCase):
             self.assertTrue(all(chart.generation_state == "generated" for chart in analysis.charts))
             analysis = service.refresh_observations(analysis)
             self.assertIsNotNone(analysis.report_content)
-            self.assertEqual(len(analysis.report_content.results), 13)
+            self.assertEqual(len(analysis.report_content.results), 10)
             self.assertTrue(
                 {
                     "race_classification",
-                    "grid_to_finish_movement",
-                    "pit_stop_sequence",
                     "neutralisation_periods",
                     "retirement_status",
-                    "position_change_interval",
                 }
                 <= {item.result_type for item in analysis.report_content.results}
+            )
+            self.assertTrue(
+                {
+                    "grid_to_finish_movement",
+                    "pit_stop_sequence",
+                    "position_change_interval",
+                }.isdisjoint(
+                    {item.result_type for item in analysis.report_content.results}
+                )
             )
             with self.assertRaisesRegex(ValueError, "Review included report claims"):
                 service.export_package(analysis)

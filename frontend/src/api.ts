@@ -1,5 +1,6 @@
 import type {
   AnalysisView,
+  EventCatalog,
   HistoryItem,
   PackageView,
   ParameterDiagnostics,
@@ -11,6 +12,7 @@ import type {
   TrackMapPayload,
   ValidationResponse
 } from "./types";
+import type { WeekendSynthesis } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -104,6 +106,10 @@ export function getAnalysis() {
 
 export function getAnalysisCoverage() {
   return request<Record<string, unknown>>("/api/analysis/coverage");
+}
+
+export function getAnalysisEvents(season: number) {
+  return request<EventCatalog[]>(`/api/analysis/events?year=${encodeURIComponent(season)}`);
 }
 
 export function createAnalysis(path: string, name: string) {
@@ -222,6 +228,22 @@ export function getAnalysisPlayback(payload: {
 
 export function refreshAnalysisReview() {
   return request<AnalysisView>("/api/analysis/review/refresh", { method: "POST" });
+}
+
+export function composeAnalysisWeekend(payload: Record<string, unknown>) {
+  return request<AnalysisView>("/api/analysis/weekend/compose", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+}
+
+export function getAnalysisWeekend(claimLimit = 20) {
+  return request<WeekendSynthesis & { claim_count: number }>(`/api/analysis/weekend?claim_limit=${claimLimit}`);
+}
+
+export function exportAnalysisWeekend() {
+  return request<AnalysisView>("/api/analysis/weekend/export", { method: "POST" });
 }
 
 export function reviewAnalysisReportItem(

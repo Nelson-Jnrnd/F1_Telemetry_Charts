@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
@@ -22,6 +22,12 @@ from f1_telemetry_charts.analysis.findings import (
     ReportPlan,
 )
 from f1_telemetry_charts.analysis.report import apply_observation_review, render_markdown_draft
+from f1_telemetry_charts.analysis.weekend import (
+    WeekendClaimCandidate,
+    WeekendEditorial,
+    WeekendExpectation,
+    WeekendSourceSession,
+)
 from f1_telemetry_charts.analysis.orchestrator import run_analysis
 from f1_telemetry_charts.analysis.workspace import (
     AnalysisService,
@@ -38,6 +44,12 @@ from f1_telemetry_charts.config.validation import (
     ConfigValidationError,
     ValidationIssue,
     validate_config,
+)
+from f1_telemetry_charts.data import (
+    DataGatewayError,
+    EventCatalog,
+    FastF1EventCatalog,
+    SeasonEventSchedule,
 )
 from f1_telemetry_charts.preview.reader import (
     PackagePreviewError,
@@ -170,6 +182,16 @@ class PublicationUpdateRequest(BaseModel):
     editorial: PublicationEditorial
 
 
+class WeekendComposeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    sources: list[WeekendSourceSession] = Field(min_length=3, max_length=5)
+    candidates: list[WeekendClaimCandidate] = Field(min_length=1)
+    expectations: list[WeekendExpectation] = Field(default_factory=list)
+    editorial: WeekendEditorial = Field(default_factory=WeekendEditorial)
+    expected_evidence_fingerprint: str | None = None
+
+
 class AnalysisChartDiagnosticsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -225,7 +247,11 @@ class PresetUpdateRequest(BaseModel):
     replace_existing: bool = False
 
 
-def create_app(initial_package: Path | None = None) -> FastAPI:
+def create_app(
+    initial_package: Path | None = None,
+    *,
+    event_catalog: EventCatalog | None = None,
+) -> FastAPI:
     app = FastAPI(title="F1 Telemetry Charts Local UI")
     state = {
         "package_path": initial_package.resolve() if initial_package else None,
@@ -234,6 +260,7 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
     }
     if initial_package is not None:
         _remember_history(state["history"], initial_package.resolve(), "opened")
+    catalog = event_catalog or FastF1EventCatalog()
 
     static_dir = Path(__file__).with_name("static")
     if static_dir.exists():
@@ -401,6 +428,18 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
     def get_analysis_coverage() -> dict:
         service = _require_analysis_service(state["analysis_path"])
         return service.coverage_bounds(service.open())
+
+    @app.get("/api/analysis/events", response_model=list[SeasonEventSchedule])
+    def list_analysis_events(
+        year: list[int] = Query(min_length=1),
+    ) -> list[SeasonEventSchedule]:
+        invalid = [value for value in year if value < 1950 or value > 2100]
+        if invalid:
+            raise HTTPException(status_code=422, detail="Year must be between 1950 and 2100.")
+        try:
+            return [catalog.events_for_season(value) for value in dict.fromkeys(year)]
+        except DataGatewayError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     @app.post("/api/analysis/create", response_model=AnalysisView)
     def create_analysis_endpoint(request: AnalysisCreateRequest) -> AnalysisView:
@@ -597,6 +636,39 @@ def create_app(initial_package: Path | None = None) -> FastAPI:
         service = _require_analysis_service(state["analysis_path"])
         analysis = service.refresh_observations(service.open())
         state["package_path"] = Path(analysis.report_package_path).resolve() if analysis.report_package_path else None
+        return service.view(analysis)
+
+    @app.post("/api/analysis/weekend/compose", response_model=AnalysisView)
+    def compose_analysis_weekend(request: WeekendComposeRequest) -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.compose_weekend(
+                service.open(),
+                sources=request.sources,
+                candidates=request.candidates,
+                expectations=request.expectations,
+                editorial=request.editorial,
+                expected_evidence_fingerprint=request.expected_evidence_fingerprint,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return service.view(analysis)
+
+    @app.get("/api/analysis/weekend")
+    def inspect_analysis_weekend(claim_limit: int = 20) -> dict:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            return service.inspect_weekend(service.open(), claim_limit=claim_limit)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/analysis/weekend/export", response_model=AnalysisView)
+    def export_analysis_weekend() -> AnalysisView:
+        service = _require_analysis_service(state["analysis_path"])
+        try:
+            analysis = service.export_weekend(service.open())
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         return service.view(analysis)
 
     @app.put("/api/analysis/report/items/{item_id}/review", response_model=AnalysisView)

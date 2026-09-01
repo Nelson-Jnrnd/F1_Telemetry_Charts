@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import ast
+from pathlib import Path
 import subprocess
 import sys
 import unittest
@@ -27,6 +29,26 @@ class DependencyBoundaryTests(unittest.TestCase):
         payload = json.loads(completed.stdout)
         self.assertFalse(payload["fastapi"])
         self.assertFalse(payload["ui"])
+
+    def test_weekend_composer_does_not_import_source_data_or_analytics(self) -> None:
+        source = Path("src/f1_telemetry_charts/analysis/weekend.py").read_text(encoding="utf-8")
+        imports = {
+            node.module
+            for node in ast.walk(ast.parse(source))
+            if isinstance(node, ast.ImportFrom) and node.module
+        }
+        forbidden = {
+            value
+            for value in imports
+            if value.startswith("f1_telemetry_charts.data")
+            or value.startswith("f1_telemetry_charts.recipes")
+            or value in {
+                "f1_telemetry_charts.analysis.practice",
+                "f1_telemetry_charts.analysis.qualifying",
+                "f1_telemetry_charts.analysis.publication",
+            }
+        }
+        self.assertEqual(set(), forbidden)
 
 
 if __name__ == "__main__":

@@ -40,7 +40,8 @@ Terminal alternatives: `Superseded`, `Archived`, `Rejected`.
 | SPEC-009 | Evidence-Driven Report Synthesis and Review | Implemented | Nelson Jeanrenaud | | [] | | `docs/specs/implemented/SPEC-009-evidence-driven-report-synthesis-review.md` |
 | SPEC-010 | Publication-Ready Race Session Reports | Implemented | Nelson Jeanrenaud | | [] | `63f2fc5` | `docs/specs/implemented/SPEC-010-publication-ready-race-session-reports.md` |
 | SPEC-011 | Publication-Ready Qualifying Session Reports | Implemented | Nelson Jeanrenaud | | [] | `027d5b2` | `docs/specs/implemented/SPEC-011-publication-ready-qualifying-session-reports.md` |
-| SPEC-012 | Practice and Long-Run Reports | In Implementation | Nelson Jeanrenaud | | [] | `027d5b2` | `docs/specs/approved/SPEC-012-practice-and-long-run-reports.md` |
+| SPEC-012 | Practice and Long-Run Reports | Implemented | Nelson Jeanrenaud | | [] | `027d5b2` | `docs/specs/implemented/SPEC-012-practice-and-long-run-reports.md` |
+| SPEC-013 | Standard Weekend Synthesis | In Implementation | Nelson Jeanrenaud | | [] | | `docs/specs/approved/SPEC-013-standard-weekend-synthesis.md` |
 
 Requirement-level implementation and verification evidence was reconciled on
 2026-08-10. `chatbot` is the canonical delivery branch, so a PR or separate

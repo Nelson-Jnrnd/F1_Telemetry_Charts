@@ -68,6 +68,11 @@ SESSION_SPINE_TYPES = (
     "retirement_status",
     "position_change_interval",
 )
+RACE_FOUNDATIONAL_RESULT_TYPES = (
+    "race_classification",
+    "neutralisation_periods",
+    "retirement_status",
+)
 
 
 def materialize_session_spine(
@@ -516,7 +521,8 @@ def evaluate_readiness(
     ) or any(item.section == "pace_and_strategy" for item in included_charts)
     checks = {
         "session_spine_current": evidence_current
-        and set(SESSION_SPINE_TYPES) <= {result.result_type for result in content.results},
+        and set(RACE_FOUNDATIONAL_RESULT_TYPES)
+        <= {result.result_type for result in content.results},
         "included_evidence_current": evidence_current,
         "included_claims_reviewed": review_current
         and all(

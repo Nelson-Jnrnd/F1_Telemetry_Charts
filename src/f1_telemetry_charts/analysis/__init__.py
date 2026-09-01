@@ -62,7 +62,7 @@ from f1_telemetry_charts.analysis.workspace import (
     RecipeParameterSchema,
 )
 
-__all__ = [
+__all__ += [
     "AnalysisService",
     "AnalysisSession",
     "AnalysisView",
@@ -72,4 +72,29 @@ __all__ = [
     "ParameterField",
     "ParameterPreset",
     "RecipeParameterSchema",
+]
+from f1_telemetry_charts.analysis.weekend import (
+    WeekendClaimCandidate,
+    WeekendEditorial,
+    WeekendEventIdentity,
+    WeekendExpectation,
+    WeekendSourceSession,
+    WeekendSynthesis,
+    bounded_weekend_payload,
+    compose_standard_weekend,
+    render_weekend_markdown,
+    write_weekend_package,
+)
+
+__all__ += [
+    "WeekendClaimCandidate",
+    "WeekendEditorial",
+    "WeekendEventIdentity",
+    "WeekendExpectation",
+    "WeekendSourceSession",
+    "WeekendSynthesis",
+    "bounded_weekend_payload",
+    "compose_standard_weekend",
+    "render_weekend_markdown",
+    "write_weekend_package",
 ]

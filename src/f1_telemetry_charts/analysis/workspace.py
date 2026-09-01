@@ -38,6 +38,7 @@ from f1_telemetry_charts.analysis.playback import (
     playback_summary,
 )
 from f1_telemetry_charts.analysis.publication import (
+    RACE_FOUNDATIONAL_RESULT_TYPES,
     editorial_fingerprint,
     evaluate_readiness,
     materialize_session_spine,
@@ -63,6 +64,17 @@ from f1_telemetry_charts.analysis.track_map import (
     TrackMapPayload,
     build_track_map_payload,
 )
+from f1_telemetry_charts.analysis.weekend import (
+    WEEKEND_SYNTHESIS_SCHEMA_VERSION,
+    WeekendClaimCandidate,
+    WeekendEditorial,
+    WeekendExpectation,
+    WeekendSourceSession,
+    WeekendSynthesis,
+    bounded_weekend_payload,
+    compose_standard_weekend,
+    write_weekend_package,
+)
 from f1_telemetry_charts.charts.renderers import MatplotlibRenderer
 from f1_telemetry_charts.config.models import (
     ChartRecipeConfig,
@@ -71,7 +83,7 @@ from f1_telemetry_charts.config.models import (
     SessionConfig,
     ThemeConfig,
 )
-from f1_telemetry_charts.data import SessionDataset, SessionQuery
+from f1_telemetry_charts.data import DriverMetadata, SessionDataset, SessionQuery
 from f1_telemetry_charts.data.gateways import FastF1SessionGateway, FixtureSessionGateway
 from f1_telemetry_charts.data.track_geometry import ensure_track_geometry
 from f1_telemetry_charts.plugins import build_recipe_registry
@@ -165,6 +177,7 @@ class AnalysisSession(BaseModel):
     name: str
     session: SessionConfig
     drivers: list[str] = Field(min_length=1)
+    driver_details: list[DriverMetadata] = Field(default_factory=list)
     available_teams: list[str] = Field(default_factory=list)
     data_cache: DataCacheConfig = Field(default_factory=DataCacheConfig)
     load_state: SessionLoadState = "not_loaded"
@@ -230,6 +243,9 @@ class AnalysisWorkspace(BaseModel):
     report_freshness: ReportFreshness = Field(default_factory=ReportFreshness)
     report_package_path: str | None = None
     exported_package_path: str | None = None
+    weekend_sources: list[WeekendSourceSession] = Field(default_factory=list)
+    weekend_synthesis: WeekendSynthesis | None = None
+    weekend_package_path: str | None = None
     errors: list[str] = Field(default_factory=list)
 
 
@@ -300,6 +316,79 @@ class AnalysisService:
             recipe_schemas=list_recipe_parameter_schemas(registry),
             recipes=[_metadata_payload(item) for item in registry.list_metadata()],
             global_presets=list_global_presets(),
+        )
+
+    def compose_weekend(
+        self,
+        analysis: AnalysisWorkspace,
+        *,
+        sources: list[WeekendSourceSession],
+        candidates: list[WeekendClaimCandidate],
+        expectations: list[WeekendExpectation] | None = None,
+        editorial: WeekendEditorial | None = None,
+        expected_evidence_fingerprint: str | None = None,
+    ) -> AnalysisWorkspace:
+        """Persist one atomic synthesis over immutable session-report records."""
+
+        if (
+            expected_evidence_fingerprint is not None
+            and analysis.weekend_synthesis is not None
+            and analysis.weekend_synthesis.evidence_fingerprint
+            != expected_evidence_fingerprint
+        ):
+            raise ValueError("Weekend evidence changed; refresh before saving edits.")
+        synthesis = compose_standard_weekend(
+            sources,
+            candidates,
+            expectations=expectations,
+            editorial=editorial,
+        )
+        return self.save(
+            analysis.model_copy(
+                update={
+                    "weekend_sources": [item.model_copy(deep=True) for item in sources],
+                    "weekend_synthesis": synthesis,
+                    "weekend_package_path": None,
+                },
+                deep=True,
+            )
+        )
+
+    def inspect_weekend(
+        self, analysis: AnalysisWorkspace, *, claim_limit: int = 20
+    ) -> dict[str, Any]:
+        if analysis.weekend_synthesis is None:
+            raise ValueError("Compose weekend evidence before inspection.")
+        return bounded_weekend_payload(
+            analysis.weekend_synthesis, claim_limit=claim_limit
+        )
+
+    def export_weekend(self, analysis: AnalysisWorkspace) -> AnalysisWorkspace:
+        if analysis.weekend_synthesis is None:
+            raise ValueError("Compose weekend evidence before exporting.")
+        if not analysis.weekend_synthesis.readiness.ready:
+            raise ValueError(
+                "Weekend synthesis is not ready: "
+                + ", ".join(analysis.weekend_synthesis.readiness.blockers)
+            )
+        export_dir = (
+            self.root
+            / "weekend-exports"
+            / f"{analysis.weekend_synthesis.package_hash[:16]}-v{WEEKEND_SYNTHESIS_SCHEMA_VERSION}"
+        )
+        if export_dir.exists():
+            if not (export_dir / "manifest.json").is_file():
+                raise ValueError(f"Existing weekend export is incomplete: {export_dir}")
+        else:
+            write_weekend_package(
+                export_dir,
+                analysis.weekend_synthesis,
+                analysis.weekend_sources,
+            )
+        return self.save(
+            analysis.model_copy(
+                update={"weekend_package_path": str(export_dir)}, deep=True
+            )
         )
 
     def coverage_bounds(self, analysis: AnalysisWorkspace | None = None) -> dict[str, Any]:
@@ -489,7 +578,11 @@ class AnalysisService:
                     }
                 )
                 effective_session = session.model_copy(
-                    update={"drivers": effective_drivers, "available_teams": available_teams},
+                    update={
+                        "drivers": effective_drivers,
+                        "driver_details": dataset.drivers,
+                        "available_teams": available_teams,
+                    },
                     deep=True,
                 )
                 snapshot = _write_snapshot(self.root, effective_session, dataset)
@@ -915,6 +1008,9 @@ class AnalysisService:
             target_session.session_id,
             _report_result_sources(self.root, analysis, target_session.session_id),
             session_results,
+            foundational_result_types=_foundational_report_result_types(
+                dataset.metadata.session
+            ),
         )
         current_fingerprints = {item.result_fingerprint for item in content.results}
         prior_editorial = (
@@ -2587,6 +2683,9 @@ def _metadata_payload(metadata: RecipeMetadata) -> dict[str, Any]:
         "source_label": source_label,
         "required_dataset_fields": list(metadata.required_dataset_fields),
         "output_artifact_types": list(metadata.output_artifact_types),
+        "supported_session_types": list(metadata.supported_session_types),
+        "preview_asset": metadata.preview_asset,
+        "icon": metadata.icon,
         "supported_session_count": {"minimum": 1, "maximum": 1},
         "parameter_schema_version": schema.schema_version,
         "availability_status": "available",
@@ -2867,6 +2966,35 @@ def _report_result_sources(
             )
         )
     return sources
+
+
+def _foundational_report_result_types(session_name: str) -> set[str]:
+    """Return session facts kept for correctness outside narrative chart scope."""
+
+    normalized = session_name.strip().lower()
+    if normalized in {"race", "r"}:
+        return set(RACE_FOUNDATIONAL_RESULT_TYPES)
+    if normalized in {"qualifying", "q"}:
+        return {
+            "qualifying_segment_classification",
+            "qualifying_conditions",
+            "qualifying_deleted_laps",
+            "qualifying_interruptions",
+        }
+    if normalized in {
+        "fp1",
+        "fp2",
+        "fp3",
+        "practice 1",
+        "practice 2",
+        "practice 3",
+    }:
+        return {
+            "practice_classification",
+            "practice_conditions",
+            "practice_interruptions",
+        }
+    return set()
 
 
 def _analysis_manifest(

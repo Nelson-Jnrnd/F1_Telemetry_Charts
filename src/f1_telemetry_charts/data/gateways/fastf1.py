@@ -381,6 +381,8 @@ def _drivers_from_results(results: Any, fallback_drivers: list[str]) -> list[Dri
                         full_name=_string_or_none(row.get("FullName")),
                         team_name=_string_or_none(row.get("TeamName")),
                         team_color=_string_or_none(row.get("TeamColor")),
+                        headshot_url=_string_or_none(row.get("HeadshotUrl")),
+                        country_code=_string_or_none(row.get("CountryCode")),
                         classification_position=_int_or_none(row.get("Position")),
                         grid_position=_int_or_none(row.get("GridPosition")),
                         result_status=_string_or_none(row.get("Status")),

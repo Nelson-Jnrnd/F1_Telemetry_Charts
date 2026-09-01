@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type ReactNode, type WheelEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { BarChart3, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardCheck, Download, Edit3, FilePlus2, FolderOpen, Image, LineChart, Loader2, Map as MapIcon, Maximize2, Play, Plus, RefreshCw, RotateCcw, RotateCw, Save, Trash2, XCircle, ZoomIn, ZoomOut } from "lucide-react";
+import { Activity, BarChart3, CalendarClock, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDot, ClipboardCheck, Clock3, Download, Edit3, FilePlus2, Flag, FolderOpen, Gauge, GitCompareArrows, Image, Layers3, LineChart, ListOrdered, Loader2, Map as MapIcon, MapPin, Maximize2, Play, Plus, Repeat2, Search, Settings2, Split, RefreshCw, RotateCcw, RotateCw, Save, Timer, Trash2, TrendingUp, Users, XCircle, ZoomIn, ZoomOut } from "lucide-react";
 import * as api from "../api";
-import type { AnalysisSession, AnalysisView, Artifact, ChartInstance, Observation, PackageView, ParameterDiagnostics, ParameterField, ParameterPreset, PlaybackMarker, PlaybackMode, PlaybackPayload, PublicationEditorial, PublicationPlan, ReportClaim, ReportEvidence, ReportPlan, ReportReviewEntry, ReviewStatus, TrackMapCorner, TrackMapPayload, TrackMapPoint } from "../types";
+import type { AnalysisSession, AnalysisView, Artifact, ChartInstance, EventCatalogEvent, Observation, PackageView, ParameterDiagnostics, ParameterField, ParameterPreset, PlaybackMarker, PlaybackMode, PlaybackPayload, PublicationEditorial, PublicationPlan, ReportClaim, ReportEvidence, ReportPlan, ReportReviewEntry, ReviewStatus, TrackMapCorner, TrackMapPayload, TrackMapPoint } from "../types";
+import { driverPortraitUrl } from "../lib/driverPortraits";
 import { compactPath, cn } from "../lib/utils";
 import type { SidebarRenderer } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
@@ -23,6 +24,7 @@ type AnalysisSelection =
   | { kind: "new-chart" }
   | { kind: "chart"; id: string }
   | { kind: "playback" }
+  | { kind: "scope" }
   | { kind: "story" }
   | { kind: "evidence" }
   | { kind: "preview" }
@@ -37,8 +39,8 @@ type AnalysisWorkbenchPageProps = {
 
 const defaultSession = {
   season: 2023,
-  event: "Bahrain Grand Prix",
-  session: "Race",
+  event: "",
+  session: "",
   drivers: "ALL",
   dataSource: "fastf1" as "fastf1" | "local",
   localDatasetPath: "tests/fixtures/2023_bahrain_race_dataset.json",
@@ -69,11 +71,11 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
   const [analysisName, setAnalysisName] = useState("Race Analysis");
   const [sessionDraft, setSessionDraft] = useState(defaultSession);
   const [chartDraft, setChartDraft] = useState({
-    recipeId: "lap_time_delta",
+    recipeId: "",
     sessionId: "",
-    name: "Lap time delta",
-    title: "Lap time delta",
-    parameters: { title: "Lap time delta" } as Record<string, unknown>,
+    name: "",
+    title: "",
+    parameters: {} as Record<string, unknown>,
     presetId: noPresetValue,
     presetName: "Lap time delta",
     saveGlobal: false
@@ -495,6 +497,19 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
     }
   }
 
+  async function exportWeekend() {
+    setExportPending(true);
+    try {
+      const payload = await api.exportAnalysisWeekend();
+      setView(payload);
+      notify("Weekend package exported", payload.analysis.weekend_package_path ?? undefined, "success");
+    } catch (error) {
+      notify("Weekend export failed", message(error), "error");
+    } finally {
+      setExportPending(false);
+    }
+  }
+
   async function loadExportedPackage(path?: string | null) {
     if (!path) {
       setExportedPackage(null);
@@ -646,10 +661,11 @@ export function AnalysisWorkbenchPage({ notify, openArtifact, refreshHistory, se
             sessions={analysis.sessions}
           />
         )}
-        {selection.kind === "story" && <StoryEditor analysis={analysis} savePublication={updatePublication} pending={reviewPending} />}
-        {selection.kind === "evidence" && <ReviewEditor analysis={analysis} packageView={exportedPackage} refreshReview={refreshReview} updateObservation={updateObservation} updateReportClaim={updateReportClaim} updateReportPlan={updateReportPlan} pending={reviewPending} observationPendingActions={pendingObservationActions} />}
-        {selection.kind === "preview" && <PublicationPreview analysis={analysis} packageView={exportedPackage} packageLoading={packageLoading} />}
-        {selection.kind === "export" && <ExportEditor analysis={analysis} packageView={exportedPackage} exportAnalysis={exportAnalysis} openArtifact={openArtifact} pending={exportPending} packageLoading={packageLoading} />}
+        {selection.kind === "scope" && analysis && <ReportScope analysis={analysis} />}
+        {selection.kind === "story" && (analysis?.weekend_synthesis ? <WeekendRecordPanel analysis={analysis} view="story" /> : <StoryEditor analysis={analysis} savePublication={updatePublication} pending={reviewPending} />)}
+        {selection.kind === "evidence" && (analysis?.weekend_synthesis ? <WeekendRecordPanel analysis={analysis} view="evidence" /> : <ReviewEditor analysis={analysis} packageView={exportedPackage} refreshReview={refreshReview} updateObservation={updateObservation} updateReportClaim={updateReportClaim} updateReportPlan={updateReportPlan} pending={reviewPending} observationPendingActions={pendingObservationActions} />)}
+        {selection.kind === "preview" && (analysis?.weekend_synthesis ? <WeekendRecordPanel analysis={analysis} view="preview" /> : <PublicationPreview analysis={analysis} packageView={exportedPackage} packageLoading={packageLoading} />)}
+        {selection.kind === "export" && (analysis?.weekend_synthesis ? <WeekendRecordPanel analysis={analysis} view="export" exportWeekend={exportWeekend} pending={exportPending} /> : <ExportEditor analysis={analysis} packageView={exportedPackage} exportAnalysis={exportAnalysis} openArtifact={openArtifact} pending={exportPending} packageLoading={packageLoading} />)}
       </div>
       <Dialog open={newAnalysisOpen} onOpenChange={setNewAnalysisOpen} title="New Analysis">
         <div className="grid gap-3">
@@ -825,7 +841,38 @@ function AnalysisSidebar({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-1 lg:mt-2 lg:grid-cols-1">
+      <div className="grid gap-1 lg:hidden" aria-label="Analysis workspace navigation">
+        <div className="flex gap-1 overflow-x-auto pb-1">
+          <div className="min-w-32">
+            <OutlineButton active={selection.kind === "overview"} label="Overview" icon={<BarChart3 className="h-4 w-4" />} onClick={() => setSelection({ kind: "overview" })} collapsed={false} />
+          </div>
+          {analysis?.sessions.map((session) => (
+            <div key={session.session_id} className="min-w-44">
+              <OutlineButton active={selection.kind === "session" && selection.id === session.session_id} label={session.name} status={session.load_state} icon={<BarChart3 className="h-4 w-4" />} onClick={() => setSelection({ kind: "session", id: session.session_id })} collapsed={false} />
+            </div>
+          ))}
+          <div className="min-w-32">
+            <OutlineButton active={selection.kind === "new-session"} label="Add Session" icon={<Plus className="h-4 w-4" />} onClick={() => setSelection({ kind: "new-session" })} collapsed={false} />
+          </div>
+        </div>
+        <div className="flex gap-1 overflow-x-auto pb-1">
+          {analysis?.charts.map((chart) => (
+            <div key={chart.chart_instance_id} className="min-w-40">
+              <OutlineButton active={selection.kind === "chart" && selection.id === chart.chart_instance_id} label={chart.name} status={chart.generation_state} icon={<LineChart className="h-4 w-4" />} onClick={() => setSelection({ kind: "chart", id: chart.chart_instance_id })} collapsed={false} />
+            </div>
+          ))}
+          <div className="min-w-32">
+            <OutlineButton active={selection.kind === "new-chart"} label="Add Chart" icon={<Plus className="h-4 w-4" />} onClick={() => setSelection({ kind: "new-chart" })} disabled={!analysis || analysis.sessions.length === 0} collapsed={false} />
+          </div>
+          {analysis?.sessions.some((session) => session.load_state === "loaded" && ["race", "r"].includes(session.session.session.toLowerCase())) && (
+            <div className="min-w-36">
+              <OutlineButton active={selection.kind === "playback"} label="Race Playback" icon={<MapIcon className="h-4 w-4" />} onClick={() => setSelection({ kind: "playback" })} collapsed={false} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-5 gap-1 lg:mt-2 lg:grid-cols-1">
         {analysis?.sessions.some((session) => session.load_state === "loaded" && ["race", "r"].includes(session.session.session.toLowerCase())) && <div className="hidden lg:block">
           <OutlineButton
             active={selection.kind === "playback"}
@@ -836,28 +883,29 @@ function AnalysisSidebar({
             collapsed={collapsed}
           />
         </div>}
-        <OutlineButton
-          active={selection.kind === "story"}
-          label="Story"
-          status={analysis?.report_content?.publication_readiness.state}
-          icon={<Edit3 className="h-4 w-4" />}
-          onClick={() => setSelection({ kind: "story" })}
-          disabled={!analysis}
-          collapsed={collapsed}
-        />
+        <OutlineButton active={selection.kind === "scope"} label="Scope" status={analysis?.report_freshness?.evidence?.status} icon={<BarChart3 className="h-4 w-4" />} onClick={() => setSelection({ kind: "scope" })} disabled={!analysis} collapsed={collapsed} />
         <OutlineButton
           active={selection.kind === "evidence"}
-          label="Evidence"
-          status={analysis?.review_stale ? "stale" : undefined}
+          label="Findings"
+          status={analysis?.weekend_synthesis ? "current" : analysis?.review_stale ? "stale" : undefined}
           icon={<ClipboardCheck className="h-4 w-4" />}
           onClick={() => setSelection({ kind: "evidence" })}
           disabled={!analysis}
           collapsed={collapsed}
         />
         <OutlineButton
+          active={selection.kind === "story"}
+          label="Story"
+          status={analysis?.weekend_synthesis ? (analysis.weekend_synthesis.readiness.ready ? "ready" : "blocked") : analysis?.report_content?.publication_readiness.state}
+          icon={<Edit3 className="h-4 w-4" />}
+          onClick={() => setSelection({ kind: "story" })}
+          disabled={!analysis}
+          collapsed={collapsed}
+        />
+        <OutlineButton
           active={selection.kind === "preview"}
           label="Preview"
-          status={analysis?.report_freshness?.publication?.status}
+          status={analysis?.weekend_synthesis ? (analysis.weekend_synthesis.readiness.ready ? "ready" : "blocked") : analysis?.report_freshness?.publication?.status}
           icon={<Image className="h-4 w-4" />}
           onClick={() => setSelection({ kind: "preview" })}
           disabled={!analysis}
@@ -893,22 +941,117 @@ function Overview({ analysis, staleCharts }: { analysis: AnalysisView["analysis"
 }
 
 function SessionDraftEditor({ draft, setDraft, addSession, disabled, pending }: { draft: typeof defaultSession; setDraft: (draft: typeof defaultSession) => void; addSession: () => void; disabled: boolean; pending: boolean }) {
+  const [events, setEvents] = useState<EventCatalogEvent[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogUnavailable, setCatalogUnavailable] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [eventFilter, setEventFilter] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setCatalogLoading(true);
+    setCatalogUnavailable(false);
+    api.getAnalysisEvents(draft.season)
+      .then((payload) => {
+        if (!active) return;
+        const values = payload.flatMap((schedule) => schedule.events.map((event) => ({ ...event, season: event.season ?? schedule.season })));
+        setEvents(values);
+        setCatalogUnavailable(values.length === 0);
+      })
+      .catch(() => {
+        if (!active) return;
+        setEvents([]);
+        setCatalogUnavailable(true);
+      })
+      .finally(() => active && setCatalogLoading(false));
+    return () => { active = false; };
+  }, [draft.season]);
+
+  const selectedEvent = events.find((item) => (item.event_name ?? item.event) === draft.event || item.event === draft.event) ?? null;
+  const availableSessions = (selectedEvent?.sessions ?? []).map((item) => typeof item === "string" ? { name: item, session_type: sessionCategory(item), starts_at: null } : item);
+  const years = Array.from({ length: 10 }, (_, index) => new Date().getFullYear() - index);
+  const visibleEvents = events.filter((event) => `${event.event_name ?? event.event ?? ""} ${event.location ?? ""} ${event.country ?? ""}`.toLowerCase().includes(eventFilter.trim().toLowerCase()));
+  const groupedEvents = groupEventsByMonth(visibleEvents);
   return (
-    <Panel title="Add Session" actions={<Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={addSession} disabled={disabled} loading={pending}>Add</Button>}>
-      <div className="grid gap-3 md:grid-cols-3">
-        <Field label="Season" type="number" value={draft.season} onChange={(event) => setDraft({ ...draft, season: Number(event.target.value) })} />
-        <Field label="Event" value={draft.event} onChange={(event) => setDraft({ ...draft, event: event.target.value })} />
-        <Field label="Session" value={draft.session} onChange={(event) => setDraft({ ...draft, session: event.target.value })} />
-        <TextAreaField label="Drivers" value={draft.drivers} onChange={(event) => setDraft({ ...draft, drivers: event.target.value })} />
-        <SelectField label="Data source" value={draft.dataSource} onValueChange={(value) => setDraft({ ...draft, dataSource: value as "fastf1" | "local" })} options={[{ value: "fastf1", label: "FastF1" }, { value: "local", label: "Local dataset" }]} />
-        {draft.dataSource === "local" ? (
-          <Field label="Local dataset" value={draft.localDatasetPath} onChange={(event) => setDraft({ ...draft, localDatasetPath: event.target.value })} />
-        ) : (
-          <>
-            <Field label="Cache directory" value={draft.cacheDirectory} onChange={(event) => setDraft({ ...draft, cacheDirectory: event.target.value })} />
-            <SelectField label="Cache mode" value={draft.cacheMode} onValueChange={(value) => setDraft({ ...draft, cacheMode: value as "cache-or-fetch" | "cache-only" })} options={[{ value: "cache-or-fetch", label: "Cache or fetch" }, { value: "cache-only", label: "Cache only" }]} />
-          </>
-        )}
+    <Panel title="Add Session">
+      <div className="grid gap-5">
+        <section className="grid gap-3">
+          <StepHeading number="1" title="Choose a season" />
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {years.map((year) => <button key={year} type="button" aria-pressed={year === draft.season} className={choiceButton(year === draft.season)} onClick={() => { setEventFilter(""); setDraft({ ...draft, season: year, event: "", session: "" }); }}>{year}</button>)}
+          </div>
+        </section>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(21rem,0.9fr)_minmax(28rem,1.1fr)] lg:items-start">
+          <section className="overflow-hidden rounded-xl border border-line bg-slate-50/60">
+            <div className="grid gap-3 border-b border-line bg-panel p-4">
+              <StepHeading number="2" title="Choose a Grand Prix" />
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input className="w-full rounded-md border border-line bg-panel py-2 pl-9 pr-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-teal-100" value={eventFilter} onChange={(event) => setEventFilter(event.target.value)} placeholder="Search events, cities or countries" disabled={catalogLoading} />
+              </div>
+            </div>
+            {catalogLoading ? <div className="p-4"><LoadingProgress label={`Loading ${draft.season} calendar`} detail="Fetching events and available sessions" /></div> : groupedEvents.length > 0 ? (
+              <div className="max-h-[34rem] overflow-y-auto p-3">
+                {groupedEvents.map(([month, monthEvents]) => <section key={month} className="mb-4 last:mb-0">
+                  <h3 className="sticky top-0 z-10 mb-2 bg-slate-50/95 px-1 py-1 text-xs font-semibold uppercase tracking-wide text-muted backdrop-blur">{month}</h3>
+                  <div className="grid gap-2">
+                    {monthEvents.map((event) => {
+                      const name = event.event_name ?? event.event ?? "Unnamed event";
+                      const active = selectedEvent === event;
+                      const code = event.country_code ?? countryCode(event.country);
+                      return <button key={`${event.season}-${event.round_number ?? name}`} type="button" aria-pressed={active} className={cn("grid min-h-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border p-3 text-left transition hover:border-brand/50 hover:bg-panel hover:shadow-sm", active ? "border-brand bg-teal-50 ring-1 ring-brand/20" : "border-line bg-panel/80")} onClick={() => setDraft({ ...draft, event: name, session: "" })}>
+                        <CountryFlag code={code} country={event.country} />
+                        <span className="grid min-w-0 gap-1">
+                          <span className="truncate font-semibold text-ink">{name}</span>
+                          <span className="truncate text-xs text-muted">{event.round_number ? `Round ${event.round_number} · ` : ""}{eventLocation(event)}</span>
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600"><CalendarDays className="h-3.5 w-3.5" />{formatWeekendRange(event)}</span>
+                        </span>
+                        <span className="grid justify-items-end gap-2">
+                          {isSprintWeekend(event.event_format) && <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-amber-700">Sprint</span>}
+                          <ChevronRight className={cn("h-4 w-4", active ? "text-brand" : "text-slate-400")} />
+                        </span>
+                      </button>;
+                    })}
+                  </div>
+                </section>)}
+              </div>
+            ) : <div className="p-4 text-sm text-muted">{catalogUnavailable ? "Calendar unavailable. Use manual event details in Advanced settings." : eventFilter ? "No events match this search." : "No events found for this season."}</div>}
+          </section>
+
+          <section className="min-h-[34rem] rounded-xl border border-line bg-panel p-5">
+            {selectedEvent ? <div className="grid gap-5">
+              <header className="grid grid-cols-[auto_minmax(0,1fr)] gap-4 border-b border-line pb-5">
+                <CountryFlag code={selectedEvent.country_code ?? countryCode(selectedEvent.country)} country={selectedEvent.country} large />
+                <div className="grid min-w-0 gap-1">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-brand">{selectedEvent.round_number ? `Round ${selectedEvent.round_number}` : `${draft.season} season`}</span>
+                  <h2 className="text-xl font-semibold text-ink">{selectedEvent.event_name ?? selectedEvent.event}</h2>
+                  <span className="flex items-center gap-1.5 text-sm text-muted"><MapPin className="h-4 w-4" />{eventLocation(selectedEvent)}</span>
+                  <span className="flex items-center gap-1.5 text-sm text-muted"><CalendarDays className="h-4 w-4" />{formatWeekendRange(selectedEvent)} · {formatEventFormat(selectedEvent.event_format)}</span>
+                </div>
+              </header>
+              <div className="grid gap-3">
+                <StepHeading number="3" title="Choose a session" />
+                {availableSessions.length > 0 ? <div className="grid gap-2">{availableSessions.map((session) => <button key={session.name} type="button" aria-pressed={draft.session === session.name} className={cn("grid min-h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border px-4 py-3 text-left transition hover:border-brand/50", draft.session === session.name ? "border-brand bg-teal-50 text-brand ring-1 ring-brand/20" : "border-line bg-panel text-ink")} onClick={() => setDraft({ ...draft, session: session.name })}><SessionIcon session={session.name} /><span className="grid min-w-0"><span className="font-semibold">{session.name}</span><span className="text-xs capitalize text-muted">{session.session_type?.replaceAll("_", " ") ?? sessionCategory(session.name)}</span></span><span className="flex items-center gap-1.5 text-right text-xs text-muted"><Clock3 className="h-3.5 w-3.5" />{formatSessionStart(session.starts_at)}</span></button>)}</div> : <p className="text-sm text-muted">No sessions are listed for this event.</p>}
+              </div>
+            </div> : <div className="grid min-h-[30rem] place-items-center text-center"><div className="grid max-w-xs justify-items-center gap-3"><span className="grid h-14 w-14 place-items-center rounded-full bg-slate-100 text-slate-500"><CalendarDays className="h-6 w-6" /></span><h2 className="font-semibold text-ink">Select a Grand Prix</h2><p className="text-sm text-muted">Choose an event from the calendar to inspect its weekend and available sessions.</p></div></div>}
+          </section>
+        </div>
+
+        <button type="button" className="flex items-center gap-2 justify-self-start text-sm font-medium text-muted hover:text-ink" onClick={() => setAdvancedOpen((value) => !value)}><Settings2 className="h-4 w-4" />Advanced settings<ChevronDown className={cn("h-4 w-4 transition", advancedOpen && "rotate-180")} /></button>
+        {advancedOpen && <div className="grid gap-3 rounded-lg border border-line bg-slate-50/70 p-4 md:grid-cols-2">
+          <Field label="Season override" type="number" value={draft.season} onChange={(event) => setDraft({ ...draft, season: Number(event.target.value) })} />
+          <Field label="Event override" value={draft.event} onChange={(event) => setDraft({ ...draft, event: event.target.value })} />
+          <Field label="Session override" value={draft.session} onChange={(event) => setDraft({ ...draft, session: event.target.value })} />
+          <TextAreaField label="Drivers (ALL or codes)" value={draft.drivers} onChange={(event) => setDraft({ ...draft, drivers: event.target.value })} />
+          <div className="grid gap-2"><span className="text-sm font-medium text-ink">Data source</span><div className="flex gap-2">{(["fastf1", "local"] as const).map((source) => <button key={source} type="button" className={choiceButton(source === draft.dataSource)} onClick={() => setDraft({ ...draft, dataSource: source })}>{source === "fastf1" ? "FastF1" : "Local dataset"}</button>)}</div></div>
+          {draft.dataSource === "local" ? <Field label="Local dataset" value={draft.localDatasetPath} onChange={(event) => setDraft({ ...draft, localDatasetPath: event.target.value })} /> : <><Field label="Cache directory" value={draft.cacheDirectory} onChange={(event) => setDraft({ ...draft, cacheDirectory: event.target.value })} /><SelectField label="Cache mode" value={draft.cacheMode} onValueChange={(value) => setDraft({ ...draft, cacheMode: value as "cache-or-fetch" | "cache-only" })} options={[{ value: "cache-or-fetch", label: "Cache or fetch" }, { value: "cache-only", label: "Cache only" }]} /></>}
+        </div>}
+        {pending && <LoadingProgress label="Loading session data" detail="Fetching timing, telemetry and driver information" />}
+        <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-4 border-t border-line bg-panel/95 py-4 backdrop-blur">
+          <div className="grid gap-1"><span className="text-xs font-semibold uppercase tracking-wide text-muted">Selection</span><span className="text-sm font-semibold text-ink">{draft.event && draft.session ? `${draft.season} ${draft.event} · ${draft.session}` : "Choose an event and session"}</span><span className="text-xs text-muted">{draft.drivers.trim() || "No drivers"} · {draft.dataSource === "fastf1" ? "FastF1" : "Local dataset"}</span></div>
+          <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={addSession} disabled={disabled || !draft.event.trim() || !draft.session.trim()} loading={pending}>Add session</Button>
+        </div>
       </div>
     </Panel>
   );
@@ -936,6 +1079,7 @@ function SessionEditor({ session, loadSession, removeSession, pendingAction }: {
         <Metric label="Snapshot" value={session.snapshot?.snapshot_id ?? "None"} />
         <Metric label="Hash" value={session.snapshot?.dataset_hash.slice(0, 12) ?? "None"} />
       </dl>
+      {loading && <div className="mt-4"><LoadingProgress label="Loading session" detail="Retrieving session data and building a reusable snapshot" /></div>}
       {session.errors.length > 0 && <ErrorList errors={session.errors} />}
     </Panel>
   );
@@ -960,20 +1104,39 @@ function ChartDraftEditor({
   addChart: () => void;
   pending: boolean;
 }) {
-  const selectedRecipe = recipes.find((recipe) => recipe.recipe_id === draft.recipeId) ?? recipes[0];
-  const selectedSession = sessions.find((session) => session.session_id === draft.sessionId) ?? sessions[0];
+  const selectedRecipe = recipes.find((recipe) => recipe.recipe_id === draft.recipeId);
+  const selectedSession = sessions.find((session) => session.session_id === draft.sessionId);
   const sessionDrivers = selectedSession?.drivers ?? [];
+  const sessionDriverDetails = selectedSession?.driver_details ?? [];
   const sessionTeams = selectedSession?.available_teams ?? [];
   const [mode, setMode] = useState<"basic" | "advanced">("basic");
   const [diagnostics, setDiagnostics] = useState<ParameterDiagnostics | null>(null);
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [presetFilter, setPresetFilter] = useState("");
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [templateFilter, setTemplateFilter] = useState("");
   const [trackSelectorOpen, setTrackSelectorOpen] = useState(false);
   const [trackMap, setTrackMap] = useState<TrackMapPayload | null>(null);
   const [trackMapLoading, setTrackMapLoading] = useState(false);
   const [trackMapError, setTrackMapError] = useState<string | null>(null);
   const fields = visibleSchemaFields(schemaFields, draft.parameters, mode);
   const filteredPresets = filterPresets(presets, presetFilter);
+  const compatibleRecipes = recipes.filter((recipe) => recipe.availability_status === "available" && recipeSupportsSession(recipe.supported_session_types, selectedSession?.session.session));
+  const visibleRecipes = compatibleRecipes.filter((recipe) => `${recipe.display_name} ${recipe.description ?? ""} ${recipe.source_label}`.toLowerCase().includes(templateFilter.toLowerCase()));
+
+  function chooseRecipe(recipeId: string) {
+    const nextRecipe = recipes.find((recipe) => recipe.recipe_id === recipeId);
+    const nextParameters = defaultParameters(nextRecipe?.parameter_schema.fields ?? []);
+    const defaultTitle = String(nextParameters.title ?? nextRecipe?.display_name ?? "Untitled chart");
+    setDraft({ ...draft, recipeId, name: defaultTitle, title: defaultTitle, parameters: nextParameters, presetId: noPresetValue });
+    setTemplatePickerOpen(false);
+  }
+
+  function chooseSession(sessionId: string) {
+    const session = sessions.find((item) => item.session_id === sessionId);
+    const keepRecipe = selectedRecipe && recipeSupportsSession(selectedRecipe.supported_session_types, session?.session.session);
+    setDraft({ ...draft, sessionId, ...(keepRecipe ? {} : { recipeId: "", name: "", title: "", parameters: {}, presetId: noPresetValue }) });
+  }
 
   useEffect(() => {
     setTrackSelectorOpen(false);
@@ -1028,55 +1191,27 @@ function ChartDraftEditor({
   }
 
   const hasInvalidDiagnostics = diagnostics?.status === "invalid";
-  const canAdd = Boolean(selectedSession) && diagnostics?.status !== "invalid";
+  const canAdd = Boolean(selectedSession && selectedRecipe && draft.name.trim()) && diagnostics?.status !== "invalid";
   const canUseTrackSelector =
     draft.recipeId === "telemetry_trace"
     && Boolean(selectedSession)
     && selectedSession?.load_state === "loaded"
     && !hasInvalidDiagnostics;
   return (
-    <Panel title="Add Chart" actions={<Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={addChart} disabled={!canAdd} loading={pending}>Add</Button>}>
-      <div className="grid gap-3 md:grid-cols-2">
-        <SelectField
-          label="Chart template"
-          value={draft.recipeId}
-          onValueChange={(recipeId) => {
-            const nextRecipe = recipes.find((recipe) => recipe.recipe_id === recipeId);
-            const nextParameters = defaultParameters(nextRecipe?.parameter_schema.fields ?? []);
-            setDraft({
-              ...draft,
-              recipeId,
-              name: nextRecipe?.display_name ?? draft.name,
-              title: String(nextParameters.title ?? nextRecipe?.display_name ?? draft.title),
-              parameters: nextParameters,
-              presetId: noPresetValue
-            });
-          }}
-          options={recipes.map((recipe) => ({ value: recipe.recipe_id, label: `${recipe.display_name} - ${recipe.source_label}` }))}
-        />
-        <SelectField label="Session" value={draft.sessionId || sessions[0]?.session_id || ""} onValueChange={(sessionId) => setDraft({ ...draft, sessionId })} options={sessions.map((session) => ({ value: session.session_id, label: session.name }))} />
-        {presets.length > 0 && (
-          <div className="grid gap-3">
-            <Field label="Find preset" value={presetFilter} onChange={(event) => setPresetFilter(event.target.value)} />
-            <SelectField
-              label="Preset"
-              value={draft.presetId}
-              onValueChange={(presetId) => {
-                const preset = presets.find((item) => item.preset_id === presetId);
-                setDraft({
-                  ...draft,
-                  presetId,
-                  parameters: preset?.parameters ?? draft.parameters,
-                  title: String(preset?.parameters.title ?? draft.title)
-                });
-              }}
-              options={[{ value: noPresetValue, label: "None" }, ...filteredPresets.map((preset) => ({ value: preset.preset_id, label: `${preset.display_name} - ${preset.scope}` }))]}
-            />
-          </div>
-        )}
-        <Field label="Name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+    <Panel title="Add Chart">
+      <div className="grid gap-6">
+      <section className="grid gap-3">
+        <StepHeading number="1" title="Choose a session" />
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{sessions.map((session) => <button key={session.session_id} type="button" className={cn("flex min-h-20 items-center gap-3 rounded-lg border p-3 text-left transition hover:border-brand/50", draft.sessionId === session.session_id ? "border-brand bg-teal-50/70 ring-1 ring-brand/20" : "border-line bg-panel")} onClick={() => chooseSession(session.session_id)}><SessionIcon session={session.session.session} /><span className="grid min-w-0"><span className="truncate font-semibold text-ink">{session.name}</span><span className="text-xs text-muted">{session.session.season} · {session.session.session}</span></span><StatusBadge value={session.load_state} /></button>)}</div>
+      </section>
+      <section className="grid gap-3">
+        <StepHeading number="2" title="Choose a chart template" />
+        {selectedRecipe ? <button type="button" className="flex min-h-24 items-center gap-4 rounded-lg border border-brand bg-teal-50/60 p-4 text-left" onClick={() => setTemplatePickerOpen(true)}><TemplateVisual recipe={selectedRecipe} /><span className="grid gap-1"><span className="font-semibold text-ink">{selectedRecipe.display_name}</span><span className="text-sm text-muted">{selectedRecipe.description ?? selectedRecipe.source_label}</span><span className="text-xs font-medium text-brand">Change template</span></span></button> : <button type="button" className="flex min-h-24 items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-slate-50 text-sm font-semibold text-muted hover:border-brand hover:text-brand disabled:opacity-50" onClick={() => setTemplatePickerOpen(true)} disabled={!selectedSession}><LineChart className="h-5 w-5" />{selectedSession ? "Browse compatible templates" : "Choose a session first"}</button>}
+      </section>
+      {selectedRecipe && <>
+      {presets.length > 0 && <section className="grid gap-3"><StepHeading number="3" title="Start from a preset" optional /><PresetPicker presets={filteredPresets} selectedPresetId={draft.presetId} filter={presetFilter} setFilter={setPresetFilter} onSelect={(presetId) => { const preset = presets.find((item) => item.preset_id === presetId); setDraft({ ...draft, presetId, parameters: preset?.parameters ?? defaultParameters(selectedRecipe.parameter_schema.fields), title: String(preset?.parameters.title ?? selectedRecipe.display_name) }); }} /></section>}
+      <section className="grid gap-3"><StepHeading number={presets.length > 0 ? "4" : "3"} title="Configure" />
+      <div className="flex flex-wrap gap-2">
         <Button variant={mode === "basic" ? "primary" : "secondary"} onClick={() => setMode("basic")}>Basic</Button>
         <Button variant={mode === "advanced" ? "primary" : "secondary"} onClick={() => setMode("advanced")}>Advanced</Button>
       </div>
@@ -1099,13 +1234,15 @@ function ChartDraftEditor({
           {diagnostics && <AnalyticalBasisSummary diagnostics={diagnostics} />}
         </div>
       )}
-      <div className="mt-4">
+      <div>
         <ParameterSections
           fields={fields}
           allFields={schemaFields}
           parameters={draft.parameters}
           diagnostics={diagnostics}
+          season={selectedSession?.session.season}
           drivers={sessionDrivers}
+          driverDetails={sessionDriverDetails}
           teams={sessionTeams}
           renderFieldAction={(field) => field.name === "distance_range_m" && draft.recipeId === "telemetry_trace" ? (
             <Button icon={<MapIcon className="h-4 w-4" />} onClick={openDraftTrackSelector} disabled={!canUseTrackSelector} loading={trackMapLoading}>
@@ -1122,6 +1259,16 @@ function ChartDraftEditor({
           }}
         />
       </div>
+      </section>
+      <section className="grid gap-3"><StepHeading number={presets.length > 0 ? "5" : "4"} title="Name and add" /><Field label="Chart name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} description="Prefilled from the chart title; change it if this analysis needs a clearer label." /></section>
+      </>}
+      {pending && <LoadingProgress label="Adding chart" detail="Validating parameters and preparing the chart" />}
+      <div className="sticky bottom-0 flex justify-end border-t border-line bg-panel pt-4"><Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={addChart} disabled={!canAdd} loading={pending}>Add chart</Button></div>
+      </div>
+      <Dialog open={templatePickerOpen} onOpenChange={setTemplatePickerOpen} title="Choose a chart template" description={selectedSession ? `Compatible with ${selectedSession.name}` : "Choose a session first"} className="grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden">
+        <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" /><input className="w-full rounded-md border border-line bg-panel py-2 pl-9 pr-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-teal-100" value={templateFilter} onChange={(event) => setTemplateFilter(event.target.value)} placeholder="Search templates" /></div>
+        <div className="grid min-h-0 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">{visibleRecipes.map((recipe) => <button key={recipe.recipe_id} type="button" className="grid min-h-48 grid-rows-[7rem_auto] overflow-hidden rounded-lg border border-line bg-panel text-left transition hover:-translate-y-0.5 hover:border-brand/60 hover:shadow-md" onClick={() => chooseRecipe(recipe.recipe_id)}><TemplateVisual recipe={recipe} large /><span className="grid content-start gap-1 p-3"><span className="font-semibold text-ink">{recipe.display_name}</span><span className="line-clamp-2 text-sm text-muted">{recipe.description ?? `Built from ${recipe.required_dataset_fields.join(", ")}`}</span><span className="mt-1 text-xs font-medium text-brand">{recipe.source_label}</span></span></button>)}{visibleRecipes.length === 0 && <div className="col-span-full rounded-lg border border-dashed border-line p-6 text-center text-sm text-muted">No compatible templates found.</div>}</div>
+      </Dialog>
       <TrackSegmentDialog
         open={trackSelectorOpen}
         onOpenChange={setTrackSelectorOpen}
@@ -1130,17 +1277,16 @@ function ChartDraftEditor({
         error={trackMapError}
         onApply={applyDraftTrackSegment}
       />
-      {selectedRecipe && <div className="mt-4 text-sm text-muted">{selectedRecipe.source_label}</div>}
     </Panel>
   );
 }
 
 const chartDraftSeed = {
-  recipeId: "lap_time_delta",
+  recipeId: "",
   sessionId: "",
-  name: "Lap time delta",
-  title: "Lap time delta",
-  parameters: { title: "Lap time delta" } as Record<string, unknown>,
+  name: "",
+  title: "",
+  parameters: {} as Record<string, unknown>,
   presetId: noPresetValue,
   presetName: "Lap time delta",
   saveGlobal: false
@@ -1200,6 +1346,7 @@ function ChartEditor({
   const filteredPresets = filterPresets(presets, presetFilter);
   const targetSession = sessions.find((session) => chart.target_session_ids.includes(session.session_id));
   const sessionDrivers = targetSession?.drivers ?? [];
+  const sessionDriverDetails = targetSession?.driver_details ?? [];
   const sessionTeams = targetSession?.available_teams ?? [];
   const drivers = sessionDrivers.length > 0 ? sessionDrivers : Array.isArray(parameters.drivers) ? parameters.drivers.map(String) : [];
   const fields = visibleSchemaFields(schemaFields, parameters, mode);
@@ -1335,6 +1482,7 @@ function ChartEditor({
               onClick={() => setOptionsOpen((current) => !current)}
             />
           </div>
+          {generating && <LoadingProgress label="Generating chart" detail="Resolving data, rendering the figure and saving evidence" />}
           {artifact && generating ? (
             <button type="button" className="relative flex min-h-0 items-center justify-center overflow-hidden rounded-md border border-line bg-slate-50 max-xl:aspect-video xl:h-full" onClick={() => openArtifact(artifact, "/api/analysis/assets")}>
               <img src={`/api/analysis/assets/${artifact.image_path}`} alt={artifact.artifact_id} className="max-h-full max-w-full object-contain opacity-40 max-xl:h-auto max-xl:w-full" />
@@ -1410,8 +1558,10 @@ function ChartEditor({
                 allFields={schemaFields}
                 parameters={parameters}
                 diagnostics={diagnostics}
-                drivers={drivers}
-                teams={sessionTeams}
+                  season={targetSession?.session.season}
+                  drivers={drivers}
+                  driverDetails={sessionDriverDetails}
+                  teams={sessionTeams}
                 renderFieldAction={(field) => field.name === "distance_range_m" && chart.recipe_id === "telemetry_trace" ? (
                   <Button icon={<MapIcon className="h-4 w-4" />} onClick={openTrackSelector} disabled={!targetSession || hasInvalidDiagnostics} loading={trackMapLoading}>
                     Track Selector
@@ -2984,6 +3134,79 @@ function formatSessionTime(value: number) {
   return `${minutes}:${seconds.toFixed(1).padStart(4, "0")}`;
 }
 
+function WeekendRecordPanel({
+  analysis,
+  view,
+  exportWeekend,
+  pending = false
+}: {
+  analysis: AnalysisView["analysis"];
+  view: "story" | "evidence" | "preview" | "export";
+  exportWeekend?: () => void;
+  pending?: boolean;
+}) {
+  const weekend = analysis.weekend_synthesis;
+  if (!weekend) return null;
+  const storyClaims = weekend.summary_claim_ids
+    .map((claimId) => weekend.claims.find((claim) => claim.claim_id === claimId))
+    .filter((claim) => claim !== undefined);
+  if (view === "story") {
+    return <div className="grid gap-4">
+      <Panel title="Standard Weekend Story" actions={<StatusBadge value={weekend.readiness.ready ? "ready" : "blocked"} />}>
+        <div className="grid gap-3">
+          <div><h2 className="text-xl font-semibold text-ink">{weekend.editorial.headline}</h2><p className="mt-1 text-sm text-muted">{weekend.editorial.standfirst}</p></div>
+          <p className="text-sm text-ink">{weekend.editorial.lede}</p>
+          <dl className="grid gap-3 sm:grid-cols-3">
+            <Metric label="Event" value={`${weekend.event.season} ${weekend.event.event_name}`} />
+            <Metric label="Claims" value={weekend.claims.length} />
+            <Metric label="Figures" value={weekend.figures.length} />
+          </dl>
+        </div>
+      </Panel>
+      <Panel title="Weekend Story claims"><div className="grid gap-2">{storyClaims.map((claim) => <article key={claim.claim_id} className="rounded-md border border-line bg-panel p-3"><p className="text-sm text-ink">{claim.text}</p><span className="mt-2 block font-mono text-xs text-muted">{claim.claim_id}</span></article>)}</div></Panel>
+    </div>;
+  }
+  if (view === "evidence") {
+    return <div className="grid gap-4">
+      <Panel title="Weekend Evidence" actions={<StatusBadge value={weekend.readiness.ready ? "current" : "blocked"} />}>
+        <div className="grid min-w-0 gap-2">{weekend.inventory.map((item) => <article key={item.session_id} className="min-w-0 rounded-md border border-line bg-panel p-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className="font-medium uppercase text-ink">{item.session_kind}</span><StatusBadge value={item.source_status} /></div><p className="mt-1 text-xs text-muted">{item.inclusion_reason}</p><span className="mt-2 block break-all font-mono text-xs text-muted">{item.source_fingerprint}</span></article>)}</div>
+      </Panel>
+      <Panel title="Claim provenance"><div className="grid min-w-0 gap-2">{weekend.claims.map((claim) => <details key={claim.claim_id} className="min-w-0 rounded-md border border-line bg-panel p-3"><summary className="cursor-pointer text-sm font-medium text-ink" onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); const details = event.currentTarget.parentElement as HTMLDetailsElement; details.open = !details.open; } }}>{claim.text}</summary><div className="mt-2 grid min-w-0 gap-1 break-all font-mono text-xs text-muted"><span>Sessions: {claim.source_session_ids.join(", ")}</span><span>Results: {claim.source_result_ids.join(", ")}</span><span>Assets: {claim.source_chart_asset_ids.join(", ") || "None"}</span></div></details>)}</div></Panel>
+    </div>;
+  }
+  if (view === "preview") {
+    const sectionClaims = (section: "practice_to_grid" | "race_outcome") => weekend.claims.filter((claim) => claim.section === section);
+    return <div className="grid gap-4">
+      <Panel title="Weekend Preview" actions={<StatusBadge value={weekend.readiness.ready ? "publication_draft_ready" : "review_required"} />}>
+        <article className="prose max-w-none"><h1>{weekend.editorial.headline}</h1><p>{weekend.editorial.standfirst}</p><h2>Weekend Story</h2><p>{weekend.editorial.lede}</p><h2>From Practice to the Grid</h2>{sectionClaims("practice_to_grid").map((claim) => <p key={claim.claim_id}>{claim.text}</p>)}<h2>Race Outcome</h2>{sectionClaims("race_outcome").map((claim) => <p key={claim.claim_id}>{claim.text}</p>)}{weekend.expectations.length > 0 && <><h2>Expectations and Outcomes</h2>{weekend.expectations.map((item) => <p key={item.comparison_id}>{item.state.replaceAll("_", " ")}</p>)}</>}<h2>Evidence and Limitations</h2>{weekend.limitations.map((value) => <p key={value}>{value}</p>)}<p>{weekend.editorial.conclusion}</p></article>
+      </Panel>
+    </div>;
+  }
+  return <div className="grid gap-4">
+    <Panel title="Weekend Export" actions={<div className="flex items-center gap-2"><StatusBadge value={weekend.readiness.ready ? "ready" : "blocked"} /><Button variant="primary" icon={<Download className="h-4 w-4" />} onClick={exportWeekend} disabled={!weekend.readiness.ready} loading={pending}>Export weekend</Button></div>}>
+      {pending && <div className="mb-4"><LoadingProgress label="Exporting weekend story" detail="Validating and packaging the composed weekend report" /></div>}
+      <dl className="grid gap-3 sm:grid-cols-3"><Metric label="Readiness" value={weekend.readiness.ready ? "Ready" : "Blocked"} /><Metric label="Package" value={analysis.weekend_package_path ? compactPath(analysis.weekend_package_path) : "Not exported"} /><Metric label="Package hash" value={weekend.package_hash.slice(0, 16)} /></dl>
+      {weekend.readiness.blockers.length > 0 && <div className="mt-4"><WarningList warnings={weekend.readiness.blockers} /></div>}
+    </Panel>
+  </div>;
+}
+
+function ReportScope({ analysis }: { analysis: AnalysisView["analysis"] }) {
+  const target = analysis.sessions.find((session) => session.session_id === analysis.report_target_session_id) ?? analysis.sessions[0] ?? null;
+  const included = analysis.charts.filter((chart) => chart.generation_state === "generated" && (!target || chart.target_session_ids.includes(target.session_id)));
+  const unavailable = analysis.charts.filter((chart) => target && chart.target_session_ids.includes(target.session_id) && chart.generation_state !== "generated");
+  return <div className="grid gap-4">
+    <ReportStageHeader stage="Scope" description="The selected session and generated charts define what the report may discuss." />
+    <Panel title="Report scope" actions={target ? <StatusBadge value={analysis.report_freshness.evidence.status} /> : undefined}>
+      {target ? <div className="grid gap-4">
+        <div className="rounded-lg border border-brand/30 bg-teal-50/60 p-4"><span className="text-xs font-semibold uppercase tracking-wide text-brand">Target session</span><div className="mt-1 text-lg font-semibold text-ink">{target.name}</div><div className="text-sm text-muted">{target.session.season} · {target.session.event} · {target.session.session}</div></div>
+        <div className="grid gap-2"><h3 className="text-sm font-semibold text-ink">Generated charts in scope</h3>{included.length > 0 ? included.map((chart) => <div key={chart.chart_instance_id} className="flex items-center gap-3 rounded-lg border border-line p-3"><LineChart className="h-5 w-5 text-brand" /><span className="min-w-0 flex-1 truncate font-medium text-ink">{chart.name}</span><StatusBadge value="included" /></div>) : <div className="rounded-lg border border-dashed border-line p-5 text-sm text-muted">Generate at least one chart for this session to establish analytical scope.</div>}</div>
+        {unavailable.length > 0 && <div className="text-sm text-muted">{unavailable.length} configured chart{unavailable.length === 1 ? " is" : "s are"} not included until generated.</div>}
+      </div> : <div className="rounded-lg border border-dashed border-line p-5 text-sm text-muted">Add a session before preparing a report.</div>}
+    </Panel>
+  </div>;
+}
+
 function StoryEditor({
   analysis,
   savePublication,
@@ -3041,6 +3264,7 @@ function StoryEditor({
   } : current);
   return (
     <div className="grid gap-4">
+      <ReportStageHeader stage="Story" description="Choose the findings and charts that matter, then shape the reader-facing narrative." />
       <Panel title="Story" actions={<Button variant="primary" icon={<Save className="h-4 w-4" />} onClick={() => void savePublication(plan, editorial)} loading={pending}>Save story</Button>}>
         <div className="grid gap-4">
           <dl className="grid gap-3 sm:grid-cols-3">
@@ -3093,6 +3317,7 @@ function PublicationPreview({ analysis, packageView, packageLoading }: { analysi
   const readiness = analysis?.report_content?.publication_readiness;
   return (
     <div className="grid gap-4">
+      <ReportStageHeader stage="Preview" description="Review the exact reader-facing draft before export." />
       <Panel title="Preview" actions={readiness && <StatusBadge value={readiness.state} />}>
         <dl className="grid gap-3 sm:grid-cols-3">
           <Metric label="Readiness" value={readiness?.ready ? "Publication draft ready" : "Not ready"} />
@@ -3146,8 +3371,9 @@ function ReviewEditor({
     void updateReportPlan(next);
   }
   return (
-    <Panel title="Review" actions={<Button icon={<RefreshCw className="h-4 w-4" />} onClick={refreshReview} disabled={!analysis} loading={pending}>Refresh</Button>}>
+    <Panel title="Findings" actions={<Button icon={<RefreshCw className="h-4 w-4" />} onClick={refreshReview} disabled={!analysis} loading={pending}>Refresh findings</Button>}>
       <div className="grid gap-4">
+        {pending && <LoadingProgress label="Refreshing findings" detail="Collecting evidence from generated charts and rebuilding report claims" />}
         <dl className="grid gap-3 sm:grid-cols-3">
           <Metric label="State" value={operationalStatus.label} />
           <Metric label="Charts" value={analysis?.charts.length ?? 0} />
@@ -3356,34 +3582,7 @@ function PresetApplyPanel({
 }) {
   return (
     <div className="grid gap-3 rounded-md border border-line p-3">
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(180px,240px)]">
-        <Field label="Find preset" value={presetFilter} onChange={(event) => setPresetFilter(event.target.value)} />
-        <SelectField
-          label="Apply preset"
-          value={selectedPresetId}
-          onValueChange={applyPreset}
-          disabled={disabled}
-          options={[{ value: noPresetValue, label: "None" }, ...presets.map((preset) => ({ value: preset.preset_id, label: `${preset.display_name} - ${preset.scope}` }))]}
-        />
-      </div>
-      <div className="grid max-h-36 gap-2 overflow-auto">
-        {presets.map((preset) => (
-          <button
-            key={preset.preset_id}
-            className={cn(
-              "flex items-center justify-between rounded-md border border-line px-3 py-2 text-left text-sm hover:bg-slate-50",
-              preset.preset_id === selectedPresetId && "border-brand bg-teal-50 text-brand"
-            )}
-            type="button"
-            onClick={() => applyPreset(preset.preset_id)}
-            disabled={disabled}
-          >
-            <span className="min-w-0 truncate font-medium">{preset.display_name}</span>
-            <span className="ml-3 shrink-0 text-xs text-muted">{preset.scope}</span>
-          </button>
-        ))}
-        {presets.length === 0 && <div className="rounded-md border border-dashed border-line p-3 text-sm text-muted">No matching presets</div>}
-      </div>
+      <PresetPicker presets={presets} selectedPresetId={selectedPresetId} filter={presetFilter} setFilter={setPresetFilter} onSelect={applyPreset} disabled={disabled} />
     </div>
   );
 }
@@ -3512,7 +3711,9 @@ function ExportEditor({
   const [previewTab, setPreviewTab] = useState<"overview" | "charts" | "draft" | "integrity">("overview");
   return (
     <div className="grid gap-4">
+      <ReportStageHeader stage="Export" description="Validate readiness and create a portable analysis package." />
       <Panel title="Export" actions={<Button variant="primary" icon={<Download className="h-4 w-4" />} onClick={exportAnalysis} disabled={!analysis} loading={pending}>Export</Button>}>
+        {pending && <div className="mb-4"><LoadingProgress label="Exporting analysis" detail="Validating the report and packaging its charts, metadata and draft" /></div>}
         <dl className="grid gap-3 sm:grid-cols-3">
           <Metric label="Sessions" value={analysis?.sessions.length ?? 0} />
           <Metric label="Charts" value={analysis?.charts.length ?? 0} />
@@ -3670,7 +3871,9 @@ function integrityArea(code: string) {
 function ParameterControl({
   field,
   value,
+  season,
   drivers,
+  driverDetails,
   teams,
   state,
   fieldAction,
@@ -3678,13 +3881,16 @@ function ParameterControl({
 }: {
   field: ParameterField;
   value: unknown;
+  season?: number;
   drivers: string[];
+  driverDetails: AnalysisSession["driver_details"];
   teams: string[];
   state: ParameterFieldState;
   fieldAction?: ReactNode;
   setValue: (value: unknown) => void;
 }) {
   const [driverFilter, setDriverFilter] = useState("");
+  const [driverPickerOpen, setDriverPickerOpen] = useState(false);
   const [colorFilter, setColorFilter] = useState("");
   const label = state.required ? `${field.label} *` : field.label;
   const feedback = state.error ?? state.warning;
@@ -3719,16 +3925,27 @@ function ParameterControl({
   }
   if (field.field_type === "driver_selector") {
     if (["reference_driver", "focal_driver", "rival_driver"].includes(field.name)) {
+      const selectedDriver = String(value ?? "");
+      const visibleDrivers = drivers.filter((driver) => {
+        const detail = driverDetails.find((item) => item.abbreviation === driver);
+        return `${driver} ${detail?.full_name ?? ""} ${detail?.team_name ?? ""}`.toLowerCase().includes(driverFilter.toLowerCase());
+      });
       return (
-        <SelectField
-          label={label}
-          value={String(value ?? "__none__")}
-          disabled={state.disabled}
-          error={state.error}
-          description={state.warning}
-          onValueChange={(next) => setValue(next === "__none__" ? null : next)}
-          options={[{ value: "__none__", label: "None" }, ...drivers.map((driver) => ({ value: driver, label: driver }))]}
-        />
+        <div className="grid gap-2">
+          <div className="text-sm font-medium text-ink">{label}</div>
+          <button type="button" disabled={state.disabled} className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-line bg-panel px-3 text-left text-sm transition hover:border-brand disabled:bg-slate-50" onClick={() => setDriverPickerOpen(true)}>
+            <DriverIdentity driver={selectedDriver} details={driverDetails} season={season} emptyLabel="Choose a driver" />
+            <span className="shrink-0 font-medium text-brand">Change</span>
+          </button>
+          <Dialog open={driverPickerOpen} onOpenChange={setDriverPickerOpen} title="Choose a driver" description={selectedDriver ? `Selected: ${selectedDriver}` : "No driver selected"} className="grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden">
+            <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" /><input className="w-full rounded-md border border-line bg-panel py-2 pl-9 pr-3 text-sm outline-none focus:border-brand" value={driverFilter} onChange={(event) => setDriverFilter(event.target.value)} placeholder="Search drivers" /></div>
+            <div className="grid min-h-0 gap-2 overflow-y-auto sm:grid-cols-2">
+              <button type="button" className={cn("rounded-lg border p-3 text-left", !selectedDriver ? "border-brand bg-teal-50" : "border-line")} onClick={() => { setValue(null); setDriverPickerOpen(false); }}>None</button>
+              {visibleDrivers.map((driver) => <button key={driver} type="button" className={cn("rounded-lg border p-3 text-left transition hover:border-brand", selectedDriver === driver ? "border-brand bg-teal-50" : "border-line")} onClick={() => { setValue(driver); setDriverPickerOpen(false); }}><DriverIdentity driver={driver} details={driverDetails} season={season} /></button>)}
+            </div>
+          </Dialog>
+          {feedback && <div className={cn("text-xs font-medium", state.error ? "text-danger" : "text-amber-700")}>{feedback}</div>}
+        </div>
       );
     }
     const selected = Array.isArray(value) ? value.map(String) : [];
@@ -3738,28 +3955,12 @@ function ParameterControl({
     return (
       <div className="grid gap-2">
         <div className="text-sm font-medium text-ink">{label}</div>
-        <div className="flex items-center justify-between gap-3 rounded-md border border-line bg-slate-50 px-3 py-2 text-sm text-muted">
-          <span>{selected.length === options.length ? `All ${options.length}` : selected.length === 0 ? "None selected" : `${selected.length} selected`}</span>
-          <div className="flex items-center gap-3">
-            <button className="font-medium text-brand disabled:text-muted" type="button" disabled={state.disabled} onClick={() => setValue(options)}>All</button>
-            <button className="font-medium text-brand disabled:text-muted" type="button" disabled={state.disabled} onClick={() => setValue([])}>Clear</button>
-          </div>
-        </div>
-        {options.length > 8 && <Field label={`Find ${itemLabel}`} value={driverFilter} disabled={state.disabled} onChange={(event) => setDriverFilter(event.target.value)} />}
-        <div className="grid max-h-56 gap-2 overflow-auto rounded-md border border-line p-2 sm:grid-cols-2">
-          {visibleDrivers.map((driver) => (
-            <CheckboxField
-              key={driver}
-              label={driver}
-              checked={selected.includes(driver)}
-              disabled={state.disabled}
-              onCheckedChange={(checked) => {
-                const next = checked ? [...selected.filter((item) => item !== driver), driver] : selected.filter((item) => item !== driver);
-                setValue(next);
-              }}
-            />
-          ))}
-        </div>
+        <button type="button" disabled={state.disabled} className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-line bg-panel px-3 text-left text-sm transition hover:border-brand disabled:bg-slate-50" onClick={() => setDriverPickerOpen(true)}><span className="min-w-0 truncate text-ink">{selected.length === options.length ? `All ${options.length} ${itemLabel}s` : selected.length === 0 ? `Choose ${itemLabel}s` : selected.length <= 3 ? selected.join(", ") : `${selected.slice(0, 2).join(", ")} and ${selected.length - 2} more`}</span><span className="shrink-0 font-medium text-brand">Change</span></button>
+        <Dialog open={driverPickerOpen} onOpenChange={setDriverPickerOpen} title={`Choose ${itemLabel}s`} description={`${selected.length} of ${options.length} selected`} className="grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden">
+          <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" /><input className="w-full rounded-md border border-line bg-panel py-2 pl-9 pr-3 text-sm outline-none focus:border-brand" value={driverFilter} onChange={(event) => setDriverFilter(event.target.value)} placeholder={`Search ${itemLabel}s`} /></div>
+          <div className="grid min-h-0 gap-2 overflow-y-auto sm:grid-cols-2">{visibleDrivers.map((driver) => <label key={driver} className="flex cursor-pointer items-center gap-3 rounded-lg border border-line p-3 transition hover:border-brand"><input type="checkbox" checked={selected.includes(driver)} onChange={(event) => setValue(event.target.checked ? [...selected.filter((item) => item !== driver), driver] : selected.filter((item) => item !== driver))} /><DriverIdentity driver={driver} details={field.name === "teams" ? [] : driverDetails} season={season} /></label>)}</div>
+          <div className="flex items-center justify-between border-t border-line pt-3"><div className="flex gap-3"><button className="text-sm font-medium text-brand" type="button" onClick={() => setValue(options)}>Select all</button><button className="text-sm font-medium text-brand" type="button" onClick={() => setValue([])}>Clear</button></div><Button variant="primary" onClick={() => setDriverPickerOpen(false)}>Done</Button></div>
+        </Dialog>
         {feedback && <div className={cn("text-xs font-medium", state.error ? "text-danger" : "text-amber-700")}>{feedback}</div>}
       </div>
     );
@@ -3948,9 +4149,9 @@ function GroupLabel({
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-md border border-line bg-slate-50 p-3">
+    <div className="min-w-0 rounded-md border border-line bg-slate-50 p-3">
       <dt className="text-xs font-semibold uppercase tracking-normal text-muted">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-medium text-ink">{value}</dd>
+      <dd className="mt-1 break-all text-sm font-medium text-ink">{value}</dd>
     </div>
   );
 }
@@ -3975,6 +4176,125 @@ function AnalyticalBasisSummary({ diagnostics }: { diagnostics: ParameterDiagnos
       </dl>
     </div>
   );
+}
+
+function StepHeading({ number, title, optional = false }: { number: string; title: string; optional?: boolean }) {
+  return <div className="flex items-center gap-3"><span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-xs font-bold text-white">{number}</span><h2 className="text-sm font-semibold text-ink">{title}</h2>{optional && <span className="text-xs text-muted">Optional</span>}</div>;
+}
+
+function choiceButton(active: boolean) {
+  return cn("shrink-0 rounded-md border px-3 py-2 text-sm font-semibold transition", active ? "border-brand bg-brand text-white" : "border-line bg-panel text-ink hover:border-brand/60");
+}
+
+function countryCode(country?: string | null) {
+  if (!country) return null;
+  const codes: Record<string, string> = { Australia: "AU", Austria: "AT", Azerbaijan: "AZ", Bahrain: "BH", Belgium: "BE", Brazil: "BR", Canada: "CA", China: "CN", Hungary: "HU", Italy: "IT", Japan: "JP", Mexico: "MX", Monaco: "MC", Netherlands: "NL", Qatar: "QA", Singapore: "SG", Spain: "ES", Switzerland: "CH", UAE: "AE", "United Arab Emirates": "AE", UK: "GB", "United Kingdom": "GB", "Great Britain": "GB", USA: "US", "United States": "US", "United States of America": "US", France: "FR", Germany: "DE", Portugal: "PT", Russia: "RU", Turkey: "TR", Malaysia: "MY", India: "IN", Korea: "KR", "South Korea": "KR", "Saudi Arabia": "SA" };
+  return codes[country] ?? null;
+}
+
+function CountryFlag({ code, country, large = false }: { code?: string | null; country?: string | null; large?: boolean }) {
+  const normalized = code?.trim().toLowerCase();
+  return <span className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-slate-100 text-slate-400 shadow-sm", large ? "h-14 w-20" : "h-10 w-14")}><Flag className={large ? "h-6 w-6" : "h-5 w-5"} aria-hidden="true" />{normalized && /^[a-z]{2}$/.test(normalized) && <img className="absolute inset-0 h-full w-full object-cover" src={`https://flagcdn.com/${normalized}.svg`} alt={`${country ?? normalized.toUpperCase()} flag`} loading="lazy" onError={(event) => { event.currentTarget.hidden = true; }} />}</span>;
+}
+
+function groupEventsByMonth(events: EventCatalogEvent[]): Array<[string, EventCatalogEvent[]]> {
+  const groups = new Map<string, EventCatalogEvent[]>();
+  for (const event of events) {
+    const value = event.event_date ?? event.date;
+    const date = value ? new Date(value) : null;
+    const month = date && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat(undefined, { month: "long" }).format(date) : "Date unavailable";
+    groups.set(month, [...(groups.get(month) ?? []), event]);
+  }
+  return [...groups.entries()];
+}
+
+function eventLocation(event: EventCatalogEvent) {
+  return [event.location, event.country].filter(Boolean).join(", ") || "Location unavailable";
+}
+
+function formatWeekendRange(event: EventCatalogEvent) {
+  const values = event.sessions.flatMap((session) => typeof session === "string" || !session.starts_at ? [] : [new Date(session.starts_at)]).filter((date) => !Number.isNaN(date.getTime()));
+  const eventValue = event.event_date ?? event.date;
+  if (values.length === 0 && eventValue) {
+    const eventDate = new Date(eventValue);
+    if (!Number.isNaN(eventDate.getTime())) values.push(eventDate);
+  }
+  if (values.length === 0) return "Date unavailable";
+  values.sort((left, right) => left.getTime() - right.getTime());
+  const formatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+  const first = formatter.format(values[0]);
+  const last = formatter.format(values[values.length - 1]);
+  return first === last ? first : `${first}–${last}`;
+}
+
+function formatSessionStart(value?: string | null) {
+  if (!value) return "Time unavailable";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC", timeZoneName: "short" }).format(date);
+}
+
+function isSprintWeekend(value?: string | null) {
+  return value?.toLowerCase().includes("sprint") ?? false;
+}
+
+function formatEventFormat(value?: string | null) {
+  return isSprintWeekend(value) ? "Sprint weekend" : "Standard weekend";
+}
+
+function sessionCategory(session: string) {
+  const normalized = session.toLowerCase();
+  if (normalized.includes("practice") || normalized.startsWith("fp")) return "practice";
+  if (normalized.includes("sprint") && (normalized.includes("qual") || normalized.includes("shootout"))) return "sprint qualifying";
+  if (normalized.includes("sprint")) return "sprint";
+  if (normalized.includes("qual") || normalized === "q") return "qualifying";
+  if (normalized.includes("race") || normalized === "r") return "race";
+  return "session";
+}
+
+function SessionIcon({ session }: { session: string }) {
+  const normalized = session.toLowerCase();
+  const race = normalized === "r" || normalized.includes("race");
+  const qualifying = normalized === "q" || normalized.includes("qual");
+  return <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg", race ? "bg-rose-100 text-rose-700" : qualifying ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700")}>{race ? <Flag className="h-4 w-4" /> : qualifying ? <Gauge className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}</span>;
+}
+
+function recipeSupportsSession(supported: string[] | undefined, session?: string) {
+  if (!session) return false;
+  if (!supported || supported.length === 0) return true;
+  const normalized = session.toLowerCase().replaceAll(" ", "_");
+  const aliases = normalized === "r" || normalized.includes("race") ? ["r", "race"] : normalized === "q" || normalized.includes("qual") ? ["q", "qualifying"] : normalized.includes("sprint") ? ["sprint", "sprint_race", "sprint_qualifying"] : normalized.startsWith("fp") || normalized.includes("practice") ? [normalized, "practice"] : [normalized];
+  return supported.some((value) => aliases.includes(value.toLowerCase().replaceAll(" ", "_")));
+}
+
+function TemplateVisual({ recipe, large = false }: { recipe: AnalysisView["recipes"][number]; large?: boolean }) {
+  const preview = recipe.preview_image ?? recipe.preview_image_path ?? recipe.preview_asset;
+  if (preview) return <img className={cn("object-cover", large ? "h-28 w-full" : "h-16 w-24 rounded-md")} src={preview} alt={`Preview of ${recipe.display_name}`} />;
+  const icons = { activity: Activity, timer: Timer, tyre: CircleDot, "line-chart": LineChart, "trending-up": TrendingUp, layers: Layers3, "git-compare": GitCompareArrows, repeat: Repeat2, users: Users, "list-ordered": ListOrdered, gauge: Gauge, "bar-chart": BarChart3, split: Split, "calendar-clock": CalendarClock, "chart-no-axes-combined": TrendingUp } as const;
+  const Icon = icons[recipe.icon as keyof typeof icons] ?? LineChart;
+  return <span className={cn("grid shrink-0 place-items-center bg-gradient-to-br from-teal-50 to-blue-100 text-brand", large ? "h-28 w-full" : "h-16 w-24 rounded-md")}><Icon className={large ? "h-10 w-10" : "h-7 w-7"} /></span>;
+}
+
+function DriverIdentity({ driver, details, season, emptyLabel = "Unknown" }: { driver: string; details: AnalysisSession["driver_details"]; season?: number; emptyLabel?: string }) {
+  const detail = details.find((item) => item.abbreviation === driver);
+  const portraitUrl = driverPortraitUrl(season, driver);
+  if (!driver) return <span className="text-muted">{emptyLabel}</span>;
+  return <span className="flex min-w-0 items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-100 text-xs font-bold text-ink">{portraitUrl ? <img src={portraitUrl} alt="" className="h-full w-full object-cover" loading="lazy" /> : driver.slice(0, 3)}</span><span className="grid min-w-0"><span className="truncate font-semibold text-ink">{detail?.full_name ?? driver}</span><span className="truncate text-xs text-muted">{detail?.team_name ?? driver}</span></span></span>;
+}
+
+function PresetPicker({ presets, selectedPresetId, filter, setFilter, onSelect, disabled = false }: { presets: ParameterPreset[]; selectedPresetId: string; filter: string; setFilter: (value: string) => void; onSelect: (presetId: string) => void; disabled?: boolean }) {
+  return <div className="grid gap-2">
+    {presets.length > 5 && <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" /><input className="w-full rounded-md border border-line bg-panel py-2 pl-9 pr-3 text-sm outline-none focus:border-brand" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Search presets" /></div>}
+    <div className="grid max-h-52 gap-2 overflow-y-auto sm:grid-cols-2"><button type="button" disabled={disabled} className={cn("rounded-lg border p-3 text-left", selectedPresetId === noPresetValue ? "border-brand bg-teal-50" : "border-line")} onClick={() => onSelect(noPresetValue)}><span className="font-medium text-ink">No preset</span><span className="mt-1 block text-xs text-muted">Use template defaults</span></button>{presets.map((preset) => <button key={preset.preset_id} type="button" disabled={disabled} className={cn("rounded-lg border p-3 text-left transition hover:border-brand/60", preset.preset_id === selectedPresetId ? "border-brand bg-teal-50" : "border-line bg-panel")} onClick={() => onSelect(preset.preset_id)}><span className="flex items-center justify-between gap-2"><span className="truncate font-medium text-ink">{preset.display_name}</span><span className="text-xs capitalize text-muted">{preset.scope}</span></span>{preset.notes && <span className="mt-1 line-clamp-2 block text-xs text-muted">{preset.notes}</span>}</button>)}</div>
+  </div>;
+}
+
+function LoadingProgress({ label, detail }: { label: string; detail: string }) {
+  return <div className="overflow-hidden rounded-lg border border-brand/20 bg-teal-50/60" role="status"><div className="flex items-center gap-3 p-3"><Loader2 className="h-4 w-4 animate-spin text-brand" /><span className="grid"><span className="text-sm font-semibold text-ink">{label}</span><span className="text-xs text-muted">{detail}</span></span></div><div className="h-1 bg-teal-100"><div className="h-full w-1/3 animate-[loading-slide_1.4s_ease-in-out_infinite] rounded-full bg-brand" /></div></div>;
+}
+
+function ReportStageHeader({ stage, description }: { stage: string; description: string }) {
+  return <header className="rounded-lg border border-line bg-gradient-to-r from-slate-50 to-teal-50/60 p-4"><span className="text-xs font-semibold uppercase tracking-wider text-brand">Report workflow</span><h1 className="mt-1 text-xl font-semibold text-ink">{stage}</h1><p className="mt-1 text-sm text-muted">{description}</p></header>;
 }
 
 function LoadingBlock({ label }: { label: string }) {
@@ -4017,7 +4337,9 @@ function ParameterSections({
   allFields,
   parameters,
   diagnostics,
+  season,
   drivers,
+  driverDetails,
   teams,
   renderFieldAction,
   setParameter
@@ -4026,7 +4348,9 @@ function ParameterSections({
   allFields: ParameterField[];
   parameters: Record<string, unknown>;
   diagnostics: ParameterDiagnostics | null;
+  season?: number;
   drivers: string[];
+  driverDetails: AnalysisSession["driver_details"];
   teams: string[];
   renderFieldAction?: (field: ParameterField) => ReactNode;
   setParameter: (field: ParameterField, value: unknown) => void;
@@ -4051,7 +4375,9 @@ function ParameterSections({
                   key={field.name}
                   field={resolvedField}
                   value={parameterValue(parameters, field.name, field.default)}
+                  season={season}
                   drivers={drivers}
+                  driverDetails={driverDetails}
                   teams={teams}
                   state={state}
                   fieldAction={renderFieldAction?.(field) ?? undefined}
