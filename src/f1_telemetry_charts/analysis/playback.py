@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
+from bisect import bisect_left, bisect_right
+from collections import OrderedDict, defaultdict
+from dataclasses import dataclass
 from math import isfinite
 from statistics import median
+from threading import RLock
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -42,6 +45,35 @@ DEFAULT_MAXIMUM_TIMING_SAMPLE_AGE_SECONDS = 10.0
 TARGET_MINI_SECTOR_LENGTH_METRES = 200.0
 MIN_MINI_SECTOR_COUNT = 15
 MAX_MINI_SECTOR_COUNT = 40
+PREPARED_PLAYBACK_CACHE_SIZE = 4
+PLAYBACK_PAYLOAD_CACHE_SIZE = 128
+
+
+@dataclass(frozen=True)
+class PreparedMiniSectors:
+    boundaries: list[float]
+    times_by_driver_lap: dict[str, dict[int, list[float]]]
+    sector_one_distance_by_driver_lap: dict[str, dict[int, float]]
+    sector_two_distance_by_driver_lap: dict[str, dict[int, float]]
+
+
+@dataclass(frozen=True)
+class PreparedPlayback:
+    leader_markers: list[LeaderLapMarker]
+    available_modes: dict[str, PlaybackModeAvailability]
+    source_points: list[TrackMapPoint]
+    laps_by_driver: dict[str, dict[int, LapRecord]]
+    telemetry_by_driver: dict[str, list[TelemetrySample]]
+    telemetry_laps_by_driver: dict[str, dict[int, list[TelemetrySample]]]
+    timing_by_driver: dict[str, list[TimingStreamRecord]]
+    timing_app_by_driver: dict[str, list[TimingAppRecord]]
+    driver_colors: dict[str, str]
+    mini_sectors: PreparedMiniSectors | None
+
+
+_prepared_playback_cache: OrderedDict[str, PreparedPlayback] = OrderedDict()
+_playback_payload_cache: OrderedDict[tuple[object, ...], PlaybackPayload] = OrderedDict()
+_playback_cache_lock = RLock()
 
 
 class PlaybackModeAvailability(BaseModel):
@@ -150,9 +182,118 @@ class PlaybackPayload(BaseModel):
     diagnostics: list[dict[str, object]] = Field(default_factory=list)
 
 
+def clear_playback_caches() -> None:
+    """Clear bounded process-local playback caches (primarily for tests)."""
+    with _playback_cache_lock:
+        _prepared_playback_cache.clear()
+        _playback_payload_cache.clear()
+
+
+def _prepared_playback(dataset: SessionDataset, cache_key: str | None) -> PreparedPlayback:
+    if cache_key is not None:
+        with _playback_cache_lock:
+            cached = _prepared_playback_cache.get(cache_key)
+            if cached is not None:
+                _prepared_playback_cache.move_to_end(cache_key)
+                return cached
+
+    leader_markers = _leader_lap_markers(dataset.laps)
+    source_points = (
+        sorted(dataset.track_geometry.points, key=lambda point: point.distance_m)
+        if dataset.track_geometry is not None
+        else []
+    )
+    laps_by_driver = _laps_by_driver(dataset.laps)
+    telemetry_laps_by_driver = _telemetry_laps_by_driver(dataset.telemetry)
+    prepared = PreparedPlayback(
+        leader_markers=leader_markers,
+        available_modes=playback_availability(dataset, leader_markers),
+        source_points=source_points,
+        laps_by_driver=laps_by_driver,
+        telemetry_by_driver=_positioned_telemetry_by_driver(dataset.telemetry),
+        telemetry_laps_by_driver=telemetry_laps_by_driver,
+        timing_by_driver=_timing_by_driver(dataset.timing),
+        timing_app_by_driver=_timing_app_by_driver(dataset.timing_app),
+        driver_colors=_playback_driver_colors(dataset),
+        mini_sectors=_prepare_mini_sectors(
+            laps_by_driver,
+            telemetry_laps_by_driver,
+            track_length_metres=max(
+                (point.distance_m for point in source_points),
+                default=0.0,
+            ),
+        ),
+    )
+    if cache_key is not None:
+        with _playback_cache_lock:
+            _prepared_playback_cache[cache_key] = prepared
+            _prepared_playback_cache.move_to_end(cache_key)
+            while len(_prepared_playback_cache) > PREPARED_PLAYBACK_CACHE_SIZE:
+                _prepared_playback_cache.popitem(last=False)
+    return prepared
+
+
+def _playback_payload_cache_key(
+    cache_key: str | None,
+    *,
+    session_id: str | None,
+    mode: PlaybackMode,
+    cursor: float | None,
+    start_lap: int | None,
+    end_lap: int | None,
+    selected_drivers: list[str] | None,
+    max_frames: int,
+    max_markers: int,
+    max_points: int,
+    maximum_sample_gap_seconds: float,
+    maximum_timing_sample_age_seconds: float,
+) -> tuple[object, ...] | None:
+    if cache_key is None:
+        return None
+    return (
+        cache_key,
+        session_id,
+        mode,
+        cursor,
+        start_lap,
+        end_lap,
+        tuple(selected_drivers) if selected_drivers is not None else None,
+        max_frames,
+        max_markers,
+        max_points,
+        maximum_sample_gap_seconds,
+        maximum_timing_sample_age_seconds,
+    )
+
+
+def _cached_payload(key: tuple[object, ...] | None) -> PlaybackPayload | None:
+    if key is None:
+        return None
+    with _playback_cache_lock:
+        cached = _playback_payload_cache.get(key)
+        if cached is not None:
+            _playback_payload_cache.move_to_end(key)
+        return cached
+
+
+def _store_payload(
+    key: tuple[object, ...] | None,
+    payload: PlaybackPayload,
+) -> PlaybackPayload:
+    if key is None:
+        return payload
+    with _playback_cache_lock:
+        _playback_payload_cache[key] = payload
+        _playback_payload_cache.move_to_end(key)
+        while len(_playback_payload_cache) > PLAYBACK_PAYLOAD_CACHE_SIZE:
+            _playback_payload_cache.popitem(last=False)
+    return payload
+
+
 def build_playback_payload(
     dataset: SessionDataset,
     *,
+    cache_key: str | None = None,
     session_id: str | None = None,
     mode: PlaybackMode = "lap",
     cursor: float | None = None,
@@ -168,9 +309,28 @@ def build_playback_payload(
     frame_limit = min(max(1, int(max_frames)), MAX_PLAYBACK_FRAME_LIMIT)
     marker_limit = min(max(1, int(max_markers)), MAX_PLAYBACK_MARKER_LIMIT)
     point_limit = min(max(2, int(max_points)), MAX_TRACK_MAP_POINT_LIMIT)
+    payload_cache_key = _playback_payload_cache_key(
+        cache_key,
+        session_id=session_id,
+        mode=mode,
+        cursor=cursor,
+        start_lap=start_lap,
+        end_lap=end_lap,
+        selected_drivers=selected_drivers,
+        max_frames=frame_limit,
+        max_markers=marker_limit,
+        max_points=point_limit,
+        maximum_sample_gap_seconds=float(maximum_sample_gap_seconds),
+        maximum_timing_sample_age_seconds=float(maximum_timing_sample_age_seconds),
+    )
+    cached = _cached_payload(payload_cache_key)
+    if cached is not None:
+        return cached
+
+    prepared = _prepared_playback(dataset, cache_key)
     drivers = _selected_drivers(dataset, selected_drivers)[:marker_limit]
-    leader_markers = _leader_lap_markers(dataset.laps)
-    available_modes = playback_availability(dataset, leader_markers)
+    leader_markers = prepared.leader_markers
+    available_modes = prepared.available_modes
 
     if not available_modes.get(mode, PlaybackModeAvailability(available=False)).available:
         reason = (
@@ -204,7 +364,7 @@ def build_playback_payload(
             ],
         )
 
-    source_points = sorted(dataset.track_geometry.points, key=lambda point: point.distance_m)
+    source_points = prepared.source_points
     points = _project_points(source_points, max_points=point_limit)
     sample_gap = max(0.0, float(maximum_sample_gap_seconds))
     timing_sample_age = max(0.0, float(maximum_timing_sample_age_seconds))
@@ -217,29 +377,23 @@ def build_playback_payload(
         end_lap=end_lap,
         max_frames=frame_limit,
     )
-    laps_by_driver = _laps_by_driver(dataset.laps)
-    telemetry_by_driver = _positioned_telemetry_by_driver(dataset.telemetry)
-    telemetry_laps_by_driver = _telemetry_laps_by_driver(dataset.telemetry)
-    timing_by_driver = _timing_by_driver(dataset.timing)
-    timing_app_by_driver = _timing_app_by_driver(dataset.timing_app)
-    driver_colors = _playback_driver_colors(dataset)
     frames = [
         _time_frame(
             cursor_state,
             drivers,
             points,
-            laps_by_driver,
-            telemetry_by_driver,
-            telemetry_laps_by_driver,
-            timing_by_driver,
-            timing_app_by_driver,
-            driver_colors,
+            prepared.laps_by_driver,
+            prepared.telemetry_by_driver,
+            prepared.timing_by_driver,
+            prepared.timing_app_by_driver,
+            prepared.driver_colors,
+            prepared.mini_sectors,
             maximum_sample_gap_seconds=sample_gap,
             maximum_timing_sample_age_seconds=timing_sample_age,
         )
         for cursor_state in cursors
     ]
-    return PlaybackPayload(
+    return _store_payload(payload_cache_key, PlaybackPayload(
         status="available",
         session_id=session_id,
         mode=mode,
@@ -293,7 +447,7 @@ def build_playback_payload(
                 "record_count": len(dataset.timing_app),
             },
         },
-    )
+    ))
 
 
 def playback_availability(
@@ -398,10 +552,10 @@ def _time_frame(
     points: list[TrackMapPoint],
     laps_by_driver: dict[str, dict[int, LapRecord]],
     telemetry_by_driver: dict[str, list[TelemetrySample]],
-    telemetry_laps_by_driver: dict[str, dict[int, list[TelemetrySample]]],
     timing_by_driver: dict[str, list[TimingStreamRecord]],
     timing_app_by_driver: dict[str, list[TimingAppRecord]],
     driver_colors: dict[str, str],
+    prepared_mini_sectors: PreparedMiniSectors | None,
     *,
     maximum_sample_gap_seconds: float,
     maximum_timing_sample_age_seconds: float,
@@ -424,12 +578,11 @@ def _time_frame(
         timing_by_driver,
         maximum_timing_sample_age_seconds=maximum_timing_sample_age_seconds,
     )
-    mini_sector_states, mini_sector_groups = _mini_sector_snapshot(
+    mini_sector_states, mini_sector_groups = _mini_sector_snapshot_prepared(
         cursor_state.session_time_seconds,
         drivers,
         laps_by_driver,
-        telemetry_laps_by_driver,
-        track_length_metres=max((point.distance_m for point in points), default=0.0),
+        prepared_mini_sectors,
     )
     markers = _markers_with_analyst_context(
         markers,
@@ -481,17 +634,9 @@ def _marker_at_time(
             context=_context(_lap_at_time(laps_by_number, session_time)),
         )
 
-    before = None
-    after = None
-    for sample in samples:
-        sample_time = sample.session_time_seconds
-        if sample_time is None:
-            continue
-        if sample_time <= session_time:
-            before = sample
-        if sample_time >= session_time:
-            after = sample
-            break
+    insertion = bisect_left(samples, session_time, key=_telemetry_session_time)
+    before = samples[insertion - 1] if insertion > 0 else None
+    after = samples[insertion] if insertion < len(samples) else None
 
     if before is not None and before.session_time_seconds == session_time:
         return _sample_marker(
@@ -544,8 +689,8 @@ def _marker_at_time(
             )
 
     nearest = min(
-        samples,
-        key=lambda sample: abs(float(sample.session_time_seconds or 0) - session_time),
+        (sample for sample in (before, after) if sample is not None),
+        key=lambda sample: abs(_telemetry_session_time(sample) - session_time),
     )
     nearest_gap = abs(float(nearest.session_time_seconds or 0) - session_time)
     if nearest_gap <= maximum_sample_gap_seconds:
@@ -753,14 +898,10 @@ def _timing_at_time(
     records: list[TimingStreamRecord],
     session_time: float,
 ) -> tuple[TimingStreamRecord | None, float | None]:
-    candidate = None
-    for record in records:
-        if record.session_time_seconds <= session_time:
-            candidate = record
-        else:
-            break
-    if candidate is None:
+    index = bisect_right(records, session_time, key=_timing_session_time) - 1
+    if index < 0:
         return None, None
+    candidate = records[index]
     return candidate, session_time - candidate.session_time_seconds
 
 
@@ -942,8 +1083,27 @@ def _mini_sector_snapshot(
     dict[str, list[Literal["fastest", "faster", "slower", "unavailable"]]],
     list[Literal[0, 1, 2, 3]],
 ]:
-    if not drivers or track_length_metres <= 0:
-        return {}, []
+    prepared = _prepare_mini_sectors(
+        laps_by_driver,
+        telemetry_laps_by_driver,
+        track_length_metres=track_length_metres,
+    )
+    return _mini_sector_snapshot_prepared(
+        session_time,
+        drivers,
+        laps_by_driver,
+        prepared,
+    )
+
+
+def _prepare_mini_sectors(
+    laps_by_driver: dict[str, dict[int, LapRecord]],
+    telemetry_laps_by_driver: dict[str, dict[int, list[TelemetrySample]]],
+    *,
+    track_length_metres: float,
+) -> PreparedMiniSectors | None:
+    if track_length_metres <= 0:
+        return None
     segment_count = min(
         max(
             int(round(track_length_metres / TARGET_MINI_SECTOR_LENGTH_METRES)),
@@ -956,15 +1116,13 @@ def _mini_sector_snapshot(
         for index in range(segment_count + 1)
     ]
     times_by_driver_lap: dict[str, dict[int, list[float]]] = defaultdict(dict)
-    sector_one_distances: list[float] = []
-    sector_two_distances: list[float] = []
+    sector_one_by_driver_lap: dict[str, dict[int, float]] = defaultdict(dict)
+    sector_two_by_driver_lap: dict[str, dict[int, float]] = defaultdict(dict)
 
-    for driver in drivers:
-        laps = laps_by_driver.get(driver, {})
+    for driver, laps in laps_by_driver.items():
         for lap_number, lap in laps.items():
             if (
                 lap.lap_end_time_seconds is None
-                or lap.lap_end_time_seconds > session_time
                 or lap.is_deleted
             ):
                 continue
@@ -987,7 +1145,7 @@ def _mini_sector_snapshot(
                     lap.lap_start_time_seconds + lap.sector_1_time_seconds,
                 )
                 if sector_one is not None:
-                    sector_one_distances.append(sector_one)
+                    sector_one_by_driver_lap[driver][lap_number] = sector_one
             if (
                 lap.lap_start_time_seconds is not None
                 and lap.sector_1_time_seconds is not None
@@ -1000,7 +1158,63 @@ def _mini_sector_snapshot(
                     + lap.sector_2_time_seconds,
                 )
                 if sector_two is not None:
-                    sector_two_distances.append(sector_two)
+                    sector_two_by_driver_lap[driver][lap_number] = sector_two
+
+    if not times_by_driver_lap:
+        return None
+    return PreparedMiniSectors(
+        boundaries=boundaries,
+        times_by_driver_lap=dict(times_by_driver_lap),
+        sector_one_distance_by_driver_lap=dict(sector_one_by_driver_lap),
+        sector_two_distance_by_driver_lap=dict(sector_two_by_driver_lap),
+    )
+
+
+def _mini_sector_snapshot_prepared(
+    session_time: float,
+    drivers: list[str],
+    laps_by_driver: dict[str, dict[int, LapRecord]],
+    prepared: PreparedMiniSectors | None,
+) -> tuple[
+    dict[str, list[Literal["fastest", "faster", "slower", "unavailable"]]],
+    list[Literal[0, 1, 2, 3]],
+]:
+    if not drivers or prepared is None:
+        return {}, []
+    boundaries = prepared.boundaries
+    segment_count = len(boundaries) - 1
+    times_by_driver_lap: dict[str, dict[int, list[float]]] = {}
+    sector_one_distances: list[float] = []
+    sector_two_distances: list[float] = []
+    for driver in drivers:
+        completed_laps = {
+            lap_number
+            for lap_number, lap in laps_by_driver.get(driver, {}).items()
+            if lap.lap_end_time_seconds is not None
+            and lap.lap_end_time_seconds <= session_time
+            and not lap.is_deleted
+        }
+        driver_times = {
+            lap_number: segment_times
+            for lap_number, segment_times in prepared.times_by_driver_lap.get(driver, {}).items()
+            if lap_number in completed_laps
+        }
+        if driver_times:
+            times_by_driver_lap[driver] = driver_times
+        sector_one_distances.extend(
+            distance
+            for lap_number, distance in prepared.sector_one_distance_by_driver_lap.get(
+                driver, {}
+            ).items()
+            if lap_number in completed_laps
+        )
+        sector_two_distances.extend(
+            distance
+            for lap_number, distance in prepared.sector_two_distance_by_driver_lap.get(
+                driver, {}
+            ).items()
+            if lap_number in completed_laps
+        )
 
     if not times_by_driver_lap:
         return {}, []
@@ -1229,6 +1443,14 @@ def _lap_at_time(laps_by_number: dict[int, LapRecord], session_time: float) -> L
         if start <= session_time < end:
             return lap
     return None
+
+
+def _telemetry_session_time(sample: TelemetrySample) -> float:
+    return float(sample.session_time_seconds or 0.0)
+
+
+def _timing_session_time(record: TimingStreamRecord) -> float:
+    return record.session_time_seconds
 
 
 def _positioned_telemetry_by_driver(

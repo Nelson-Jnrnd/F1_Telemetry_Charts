@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 from datetime import datetime, timezone
+from functools import lru_cache
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -472,6 +473,14 @@ class AnalysisService:
             max_points=max_points,
         )
 
+    def open_for_playback(self) -> AnalysisWorkspace:
+        """Open workspace metadata without loading session snapshot summaries."""
+        path = _analysis_file(self.root)
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        analysis = AnalysisWorkspace.model_validate(raw)
+        analysis = _migrate_loaded_strategy_contracts(analysis)
+        return analysis.model_copy(update={"root_path": self.root}, deep=True)
+
     def playback(
         self,
         analysis: AnalysisWorkspace,
@@ -509,6 +518,7 @@ class AnalysisService:
         dataset = _read_snapshot_dataset(self.root, session.snapshot)
         return build_playback_payload(
             dataset,
+            cache_key=session.snapshot.dataset_hash,
             session_id=session.session_id,
             mode=mode,
             cursor=cursor,
@@ -2605,7 +2615,12 @@ def _write_snapshot(
 
 
 def _read_snapshot_dataset(analysis_root: Path, snapshot: DatasetSnapshot) -> SessionDataset:
-    path = analysis_root / snapshot.dataset_path
+    path = (analysis_root / snapshot.dataset_path).resolve()
+    return _read_snapshot_dataset_cached(path, snapshot.dataset_hash)
+
+
+@lru_cache(maxsize=4)
+def _read_snapshot_dataset_cached(path: Path, dataset_hash: str) -> SessionDataset:
     return ensure_track_geometry(
         SessionDataset.model_validate(json.loads(path.read_text(encoding="utf-8")))
     )

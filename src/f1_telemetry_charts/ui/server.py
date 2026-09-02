@@ -615,7 +615,7 @@ def create_app(
         service = _require_analysis_service(state["analysis_path"])
         try:
             return service.playback(
-                service.open(),
+                service.open_for_playback(),
                 session_id=request.session_id,
                 mode=request.mode,
                 cursor=request.cursor,

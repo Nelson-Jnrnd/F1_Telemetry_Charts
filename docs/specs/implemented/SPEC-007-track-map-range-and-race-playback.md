@@ -1044,7 +1044,7 @@ without changing plugin trust boundaries or allowing code authoring.
 | REQ-018 | Exported selection metadata | Chart metadata records style sources, coverage bounds, requested/effective ranges, selected track segment/corner metadata, and playback-derived interval metadata | `src/f1_telemetry_charts/recipes/`; `src/f1_telemetry_charts/recipes/parameters.py`; `tests/test_core_recipes.py`; `tests/test_analysis_workspace.py` | Implemented through Slice 4 metadata |
 | REQ-019 | Graceful degraded modes | Coverage, track-map, and playback payloads report unavailable geometry/corners/timestamp/position states with reasons; UI preserves compatible controls | `src/f1_telemetry_charts/recipes/parameters.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/analysis/playback.py`; `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py`; browser degraded-state check | Implemented through Slice 4 degraded states |
 | REQ-020 | LLM-safe track-map inspection | LLM inspection exposes bounded coverage, corner availability, track-map summaries, and playback summaries without raw point/frame arrays; parameter updates remain backend validated | `src/f1_telemetry_charts/llm/contract.py`; `tests/test_llm_contract.py` | Implemented through Slice 4 summaries |
-| NFR-001 | Interactive performance | Existing numeric range diagnostics, track selector, and playback explorer use cached snapshot payloads and browser-verified responsive controls | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/analysis/playback.py`; browser smoke check | Implemented through Slice 4 interactions |
+| NFR-001 | Interactive performance | Existing numeric range diagnostics and track selector remain responsive; playback now caches parsed snapshots and prepared indexes by immutable dataset hash, precomputes minisector inputs once, uses indexed timestamp lookup, and retains a bounded frame cache | `scripts/benchmark_playback.py`; `tests/test_playback_cache.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/playback.py`; benchmark against the canonical full-field Bahrain snapshot | Implemented through the 2026-09-02 performance remediation |
 | NFR-002 | Payload bounds | Track map and playback payloads default to 500 map points, cap requested point/frame/marker counts, expose source counts/metadata, and omit raw unbounded telemetry from LLM summaries | `src/f1_telemetry_charts/analysis/track_map.py`; `src/f1_telemetry_charts/analysis/playback.py`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented through Slice 4 payloads |
 | NFR-003 | Responsive usability | Race Playback browser-checked at 1280x720 with no document-level horizontal or vertical overflow, a 430 px desktop timing console, a 20-row timing field using one exact row height across all views, and compact direct comparison tabs without internal horizontal overflow; the 390x844 stacked surface retains no horizontal overflow | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; rebuilt `src/f1_telemetry_charts/ui/static/` assets; browser smoke check | Implemented through AMEND-015 |
 | SEC-001 | Local snapshot boundary | Coverage and validation operate on open Analysis snapshots | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_analysis_workspace.py` | Implemented for Slice 1 |
@@ -1057,7 +1057,7 @@ without changing plugin trust boundaries or allowing code authoring.
 | API-001 | Coverage endpoint | `GET /api/analysis/coverage` and LLM inspection coverage payload | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/llm/contract.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented for Slice 1 |
 | API-002 | Track map endpoint | `POST /api/analysis/track-map` returns bounded projected session geometry, corner markers, segment markers, bounds, counts, and diagnostics independent of selected-driver position coverage | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/track_map.py`; `tests/test_analysis_workspace.py` | Implemented through Slice 3 |
 | API-003 | Range validation endpoint | Diagnostics/create/update/generate/LLM paths share backend bounds validation and accept corner-derived distance ranges through the same `distance_range_m` contract | `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/ui/server.py`; `tests/test_analysis_workspace.py`; `tests/test_llm_contract.py` | Implemented through Slice 3 ranges |
-| API-004 | Playback endpoint | `POST /api/analysis/playback` returns bounded lap playback payloads, mode availability, diagnostics, map points, frames, markers, and context | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `tests/test_analysis_workspace.py` | Implemented in Slice 4 |
+| API-004 | Playback endpoint | `POST /api/analysis/playback` returns bounded lap playback payloads, mode availability, diagnostics, map points, frames, markers, and context through a snapshot-hash-invalidated prepared-data cache | `src/f1_telemetry_charts/ui/server.py`; `src/f1_telemetry_charts/analysis/workspace.py`; `src/f1_telemetry_charts/analysis/playback.py`; `tests/test_analysis_workspace.py`; `tests/test_playback_cache.py` | Implemented in Slice 4 and performance-remediated on 2026-09-02 |
 | UX-001 | Primary visual distance selection | Add Chart and telemetry chart editor expose Track Selector action next to chart controls; applying visual selection updates existing numeric distance fields before save/generate | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; browser smoke check | Implemented in Slice 2 |
 | UX-002 | Track-map selector ergonomics | SVG trace renders full lap, corner markers, highlighted selected segment, distinct start/end markers, range sliders, numeric fields, corner padding controls, reset/apply/cancel, and unavailable state | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; browser smoke check | Implemented through Slice 3 selector |
 | UX-003 | Bounded input feedback | Min/max range fields, field diagnostics, invalid Save/Generate blocking | `frontend/src/pages/AnalysisWorkbenchPage.tsx`; browser smoke check | Implemented in Slice 1 |
@@ -1861,6 +1861,27 @@ artifact metadata, and tests.
 - **Human approval reference:** Approved by Nelson Jeanrenaud in Codex on
   2026-08-03 through the explicit request to implement the Median Session
   Track Geometry plan.
+
+## 2026-09-02 Performance remediation evidence
+
+The approved NFR-001 behavior was restored without changing playback semantics.
+The local API now opens only workspace metadata for a playback request, caches
+the validated `SessionDataset` by immutable snapshot hash, prepares sorted
+driver/lap/timing indexes and equal-distance minisector inputs once per
+snapshot, performs binary position/timing lookups, and retains up to 128 bounded
+payloads across up to four prepared snapshots.
+
+On the canonical 2023 Bahrain Race snapshot with 20 drivers, 1,056 laps, 56,998
+telemetry samples, and 28,475 timing records, the benchmark measured a 0.6260
+second cold initial request, a 0.0166 second median across subsequent distinct
+lap requests, and a 0.0097 second repeated-frame request. The pre-change
+diagnostic measured 3.758 seconds median for in-process workspace open plus
+playback and 4.673 seconds through FastAPI TestClient on the same machine.
+
+Evidence commands:
+
+- `python scripts/benchmark_playback.py analyses/race-analysis --session-id session-6129e831b8 --laps 1,2,10,30,57,30`
+- `python -m unittest tests.test_playback_cache`
 
 ## Review checklist
 
